@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
@@ -19,6 +20,21 @@ import (
 	"github.com/rs/xid"
 	gomail "gopkg.in/gomail.v2"
 )
+
+// StatusDates - Used for all structs
+type StatusDates struct {
+	Statusc      uint
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	CreatedDay   uint
+	CreatedWeek  uint
+	CreatedMonth uint
+	CreatedYear  uint
+	UpdatedDay   uint
+	UpdatedWeek  uint
+	UpdatedMonth uint
+	UpdatedYear  uint
+}
 
 // Active - used for status of all struct
 const Active = 1
