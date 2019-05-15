@@ -80,7 +80,7 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 
 	JWTKey := v.GetString("VILOM_JWT_KEY")
 	jwtObj.JWTKey = []byte(JWTKey)
-	JWTDuration, err := strconv.Atoi(v.GetString("VILOM_JWT_Duration"))
+	JWTDuration, err := strconv.Atoi(v.GetString("VILOM_JWT_DURATION"))
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 	}
