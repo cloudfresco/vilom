@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 
 	log "github.com/Sirupsen/logrus"
@@ -96,16 +98,62 @@ func main() {
 
 		tlsConfig = getKeys(caCertPath, certPath, keyPath)
 
-		s := &http.Server{
+		srv := &http.Server{
 			Addr:      appState.ServerAddr,
 			Handler:   mux,
 			TLSConfig: tlsConfig,
 		}
-		log.Fatal(s.ListenAndServeTLS(certPath, keyPath))
-	} else {
-		err = http.ListenAndServe(appState.ServerAddr, mux)
-		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+
+		idleConnsClosed := make(chan struct{})
+		go func() {
+			sigint := make(chan os.Signal, 1)
+			signal.Notify(sigint, os.Interrupt)
+			<-sigint
+
+			// We received an interrupt signal, shut down.
+			if err := srv.Shutdown(context.Background()); err != nil {
+				// Error from closing listeners, or context timeout:
+				log.Error("HTTP server Shutdown: %v", err)
+			}
+			close(idleConnsClosed)
+		}()
+
+		if err := srv.ListenAndServeTLS(certPath, keyPath); err != http.ErrServerClosed {
+			// Error starting or closing listener:
+			log.Error("HTTP server ListenAndServeTLS: %v", err)
 		}
+		log.Error("Server shutting down")
+
+		<-idleConnsClosed
+	} else {
+
+			srv := &http.Server{
+				Addr:      appState.ServerAddr,
+				Handler:   mux,
+			}
+
+			idleConnsClosed := make(chan struct{})
+			go func() {
+				sigint := make(chan os.Signal, 1)
+				signal.Notify(sigint, os.Interrupt)
+				<-sigint
+
+				// We received an interrupt signal, shut down.
+				if err := srv.Shutdown(context.Background()); err != nil {
+					// Error from closing listeners, or context timeout:
+					log.Error("HTTP server Shutdown: %v", err)
+				}
+				close(idleConnsClosed)
+			}()
+
+			if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+				// Error starting or closing listener:
+				log.Error("HTTP server ListenAndServe: %v", err)
+			}
+
+			log.Error("Server shutting down")
+
+			<-idleConnsClosed
+
 	}
 }
