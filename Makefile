@@ -18,7 +18,7 @@ SHELL := /bin/bash
 # go source files, ignore vendor directory
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 MFILE = cmd/main.go
-EXEC = cmd/vilom.o
+EXEC = cmd/vilom
 PKGS = ./...
 .PHONY: all deps build buildp test clean fmt vet lint err sql run runp doc
 
