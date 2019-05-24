@@ -1,6 +1,7 @@
 package userservices
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -72,7 +73,7 @@ type UgroupCursor struct {
 }
 
 // GetUgroups - Get Groups
-func (u *UgroupService) GetUgroups(limit string, nextCursor string) (*UgroupCursor, error) {
+func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor string) (*UgroupCursor, error) {
 	if limit == "" {
 		limit = u.LimitDefault
 	}
@@ -85,7 +86,7 @@ func (u *UgroupService) GetUgroups(limit string, nextCursor string) (*UgroupCurs
 	}
 
 	ugroups := []*Ugroup{}
-	rows, err := u.Db.Query(`select 
+	rows, err := u.Db.QueryContext(ctx, `select 
       id,
 			id_s,
 			ugroup_name,
@@ -103,7 +104,7 @@ func (u *UgroupService) GetUgroups(limit string, nextCursor string) (*UgroupCurs
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from ugroups ` + query)
+			updated_year from ugroups `+query)
 	if err != nil {
 		log.Println(err)
 	}
@@ -140,6 +141,12 @@ func (u *UgroupService) GetUgroups(limit string, nextCursor string) (*UgroupCurs
 		return nil, err
 	}
 
+	err = rows.Err()
+	if err != nil {
+		log.Error(stacktrace.Propagate(err, ""))
+		return nil, err
+	}
+
 	next := ugroups[len(ugroups)-1].ID
 	next = next - 1
 	nextc := common.EncodeCursor(next)
@@ -148,7 +155,7 @@ func (u *UgroupService) GetUgroups(limit string, nextCursor string) (*UgroupCurs
 }
 
 // Create - Create ugroup
-func (u *UgroupService) Create(form *Ugroup) (*Ugroup, error) {
+func (u *UgroupService) Create(ctx context.Context, form *Ugroup) (*Ugroup, error) {
 	db := u.Db
 	tx, err := db.Begin()
 	if err != nil {
@@ -179,7 +186,7 @@ func (u *UgroupService) Create(form *Ugroup) (*Ugroup, error) {
 	ug.UpdatedMonth = uint(tn.Month())
 	ug.UpdatedYear = uint(tn.Year())
 
-	ugrp, err := u.InsertUgroup(tx, ug)
+	ugrp, err := u.InsertUgroup(ctx, tx, ug)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -198,8 +205,8 @@ func (u *UgroupService) Create(form *Ugroup) (*Ugroup, error) {
 }
 
 // CreateChild - Create child of ugroup
-func (u *UgroupService) CreateChild(form *Ugroup) (*Ugroup, error) {
-	parent, err := u.GetUgroupByIDuint(form.ParentID)
+func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup, error) {
+	parent, err := u.GetUgroupByIDuint(ctx, form.ParentID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -234,7 +241,7 @@ func (u *UgroupService) CreateChild(form *Ugroup) (*Ugroup, error) {
 	ug.UpdatedMonth = uint(tn.Month())
 	ug.UpdatedYear = uint(tn.Year())
 
-	ugrp, err := u.InsertUgroup(tx, ug)
+	ugrp, err := u.InsertUgroup(ctx, tx, ug)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -257,7 +264,7 @@ func (u *UgroupService) CreateChild(form *Ugroup) (*Ugroup, error) {
 	Ugroupchd.UpdatedMonth = uint(tn.Month())
 	Ugroupchd.UpdatedYear = uint(tn.Year())
 
-	_, err = u.InsertChild(tx, Ugroupchd)
+	_, err = u.InsertChild(ctx, tx, Ugroupchd)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -270,7 +277,7 @@ func (u *UgroupService) CreateChild(form *Ugroup) (*Ugroup, error) {
 	UpdatedMonth := uint(tn.Month())
 	UpdatedYear := uint(tn.Year())
 
-	stmt, err := tx.Prepare(`update ugroups set 
+	stmt, err := tx.PrepareContext(ctx, `update ugroups set 
 				  num_chd = ?,
 				  updated_at = ?, 
 					updated_day = ?, 
@@ -284,7 +291,7 @@ func (u *UgroupService) CreateChild(form *Ugroup) (*Ugroup, error) {
 		return nil, err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		parent.NumChd+1,
 		tn,
 		UpdatedDay,
@@ -318,9 +325,9 @@ func (u *UgroupService) CreateChild(form *Ugroup) (*Ugroup, error) {
 }
 
 // AddUserToGroup - Add user to ugroup
-func (u *UgroupService) AddUserToGroup(form *UgroupUser, ID string) error {
+func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID string) error {
 	db := u.Db
-	ug, err := u.GetUgroupByID(ID)
+	ug, err := u.GetUgroupByID(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return err
@@ -353,7 +360,7 @@ func (u *UgroupService) AddUserToGroup(form *UgroupUser, ID string) error {
 	Uguser.UpdatedMonth = uint(tn.Month())
 	Uguser.UpdatedYear = uint(tn.Year())
 
-	_, err = u.InsertUgroupUser(tx, Uguser)
+	_, err = u.InsertUgroupUser(ctx, tx, Uguser)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -371,8 +378,8 @@ func (u *UgroupService) AddUserToGroup(form *UgroupUser, ID string) error {
 }
 
 // InsertUgroup - Insert Ugroup details into database
-func (u *UgroupService) InsertUgroup(tx *sql.Tx, ug Ugroup) (*Ugroup, error) {
-	stmt, err := tx.Prepare(`insert into ugroups
+func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug Ugroup) (*Ugroup, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into ugroups
 	  (
 		id_s,
 		ugroup_name,
@@ -397,7 +404,7 @@ func (u *UgroupService) InsertUgroup(tx *sql.Tx, ug Ugroup) (*Ugroup, error) {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		ug.IDS,
 		ug.UgroupName,
 		ug.UgroupDesc,
@@ -436,8 +443,8 @@ func (u *UgroupService) InsertUgroup(tx *sql.Tx, ug Ugroup) (*Ugroup, error) {
 }
 
 // InsertChild - Insert Child Ugroup details into database
-func (u *UgroupService) InsertChild(tx *sql.Tx, ugroupchd UgroupChd) (*UgroupChd, error) {
-	stmt, err := tx.Prepare(`insert into ugroup_chds
+func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd UgroupChd) (*UgroupChd, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into ugroup_chds
 	  ( 
 		ugroup_id,
 		ugroup_chd_id,
@@ -458,7 +465,7 @@ func (u *UgroupService) InsertChild(tx *sql.Tx, ugroupchd UgroupChd) (*UgroupChd
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		ugroupchd.UgroupID,
 		ugroupchd.UgroupChdID,
 		ugroupchd.Statusc,
@@ -494,17 +501,17 @@ func (u *UgroupService) InsertChild(tx *sql.Tx, ugroupchd UgroupChd) (*UgroupChd
 }
 
 // Delete - Delete ugroup
-func (u *UgroupService) Delete(ID string) error {
+func (u *UgroupService) Delete(ctx context.Context, ID string) error {
 	db := u.Db
 	tx, err := db.Begin()
-	stmt, err := tx.Prepare("delete from ugroups where id_s= ?;")
+	stmt, err := tx.PrepareContext(ctx, "delete from ugroups where id_s= ?;")
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = tx.Rollback()
 		return err
 	}
 
-	_, err = stmt.Exec(ID)
+	_, err = stmt.ExecContext(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = stmt.Close()
@@ -529,11 +536,11 @@ func (u *UgroupService) Delete(ID string) error {
 }
 
 // GetUgroup - Get ugroup details with users by ID
-func (u *UgroupService) GetUgroup(ID string) (*Ugroup, error) {
+func (u *UgroupService) GetUgroup(ctx context.Context, ID string) (*Ugroup, error) {
 	db := u.Db
 	poh := Ugroup{}
 
-	rows, err := db.Query(`select 
+	rows, err := db.QueryContext(ctx, `select 
     ug.id,
 		ug.id_s,
 		ug.ugroup_name,
@@ -663,14 +670,21 @@ func (u *UgroupService) GetUgroup(ID string) (*Ugroup, error) {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Error(stacktrace.Propagate(err, ""))
+		return nil, err
+	}
+
 	return &poh, nil
 }
 
 // GetUgroupByID - Get Ugroup By ID
-func (u *UgroupService) GetUgroupByID(ID string) (*Ugroup, error) {
+func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string) (*Ugroup, error) {
 	db := u.Db
 	ug := Ugroup{}
-	row := db.QueryRow(`select
+	row := db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		ugroup_name,
@@ -719,10 +733,10 @@ func (u *UgroupService) GetUgroupByID(ID string) (*Ugroup, error) {
 }
 
 // GetUgroupByIDuint - Get Ugroup By ID(uint)
-func (u *UgroupService) GetUgroupByIDuint(ID uint) (*Ugroup, error) {
+func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint) (*Ugroup, error) {
 	db := u.Db
 	ug := Ugroup{}
-	row := db.QueryRow(`select
+	row := db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		ugroup_name,
@@ -771,14 +785,14 @@ func (u *UgroupService) GetUgroupByIDuint(ID uint) (*Ugroup, error) {
 }
 
 // DeleteUserFromGroup - Delete user from group
-func (u *UgroupService) DeleteUserFromGroup(form *UgroupUser, ID string) error {
+func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUser, ID string) error {
 	db := u.Db
 	tx, err := db.Begin()
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return err
 	}
-	stmt, err := tx.Prepare("delete from ugroups_users where user_id= ? and ugroup_id = ?;")
+	stmt, err := tx.PrepareContext(ctx, `delete from ugroups_users where user_id= ? and ugroup_id = ?;`)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = stmt.Close()
@@ -786,7 +800,7 @@ func (u *UgroupService) DeleteUserFromGroup(form *UgroupUser, ID string) error {
 		return err
 	}
 
-	_, err = stmt.Exec(form.UserID, ID)
+	_, err = stmt.ExecContext(ctx, form.UserID, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = stmt.Close()
@@ -810,8 +824,8 @@ func (u *UgroupService) DeleteUserFromGroup(form *UgroupUser, ID string) error {
 }
 
 // InsertUgroupUser - Insert Ugroup User details into database
-func (u *UgroupService) InsertUgroupUser(tx *sql.Tx, Uguser UgroupUser) (*UgroupUser, error) {
-	stmt, err := tx.Prepare(`insert into ugroups_users
+func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser UgroupUser) (*UgroupUser, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into ugroups_users
 	  (
 		id_s,
 		ugroup_id,
@@ -834,7 +848,7 @@ func (u *UgroupService) InsertUgroupUser(tx *sql.Tx, Uguser UgroupUser) (*Ugroup
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		Uguser.IDS,
 		Uguser.UgroupID,
 		Uguser.UserID,
@@ -871,14 +885,14 @@ func (u *UgroupService) InsertUgroupUser(tx *sql.Tx, Uguser UgroupUser) (*Ugroup
 }
 
 // GetChildUgroups - Get child ugroups
-func (u *UgroupService) GetChildUgroups(ID string) ([]*Ugroup, error) {
-	ugroup, err := u.GetUgroupByID(ID)
+func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string) ([]*Ugroup, error) {
+	ugroup, err := u.GetUgroupByID(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	Ugroups := []*Ugroup{}
-	rows, err := u.Db.Query(`select 
+	rows, err := u.Db.QueryContext(ctx, `select 
     ug.id,
 		ug.id_s,
 		ug.ugroup_name,
@@ -934,14 +948,20 @@ func (u *UgroupService) GetChildUgroups(ID string) ([]*Ugroup, error) {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
+	err = rows.Err()
+	if err != nil {
+		log.Error(stacktrace.Propagate(err, ""))
+		return nil, err
+	}
+
 	return Ugroups, nil
 
 }
 
 // TopLevelUgroups - Get top level ugroups
-func (u *UgroupService) TopLevelUgroups() ([]*Ugroup, error) {
+func (u *UgroupService) TopLevelUgroups(ctx context.Context) ([]*Ugroup, error) {
 	Ugroups := []*Ugroup{}
-	rows, err := u.Db.Query(`select 
+	rows, err := u.Db.QueryContext(ctx, `select 
     id,
 		id_s,
 		ugroup_name,
@@ -1002,15 +1022,15 @@ func (u *UgroupService) TopLevelUgroups() ([]*Ugroup, error) {
 }
 
 // GetParent - Get parent ugroup
-func (u *UgroupService) GetParent(ID string) (*Ugroup, error) {
+func (u *UgroupService) GetParent(ctx context.Context, ID string) (*Ugroup, error) {
 	db := u.Db
-	ugroup, err := u.GetUgroupByID(ID)
+	ugroup, err := u.GetUgroupByID(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	ug := Ugroup{}
-	row := db.QueryRow(`select
+	row := db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		ugroup_name,

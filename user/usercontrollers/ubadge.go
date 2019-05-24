@@ -90,7 +90,7 @@ func (uc *UbadgeController) Index(w http.ResponseWriter, r *http.Request, limit 
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ubadges, err := uc.Service.GetUbadges(limit, cursor)
+		ubadges, err := uc.Service.GetUbadges(ctx, limit, cursor)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1230", err.Error(), 402, requestID)
@@ -109,7 +109,7 @@ func (uc *UbadgeController) Show(w http.ResponseWriter, r *http.Request, id stri
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ubadge, err := uc.Service.GetUbadge(id)
+		ubadge, err := uc.Service.GetUbadge(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1231", err.Error(), 402, requestID)
@@ -137,7 +137,7 @@ func (uc *UbadgeController) Create(w http.ResponseWriter, r *http.Request, user 
 			common.RenderErrorJSON(w, "1232", err.Error(), 402, requestID)
 			return
 		}
-		ubadge, err := uc.Service.Create(&form)
+		ubadge, err := uc.Service.Create(ctx, &form)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1233", err.Error(), 402, requestID)
@@ -157,7 +157,7 @@ func (uc *UbadgeController) Delete(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.Delete(id)
+		err := uc.Service.Delete(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1234", err.Error(), 402, requestID)
@@ -185,7 +185,7 @@ func (uc *UbadgeController) AddUserToGroup(w http.ResponseWriter, r *http.Reques
 			common.RenderErrorJSON(w, "1235", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.AddUserToGroup(&form, id)
+		err = uc.Service.AddUserToGroup(ctx, &form, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1236", err.Error(), 402, requestID)
@@ -213,7 +213,7 @@ func (uc *UbadgeController) DeleteUserFromGroup(w http.ResponseWriter, r *http.R
 			common.RenderErrorJSON(w, "1237", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.DeleteUserFromGroup(&form, id)
+		err = uc.Service.DeleteUserFromGroup(ctx, &form, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1238", err.Error(), 402, requestID)

@@ -70,7 +70,7 @@ func (mc *MessageController) Show(w http.ResponseWriter, r *http.Request, id str
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		msg, err := mc.Service.GetMessage(id)
+		msg, err := mc.Service.GetMessage(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1500", err.Error(), 402, requestID)
@@ -98,7 +98,7 @@ func (mc *MessageController) Create(w http.ResponseWriter, r *http.Request, user
 			common.RenderErrorJSON(w, "1501", err.Error(), 402, requestID)
 			return
 		}
-		msg, err := mc.Service.Create(&form, user.UserID)
+		msg, err := mc.Service.Create(ctx, &form, user.UserID)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1502", err.Error(), 402, requestID)
@@ -126,7 +126,7 @@ func (mc *MessageController) UserLikeCreate(w http.ResponseWriter, r *http.Reque
 			common.RenderErrorJSON(w, "1503", err.Error(), 402, requestID)
 			return
 		}
-		msg, err := mc.Service.UserLikeCreate(&form, user.UserID)
+		msg, err := mc.Service.UserLikeCreate(ctx, &form, user.UserID)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1504", err.Error(), 402, requestID)

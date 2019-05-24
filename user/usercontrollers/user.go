@@ -95,7 +95,7 @@ func (uc *UsersController) Index(w http.ResponseWriter, r *http.Request, limit s
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		users, err := uc.Service.GetUsers(limit, cursor)
+		users, err := uc.Service.GetUsers(ctx, limit, cursor)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1151", err.Error(), 402, requestID)
@@ -122,7 +122,7 @@ func (uc *UsersController) Show(w http.ResponseWriter, r *http.Request, id strin
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		usr, err := uc.Service.GetUser(id)
+		usr, err := uc.Service.GetUser(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1153", err.Error(), 400, requestID)
@@ -151,7 +151,7 @@ func (uc *UsersController) ChangeEmail(w http.ResponseWriter, r *http.Request, u
 			common.RenderErrorJSON(w, "1154", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ChangeEmail(&form, r.Host)
+		err = uc.Service.ChangeEmail(ctx, &form, r.Host)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1155", err.Error(), 402, requestID)
@@ -179,7 +179,7 @@ func (uc *UsersController) ChangePassword(w http.ResponseWriter, r *http.Request
 			common.RenderErrorJSON(w, "1156", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ChangePassword(&form)
+		err = uc.Service.ChangePassword(ctx, &form)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1157", err.Error(), 402, requestID)
@@ -207,7 +207,7 @@ func (uc *UsersController) Getuserbyemail(w http.ResponseWriter, r *http.Request
 			common.RenderErrorJSON(w, "1158", err.Error(), 402, requestID)
 			return
 		}
-		usr, err := uc.Service.GetUserByEmail(form.Email)
+		usr, err := uc.Service.GetUserByEmail(ctx, form.Email)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1159", err.Error(), 402, requestID)

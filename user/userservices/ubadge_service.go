@@ -1,6 +1,7 @@
 package userservices
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -57,7 +58,7 @@ type UbadgeCursor struct {
 }
 
 // GetUbadges - Get Ubadges
-func (u *UbadgeService) GetUbadges(limit string, nextCursor string) (*UbadgeCursor, error) {
+func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor string) (*UbadgeCursor, error) {
 	if limit == "" {
 		limit = u.LimitDefault
 	}
@@ -70,7 +71,7 @@ func (u *UbadgeService) GetUbadges(limit string, nextCursor string) (*UbadgeCurs
 	}
 
 	ubadges := []*Ubadge{}
-	rows, err := u.Db.Query(`select 
+	rows, err := u.Db.QueryContext(ctx, `select 
       id,
 			id_s,
 			ubadge_name,
@@ -85,7 +86,7 @@ func (u *UbadgeService) GetUbadges(limit string, nextCursor string) (*UbadgeCurs
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from ubadges ` + query)
+			updated_year from ubadges `+query)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -120,6 +121,12 @@ func (u *UbadgeService) GetUbadges(limit string, nextCursor string) (*UbadgeCurs
 		return nil, err
 	}
 
+	err = rows.Err()
+	if err != nil {
+		log.Error(stacktrace.Propagate(err, ""))
+		return nil, err
+	}
+
 	next := ubadges[len(ubadges)-1].ID
 	next = next - 1
 	nextc := common.EncodeCursor(next)
@@ -128,7 +135,7 @@ func (u *UbadgeService) GetUbadges(limit string, nextCursor string) (*UbadgeCurs
 }
 
 // Create - Create Ubadge
-func (u *UbadgeService) Create(form *Ubadge) (*Ubadge, error) {
+func (u *UbadgeService) Create(ctx context.Context, form *Ubadge) (*Ubadge, error) {
 	db := u.Db
 	tx, err := db.Begin()
 	if err != nil {
@@ -156,7 +163,7 @@ func (u *UbadgeService) Create(form *Ubadge) (*Ubadge, error) {
 	Ubadge.UpdatedMonth = uint(tn.Month())
 	Ubadge.UpdatedYear = uint(tn.Year())
 
-	ugrp, err := u.InsertUbadge(tx, Ubadge)
+	ugrp, err := u.InsertUbadge(ctx, tx, Ubadge)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -175,9 +182,9 @@ func (u *UbadgeService) Create(form *Ubadge) (*Ubadge, error) {
 }
 
 // AddUserToGroup - Add user to ubadge
-func (u *UbadgeService) AddUserToGroup(form *UbadgeUser, ID string) error {
+func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID string) error {
 	db := u.Db
-	ubadge, err := u.GetUbadge(ID)
+	ubadge, err := u.GetUbadge(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return err
@@ -208,7 +215,7 @@ func (u *UbadgeService) AddUserToGroup(form *UbadgeUser, ID string) error {
 	Uguser.UpdatedMonth = uint(tn.Month())
 	Uguser.UpdatedYear = uint(tn.Year())
 
-	_, err = u.InsertUbadgeUser(tx, Uguser)
+	_, err = u.InsertUbadgeUser(ctx, tx, Uguser)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -226,8 +233,8 @@ func (u *UbadgeService) AddUserToGroup(form *UbadgeUser, ID string) error {
 }
 
 // InsertUbadge - Insert Ubadge details into database
-func (u *UbadgeService) InsertUbadge(tx *sql.Tx, Ubadge Ubadge) (*Ubadge, error) {
-	stmt, err := tx.Prepare(`insert into ubadges
+func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Ubadge) (*Ubadge, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into ubadges
 	  (
 		id_s,
 		ubadge_name,
@@ -250,7 +257,7 @@ func (u *UbadgeService) InsertUbadge(tx *sql.Tx, Ubadge Ubadge) (*Ubadge, error)
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		Ubadge.IDS,
 		Ubadge.UbadgeName,
 		Ubadge.UbadgeDesc,
@@ -288,14 +295,14 @@ func (u *UbadgeService) InsertUbadge(tx *sql.Tx, Ubadge Ubadge) (*Ubadge, error)
 }
 
 // Delete - Delele Ubadge
-func (u *UbadgeService) Delete(ID string) error {
+func (u *UbadgeService) Delete(ctx context.Context, ID string) error {
 	db := u.Db
 	tx, err := db.Begin()
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return err
 	}
-	stmt, err := tx.Prepare("delete from ubadges where id_s= ?;")
+	stmt, err := tx.PrepareContext(ctx, "delete from ubadges where id_s= ?;")
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = stmt.Close()
@@ -303,7 +310,7 @@ func (u *UbadgeService) Delete(ID string) error {
 		return err
 	}
 
-	_, err = stmt.Exec(ID)
+	_, err = stmt.ExecContext(ctx, ID)
 	err = stmt.Close()
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -320,10 +327,10 @@ func (u *UbadgeService) Delete(ID string) error {
 }
 
 // GetUbadge - Get Ubadge Details
-func (u *UbadgeService) GetUbadge(ID string) (*Ubadge, error) {
+func (u *UbadgeService) GetUbadge(ctx context.Context, ID string) (*Ubadge, error) {
 	db := u.Db
 	poh := Ubadge{}
-	rows, err := db.Query(`select 
+	rows, err := db.QueryContext(ctx, `select 
     p.id,
 		p.id_s,
 		p.ubadge_name,
@@ -449,14 +456,20 @@ func (u *UbadgeService) GetUbadge(ID string) (*Ubadge, error) {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
+
+	if err != nil {
+		log.Error(stacktrace.Propagate(err, ""))
+		return nil, err
+	}
+
 	return &poh, nil
 }
 
 // GetUbadgeByID - Get Ubadge by ID
-func (u *UbadgeService) GetUbadgeByID(ID string) (*Ubadge, error) {
+func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string) (*Ubadge, error) {
 	db := u.Db
 	Ubadge := Ubadge{}
-	row := db.QueryRow(`select
+	row := db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		ubadge_name,
@@ -499,14 +512,14 @@ func (u *UbadgeService) GetUbadgeByID(ID string) (*Ubadge, error) {
 }
 
 // DeleteUserFromGroup - Delete user from Ubadge
-func (u *UbadgeService) DeleteUserFromGroup(form *UbadgeUser, ID string) error {
+func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUser, ID string) error {
 	db := u.Db
 	tx, err := db.Begin()
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return err
 	}
-	stmt, err := tx.Prepare("delete from ubadges_users where user_id= ? and ubadge_id = ?;")
+	stmt, err := tx.PrepareContext(ctx, `delete from ubadges_users where user_id= ? and ubadge_id = ?;`)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = stmt.Close()
@@ -514,7 +527,7 @@ func (u *UbadgeService) DeleteUserFromGroup(form *UbadgeUser, ID string) error {
 		return err
 	}
 
-	_, err = stmt.Exec(form.UserID, ID)
+	_, err = stmt.ExecContext(ctx, form.UserID, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = stmt.Close()
@@ -537,8 +550,8 @@ func (u *UbadgeService) DeleteUserFromGroup(form *UbadgeUser, ID string) error {
 }
 
 // InsertUbadgeUser - Insert Ubadge User details into database
-func (u *UbadgeService) InsertUbadgeUser(tx *sql.Tx, Uguser UbadgeUser) (*UbadgeUser, error) {
-	stmt, err := tx.Prepare(`insert into ubadges_users
+func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser UbadgeUser) (*UbadgeUser, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into ubadges_users
 	  (
 		id_s,
 		ubadge_id,
@@ -560,7 +573,7 @@ func (u *UbadgeService) InsertUbadgeUser(tx *sql.Tx, Uguser UbadgeUser) (*Ubadge
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		Uguser.IDS,
 		Uguser.UbadgeID,
 		Uguser.UserID,

@@ -71,7 +71,7 @@ func (tc *TopicController) Show(w http.ResponseWriter, r *http.Request, id strin
 		return
 	default:
 
-		topic, err := tc.Service.Show(id, user.UserID)
+		topic, err := tc.Service.Show(ctx, id, user.UserID)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1400", err.Error(), 402, requestID)
@@ -99,7 +99,7 @@ func (tc *TopicController) Create(w http.ResponseWriter, r *http.Request, user *
 			common.RenderErrorJSON(w, "1401", err.Error(), 402, requestID)
 			return
 		}
-		topic, err := tc.Service.Create(&form, user.UserID)
+		topic, err := tc.Service.Create(ctx, &form, user.UserID)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1402", err.Error(), 402, requestID)
@@ -127,7 +127,7 @@ func (tc *TopicController) Topicbyname(w http.ResponseWriter, r *http.Request, u
 			common.RenderErrorJSON(w, "1403", err.Error(), 402, requestID)
 			return
 		}
-		topc, err := tc.Service.GetTopicByName(form.TopicName)
+		topc, err := tc.Service.GetTopicByName(ctx, form.TopicName)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1404", err.Error(), 402, requestID)

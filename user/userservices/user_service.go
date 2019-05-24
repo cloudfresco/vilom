@@ -1,6 +1,7 @@
 package userservices
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha512"
 	"crypto/subtle"
@@ -67,7 +68,6 @@ type User struct {
 	common.StatusDates
 
 	/* used only for logic purpose */
-	FullName    string
 	Roles       []string
 	PasswordS   string
 	HostURL     string
@@ -212,7 +212,7 @@ type UserCursor struct {
 }
 
 // GetUsers - Get all users
-func (u *UserService) GetUsers(limit string, nextCursor string) (*UserCursor, error) {
+func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor string) (*UserCursor, error) {
 	if limit == "" {
 		limit = u.LimitDefault
 	}
@@ -224,7 +224,7 @@ func (u *UserService) GetUsers(limit string, nextCursor string) (*UserCursor, er
 		query = query + "where " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 	}
 	users := []*User{}
-	rows, err := u.Db.Query(`select id, id_s, auth_token, first_name, last_name, concat(first_name, ' ', last_name) as full_name, email, role from users ` + query)
+	rows, err := u.Db.QueryContext(ctx, `select id, id_s, auth_token, first_name, last_name, email, role from users `+query)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -232,7 +232,7 @@ func (u *UserService) GetUsers(limit string, nextCursor string) (*UserCursor, er
 
 	for rows.Next() {
 		user := User{}
-		err = rows.Scan(&user.ID, &user.IDS, &user.AuthToken, &user.FirstName, &user.LastName, &user.FullName, &user.Email, &user.Role)
+		err = rows.Scan(&user.ID, &user.IDS, &user.AuthToken, &user.FirstName, &user.LastName, &user.Email, &user.Role)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			err = rows.Close()
@@ -241,6 +241,12 @@ func (u *UserService) GetUsers(limit string, nextCursor string) (*UserCursor, er
 		users = append(users, &user)
 	}
 	err = rows.Close()
+	if err != nil {
+		log.Error(stacktrace.Propagate(err, ""))
+		return nil, err
+	}
+
+	err = rows.Err()
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -255,10 +261,10 @@ func (u *UserService) GetUsers(limit string, nextCursor string) (*UserCursor, er
 }
 
 // Login - used for Login user
-func (u *UserService) Login(form *LoginForm) (*User, error) {
+func (u *UserService) Login(ctx context.Context, form *LoginForm) (*User, error) {
 	db := u.Db
 	user := User{}
-	row := db.QueryRow(`select id, email, password from users where email = ?;`, form.Email)
+	row := db.QueryRowContext(ctx, `select id, email, password from users where email = ?;`, form.Email)
 	err := row.Scan(
 		&user.ID,
 		&user.Email,
@@ -311,11 +317,11 @@ func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration) (
 }
 
 // Create - Create User
-func (u *UserService) Create(form *User, hostURL string) (*User, error) {
+func (u *UserService) Create(ctx context.Context, form *User, hostURL string) (*User, error) {
 	db := u.Db
 	//check if email already exists
 	var isPresent bool
-	row := db.QueryRow("select exists (select 1 from users where email = ?)", form.Email)
+	row := db.QueryRowContext(ctx, `select exists (select 1 from users where email = ?)`, form.Email)
 	err := row.Scan(&isPresent)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -394,7 +400,7 @@ func (u *UserService) Create(form *User, hostURL string) (*User, error) {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
-	usr, err := u.InsertUser(tx, user, hostURL)
+	usr, err := u.InsertUser(ctx, tx, user, hostURL)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = tx.Rollback()
@@ -410,8 +416,8 @@ func (u *UserService) Create(form *User, hostURL string) (*User, error) {
 }
 
 // InsertUser - Insert User details to database
-func (u *UserService) InsertUser(tx *sql.Tx, user User, hostURL string) (*User, error) {
-	stmt, err := tx.Prepare(`insert into users
+func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hostURL string) (*User, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into users
 	  (
 		id_s,
     auth_token,
@@ -465,7 +471,7 @@ func (u *UserService) InsertUser(tx *sql.Tx, user User, hostURL string) (*User, 
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		user.IDS,
 		user.AuthToken,
 		user.Email,
@@ -558,7 +564,7 @@ func (u *UserService) InsertUser(tx *sql.Tx, user User, hostURL string) (*User, 
 }
 
 // ConfirmEmail - used to confirm email
-func (u *UserService) ConfirmEmail(token string) error {
+func (u *UserService) ConfirmEmail(ctx context.Context, token string) error {
 	db := u.Db
 	verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token)
 	if err != nil {
@@ -566,7 +572,7 @@ func (u *UserService) ConfirmEmail(token string) error {
 		return err
 	}
 	user := User{}
-	row := db.QueryRow(`select id, email_selector, email_verifier, email_token_expiry from users where email_selector = ?;`, selector)
+	row := db.QueryRowContext(ctx, `select id, email_selector, email_verifier, email_token_expiry from users where email_selector = ?;`, selector)
 
 	err = row.Scan(
 		&user.ID,
@@ -594,7 +600,7 @@ func (u *UserService) ConfirmEmail(token string) error {
 	UpdatedMonth := uint(tn.Month())
 	UpdatedYear := uint(tn.Year())
 
-	stmt, err := db.Prepare(`update users set 
+	stmt, err := db.PrepareContext(ctx, `update users set 
 				email_confirmation_token = ?,
 				email_selector = ?,
 				email_verifier = ?,
@@ -612,7 +618,7 @@ func (u *UserService) ConfirmEmail(token string) error {
 		return err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		"",
 		"",
 		"",
@@ -641,9 +647,9 @@ func (u *UserService) ConfirmEmail(token string) error {
 }
 
 // ForgotPassword - used to reset forgotten Password
-func (u *UserService) ForgotPassword(form *ForgotPasswordForm, hostURL string) error {
+func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordForm, hostURL string) error {
 	db := u.Db
-	user, err := u.GetUserByEmail(form.Email)
+	user, err := u.GetUserByEmail(ctx, form.Email)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return err
@@ -667,7 +673,7 @@ func (u *UserService) ForgotPassword(form *ForgotPasswordForm, hostURL string) e
 	UpdatedMonth := uint(tn.Month())
 	UpdatedYear := uint(tn.Year())
 
-	stmt, err := db.Prepare(`update users set 
+	stmt, err := db.PrepareContext(ctx, `update users set 
 		    password_reset_token = ?,
 				password_selector = ?,
 				password_verifier = ?,
@@ -684,7 +690,7 @@ func (u *UserService) ForgotPassword(form *ForgotPasswordForm, hostURL string) e
 		return err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		token,
 		selector,
 		verifier,
@@ -742,7 +748,7 @@ func (u *UserService) ForgotPassword(form *ForgotPasswordForm, hostURL string) e
 }
 
 // ConfirmForgotPassword - used to confirm forgotten password
-func (u *UserService) ConfirmForgotPassword(form *PasswordForm, token string) error {
+func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordForm, token string) error {
 	db := u.Db
 	password1, err := HashPassword(form.Password)
 	if err != nil {
@@ -755,7 +761,7 @@ func (u *UserService) ConfirmForgotPassword(form *PasswordForm, token string) er
 		return err
 	}
 	user := User{}
-	row := db.QueryRow(`select id, password_selector, password_verifier, password_token_expiry from users where password_selector = ?;`, selector)
+	row := db.QueryRowContext(ctx, `select id, password_selector, password_verifier, password_token_expiry from users where password_selector = ?;`, selector)
 
 	err = row.Scan(
 		&user.ID,
@@ -789,7 +795,7 @@ func (u *UserService) ConfirmForgotPassword(form *PasswordForm, token string) er
 		return err
 	}
 
-	stmt, err := tx.Prepare(`update users set 
+	stmt, err := tx.PrepareContext(ctx, `update users set 
 		    password_reset_token = ?,
 				password_selector = ?,
 				password_verifier = ?,
@@ -809,7 +815,7 @@ func (u *UserService) ConfirmForgotPassword(form *PasswordForm, token string) er
 		return err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		"",
 		"",
 		"",
@@ -845,10 +851,10 @@ func (u *UserService) ConfirmForgotPassword(form *PasswordForm, token string) er
 }
 
 // ChangePassword - used to update password
-func (u *UserService) ChangePassword(form *PasswordForm) error {
+func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm) error {
 	db := u.Db
 	user := User{}
-	row := db.QueryRow(`select id, password from users where id_s = ?;`, form.ID)
+	row := db.QueryRowContext(ctx, `select id, password from users where id_s = ?;`, form.ID)
 	err := row.Scan(
 		&user.ID,
 		&user.Password)
@@ -878,7 +884,7 @@ func (u *UserService) ChangePassword(form *PasswordForm) error {
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 	}
-	stmt, err := db.Prepare(`update users set 
+	stmt, err := db.PrepareContext(ctx, `update users set 
 		    password = ?,
 		    updated_at = ?, 
 				updated_day = ?, 
@@ -891,7 +897,7 @@ func (u *UserService) ChangePassword(form *PasswordForm) error {
 		return err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		password1,
 		tn,
 		UpdatedDay,
@@ -914,9 +920,9 @@ func (u *UserService) ChangePassword(form *PasswordForm) error {
 }
 
 // ChangeEmail - Change Email
-func (u *UserService) ChangeEmail(form *ChangeEmailForm, hostURL string) error {
+func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, hostURL string) error {
 	db := u.Db
-	user, err := u.GetUserByEmail(form.Email)
+	user, err := u.GetUserByEmail(ctx, form.Email)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return err
@@ -940,7 +946,7 @@ func (u *UserService) ChangeEmail(form *ChangeEmailForm, hostURL string) error {
 	UpdatedMonth := uint(tn.Month())
 	UpdatedYear := uint(tn.Year())
 
-	stmt, err := db.Prepare(`update users set 
+	stmt, err := db.PrepareContext(ctx, `update users set 
         new_email = ?,
 		    new_email_reset_token = ?,
 				new_email_selector = ?,
@@ -958,7 +964,7 @@ func (u *UserService) ChangeEmail(form *ChangeEmailForm, hostURL string) error {
 		return err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		form.NewEmail,
 		token,
 		selector,
@@ -1017,7 +1023,7 @@ func (u *UserService) ChangeEmail(form *ChangeEmailForm, hostURL string) error {
 }
 
 // ConfirmChangeEmail - Confirm change email
-func (u *UserService) ConfirmChangeEmail(token string) error {
+func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string) error {
 	db := u.Db
 	tn := time.Now().UTC()
 
@@ -1027,7 +1033,7 @@ func (u *UserService) ConfirmChangeEmail(token string) error {
 		return err
 	}
 	user := User{}
-	row := db.QueryRow(`select id, email, new_email, new_email_selector, new_email_verifier, new_email_token_expiry from users where new_email_selector = ?;`, selector)
+	row := db.QueryRowContext(ctx, `select id, email, new_email, new_email_selector, new_email_verifier, new_email_token_expiry from users where new_email_selector = ?;`, selector)
 
 	err = row.Scan(
 		&user.ID,
@@ -1056,7 +1062,7 @@ func (u *UserService) ConfirmChangeEmail(token string) error {
 	UpdatedMonth := uint(tn.Month())
 	UpdatedYear := uint(tn.Year())
 
-	stmt, err := db.Prepare(`update users set 
+	stmt, err := db.PrepareContext(ctx, `update users set 
         new_email_confirmed_at = ?
 		    email = ?,
         new_email = ?,
@@ -1076,7 +1082,7 @@ func (u *UserService) ConfirmChangeEmail(token string) error {
 		return err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		tn,
 		user.NewEmail,
 		"",
@@ -1107,10 +1113,10 @@ func (u *UserService) ConfirmChangeEmail(token string) error {
 }
 
 // GetUserByEmail - Get user details by email
-func (u *UserService) GetUserByEmail(Email string) (*User, error) {
+func (u *UserService) GetUserByEmail(ctx context.Context, Email string) (*User, error) {
 	db := u.Db
 	user := User{}
-	row := db.QueryRow(`select
+	row := db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		email,
@@ -1162,10 +1168,10 @@ func (u *UserService) GetUserByEmail(Email string) (*User, error) {
 }
 
 // GetUser - Get user details by ID
-func (u *UserService) GetUser(ID string) (*User, error) {
+func (u *UserService) GetUser(ctx context.Context, ID string) (*User, error) {
 	db := u.Db
 	user := User{}
-	row := db.QueryRow(`select
+	row := db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		email,

@@ -1,6 +1,7 @@
 package msgservices
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -64,7 +65,7 @@ type CategoryCursor struct {
 }
 
 // GetCategories - Get Categories
-func (c *CategoryService) GetCategories(limit string, nextCursor string) (*CategoryCursor, error) {
+func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextCursor string) (*CategoryCursor, error) {
 	if limit == "" {
 		limit = c.LimitDefault
 	}
@@ -77,7 +78,7 @@ func (c *CategoryService) GetCategories(limit string, nextCursor string) (*Categ
 	}
 
 	cats := []*Category{}
-	rows, err := c.Db.Query(`select 
+	rows, err := c.Db.QueryContext(ctx, `select 
       id, 
 			id_s,
 			category_name,
@@ -143,6 +144,12 @@ func (c *CategoryService) GetCategories(limit string, nextCursor string) (*Categ
 		return nil, err
 	}
 
+	err = rows.Err()
+	if err != nil {
+		log.Error(stacktrace.Propagate(err, ""))
+		return nil, err
+	}
+
 	next := cats[len(cats)-1].ID
 	next = next - 1
 	nextc := common.EncodeCursor(next)
@@ -151,9 +158,9 @@ func (c *CategoryService) GetCategories(limit string, nextCursor string) (*Categ
 }
 
 // GetCategory - Get Category
-func (c *CategoryService) GetCategory(ID string) (*Category, error) {
+func (c *CategoryService) GetCategory(ctx context.Context, ID string) (*Category, error) {
 	cat := Category{}
-	row := c.Db.QueryRow(`select
+	row := c.Db.QueryRowContext(ctx, `select
       id,
 			id_s,
 			category_name,
@@ -210,9 +217,9 @@ func (c *CategoryService) GetCategory(ID string) (*Category, error) {
 }
 
 // GetCategoryByID - Get Category By ID
-func (c *CategoryService) GetCategoryByID(ID uint) (*Category, error) {
+func (c *CategoryService) GetCategoryByID(ctx context.Context, ID uint) (*Category, error) {
 	cat := Category{}
-	row := c.Db.QueryRow(`select
+	row := c.Db.QueryRowContext(ctx, `select
       id,
 			id_s,
 			category_name,
@@ -270,7 +277,7 @@ func (c *CategoryService) GetCategoryByID(ID uint) (*Category, error) {
 }
 
 // UpdateCategory - Update Category
-func (c *CategoryService) UpdateCategory(form *Category, ID string) error {
+func (c *CategoryService) UpdateCategory(ctx context.Context, form *Category, ID string) error {
 	tn := time.Now().UTC()
 	_, week := tn.ISOWeek()
 	day := tn.YearDay()
@@ -280,7 +287,7 @@ func (c *CategoryService) UpdateCategory(form *Category, ID string) error {
 	UpdatedMonth := uint(tn.Month())
 	UpdatedYear := uint(tn.Year())
 
-	stmt, err := c.Db.Prepare(`update categories set 
+	stmt, err := c.Db.PrepareContext(ctx, `update categories set 
 				  category_name = ?,
 				  updated_at = ?, 
 					updated_day = ?, 
@@ -293,7 +300,7 @@ func (c *CategoryService) UpdateCategory(form *Category, ID string) error {
 		return err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		form.CategoryName,
 		tn,
 		UpdatedDay,
@@ -317,9 +324,9 @@ func (c *CategoryService) UpdateCategory(form *Category, ID string) error {
 }
 
 // Create - Create Category
-func (c *CategoryService) Create(form *Category, UserID string) (*Category, error) {
+func (c *CategoryService) Create(ctx context.Context, form *Category, UserID string) (*Category, error) {
 	userserv := &userservices.UserService{Config: c.Config, Db: c.Db, RedisClient: c.RedisClient}
-	user, err := userserv.GetUser(UserID)
+	user, err := userserv.GetUser(ctx, UserID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -353,7 +360,7 @@ func (c *CategoryService) Create(form *Category, UserID string) (*Category, erro
 	cat.UpdatedMonth = uint(tn.Month())
 	cat.UpdatedYear = uint(tn.Year())
 
-	Cat, err := c.InsertCategory(tx, cat)
+	Cat, err := c.InsertCategory(ctx, tx, cat)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -371,8 +378,8 @@ func (c *CategoryService) Create(form *Category, UserID string) (*Category, erro
 }
 
 // InsertCategory - Insert category details into database
-func (c *CategoryService) InsertCategory(tx *sql.Tx, cat Category) (*Category, error) {
-	stmt, err := tx.Prepare(`insert into categories
+func (c *CategoryService) InsertCategory(ctx context.Context, tx *sql.Tx, cat Category) (*Category, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into categories
 	  ( 
 			id_s,
 			category_name,
@@ -403,7 +410,7 @@ func (c *CategoryService) InsertCategory(tx *sql.Tx, cat Category) (*Category, e
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		cat.IDS,
 		cat.CategoryName,
 		cat.CategoryDesc,
@@ -449,16 +456,16 @@ func (c *CategoryService) InsertCategory(tx *sql.Tx, cat Category) (*Category, e
 }
 
 // GetCategoryWithTopics - Get category with topics
-func (c *CategoryService) GetCategoryWithTopics(ID string) (*Category, error) {
+func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string) (*Category, error) {
 	db := c.Db
 	cat := &Category{}
-	ctegry, err := c.GetCategory(ID)
+	ctegry, err := c.GetCategory(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	var isPresent bool
-	row := db.QueryRow("select exists (select 1 from topics where category_id = ?);", ctegry.ID)
+	row := db.QueryRowContext(ctx, `select exists (select 1 from topics where category_id = ?);`, ctegry.ID)
 	err = row.Scan(&isPresent)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -466,7 +473,7 @@ func (c *CategoryService) GetCategoryWithTopics(ID string) (*Category, error) {
 	}
 	if isPresent {
 
-		rows, err := db.Query(`select 
+		rows, err := db.QueryContext(ctx, `select 
 		  c.id,
 			c.id_s,
 			c.category_name,
@@ -604,15 +611,15 @@ func (c *CategoryService) GetCategoryWithTopics(ID string) (*Category, error) {
 }
 
 // CreateChild - Create Child Category
-func (c *CategoryService) CreateChild(form *Category, UserID string) (*Category, error) {
+func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserID string) (*Category, error) {
 	userserv := &userservices.UserService{Config: c.Config, Db: c.Db, RedisClient: c.RedisClient}
-	user, err := userserv.GetUser(UserID)
+	user, err := userserv.GetUser(ctx, UserID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 
-	parent, err := c.GetCategoryByID(form.ParentID)
+	parent, err := c.GetCategoryByID(ctx, form.ParentID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -648,7 +655,7 @@ func (c *CategoryService) CreateChild(form *Category, UserID string) (*Category,
 	cat.UpdatedMonth = uint(tn.Month())
 	cat.UpdatedYear = uint(tn.Year())
 
-	Cat, err := c.InsertCategory(tx, cat)
+	Cat, err := c.InsertCategory(ctx, tx, cat)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -672,7 +679,7 @@ func (c *CategoryService) CreateChild(form *Category, UserID string) (*Category,
 	catchd.UpdatedMonth = uint(tn.Month())
 	catchd.UpdatedYear = uint(tn.Year())
 
-	_, err = c.InsertChild(tx, catchd)
+	_, err = c.InsertChild(ctx, tx, catchd)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -685,7 +692,7 @@ func (c *CategoryService) CreateChild(form *Category, UserID string) (*Category,
 	UpdatedMonth := uint(tn.Month())
 	UpdatedYear := uint(tn.Year())
 
-	stmt, err := tx.Prepare(`update categories set 
+	stmt, err := tx.PrepareContext(ctx, `update categories set 
 				  num_chd = ?,
 				  updated_at = ?, 
 					updated_day = ?, 
@@ -699,7 +706,7 @@ func (c *CategoryService) CreateChild(form *Category, UserID string) (*Category,
 		return nil, err
 	}
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		parent.NumChd+1,
 		tn,
 		UpdatedDay,
@@ -727,8 +734,8 @@ func (c *CategoryService) CreateChild(form *Category, UserID string) (*Category,
 }
 
 // InsertChild - Insert child category details into database
-func (c *CategoryService) InsertChild(tx *sql.Tx, catchd CategoryChd) (*CategoryChd, error) {
-	stmt, err := tx.Prepare(`insert into category_chds
+func (c *CategoryService) InsertChild(ctx context.Context, tx *sql.Tx, catchd CategoryChd) (*CategoryChd, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into category_chds
 	  ( 
 		category_id,
 		category_chd_id,
@@ -750,7 +757,7 @@ func (c *CategoryService) InsertChild(tx *sql.Tx, catchd CategoryChd) (*Category
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		catchd.CategoryID,
 		catchd.CategoryChdID,
 		/*  StatusDates  */
@@ -788,9 +795,9 @@ func (c *CategoryService) InsertChild(tx *sql.Tx, catchd CategoryChd) (*Category
 }
 
 // GetTopLevelCategories - Get top level categories
-func (c *CategoryService) GetTopLevelCategories() ([]*Category, error) {
+func (c *CategoryService) GetTopLevelCategories(ctx context.Context) ([]*Category, error) {
 	cats := []*Category{}
-	rows, err := c.Db.Query(`select 
+	rows, err := c.Db.QueryContext(ctx, `select 
       id, 
 			id_s,
 			category_name,
@@ -859,14 +866,14 @@ func (c *CategoryService) GetTopLevelCategories() ([]*Category, error) {
 }
 
 // GetChildCategories - Get child categories
-func (c *CategoryService) GetChildCategories(ID string) ([]*Category, error) {
-	category, err := c.GetCategory(ID)
+func (c *CategoryService) GetChildCategories(ctx context.Context, ID string) ([]*Category, error) {
+	category, err := c.GetCategory(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	pohs := []*Category{}
-	rows, err := c.Db.Query(`select 
+	rows, err := c.Db.QueryContext(ctx, `select 
 		    c.id,
 				c.id_s,
 				c.category_name,
@@ -935,14 +942,14 @@ func (c *CategoryService) GetChildCategories(ID string) ([]*Category, error) {
 }
 
 // GetParentCategory - Get Parent Category
-func (c *CategoryService) GetParentCategory(ID string) (*Category, error) {
-	category, err := c.GetCategory(ID)
+func (c *CategoryService) GetParentCategory(ctx context.Context, ID string) (*Category, error) {
+	category, err := c.GetCategory(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	cat := Category{}
-	row := c.Db.QueryRow(`select
+	row := c.Db.QueryRowContext(ctx, `select
       id,
 			id_s,
 			category_name,

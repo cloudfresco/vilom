@@ -1,6 +1,7 @@
 package msgservices
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -118,9 +119,9 @@ func NewMessageService(config *common.RedisOptions,
 }
 
 //Create - Create message
-func (t *MessageService) Create(form *Message, UserID string) (*Message, error) {
+func (t *MessageService) Create(ctx context.Context, form *Message, UserID string) (*Message, error) {
 	userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-	user, err := userserv.GetUser(UserID)
+	user, err := userserv.GetUser(ctx, UserID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -157,7 +158,7 @@ func (t *MessageService) Create(form *Message, UserID string) (*Message, error) 
 	msg.UpdatedMonth = uint(tn.Month())
 	msg.UpdatedYear = uint(tn.Year())
 
-	Message, err := t.InsertMessage(tx, msg)
+	Message, err := t.InsertMessage(ctx, tx, msg)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -185,7 +186,7 @@ func (t *MessageService) Create(form *Message, UserID string) (*Message, error) 
 	msgtxt.UpdatedMonth = uint(tn.Month())
 	msgtxt.UpdatedYear = uint(tn.Year())
 
-	_, err = t.InsertMessageText(tx, msgtxt)
+	_, err = t.InsertMessageText(ctx, tx, msgtxt)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -213,7 +214,7 @@ func (t *MessageService) Create(form *Message, UserID string) (*Message, error) 
 	msgath.UpdatedMonth = uint(tn.Month())
 	msgath.UpdatedYear = uint(tn.Year())
 
-	_, err = t.InsertMessageAttachment(tx, msgath)
+	_, err = t.InsertMessageAttachment(ctx, tx, msgath)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -227,14 +228,14 @@ func (t *MessageService) Create(form *Message, UserID string) (*Message, error) 
 	UpdatedYear := uint(tn.Year())
 
 	topicserv := &TopicService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
-	topic, err := topicserv.GetTopicByID(form.TopicID)
+	topic, err := topicserv.GetTopicByID(ctx, form.TopicID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		err = tx.Rollback()
 		return nil, err
 	}
 	//update messages count in topic table
-	stmt, err := tx.Prepare(`update topics set 
+	stmt, err := tx.PrepareContext(ctx, `update topics set 
     num_messages = ?,
 	  updated_at = ?, 
 		updated_day = ?, 
@@ -247,7 +248,7 @@ func (t *MessageService) Create(form *Message, UserID string) (*Message, error) 
 		err = tx.Rollback()
 		return nil, err
 	}
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		topic.NumMessages+1,
 		tn,
 		UpdatedDay,
@@ -282,7 +283,7 @@ func (t *MessageService) Create(form *Message, UserID string) (*Message, error) 
 	ur.UpdatedMonth = uint(tn.Month())
 	ur.UpdatedYear = uint(tn.Year())
 
-	_, err = t.InsertUserReply(tx, ur)
+	_, err = t.InsertUserReply(ctx, tx, ur)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -299,9 +300,9 @@ func (t *MessageService) Create(form *Message, UserID string) (*Message, error) 
 }
 
 // UserLikeCreate - Create user likes messages
-func (t *MessageService) UserLikeCreate(form *UserLike, UserID string) (*UserLike, error) {
+func (t *MessageService) UserLikeCreate(ctx context.Context, form *UserLike, UserID string) (*UserLike, error) {
 	userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-	user, err := userserv.GetUser(UserID)
+	user, err := userserv.GetUser(ctx, UserID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -335,7 +336,7 @@ func (t *MessageService) UserLikeCreate(form *UserLike, UserID string) (*UserLik
 	ul.UpdatedMonth = uint(tn.Month())
 	ul.UpdatedYear = uint(tn.Year())
 
-	UserLk, err := t.InsertUserLike(tx, ul)
+	UserLk, err := t.InsertUserLike(ctx, tx, ul)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -352,9 +353,9 @@ func (t *MessageService) UserLikeCreate(form *UserLike, UserID string) (*UserLik
 }
 
 // UserVoteCreate - Create User Vote
-func (t *MessageService) UserVoteCreate(form *UserVote, UserID string) (*UserVote, error) {
+func (t *MessageService) UserVoteCreate(ctx context.Context, form *UserVote, UserID string) (*UserVote, error) {
 	userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-	user, err := userserv.GetUser(UserID)
+	user, err := userserv.GetUser(ctx, UserID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -389,7 +390,7 @@ func (t *MessageService) UserVoteCreate(form *UserVote, UserID string) (*UserVot
 	ul.UpdatedMonth = uint(tn.Month())
 	ul.UpdatedYear = uint(tn.Year())
 
-	UserVt, err := t.InsertUserVote(tx, ul)
+	UserVt, err := t.InsertUserVote(ctx, tx, ul)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -407,8 +408,8 @@ func (t *MessageService) UserVoteCreate(form *UserVote, UserID string) (*UserVot
 }
 
 // InsertMessage - Insert message details into database
-func (t *MessageService) InsertMessage(tx *sql.Tx, msg Message) (*Message, error) {
-	stmt, err := tx.Prepare(`insert into messages
+func (t *MessageService) InsertMessage(ctx context.Context, tx *sql.Tx, msg Message) (*Message, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into messages
 	  ( 
 			id_s,
 			num_likes,
@@ -437,7 +438,7 @@ func (t *MessageService) InsertMessage(tx *sql.Tx, msg Message) (*Message, error
 		return nil, err
 	}
 
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		msg.IDS,
 		msg.NumLikes,
 		msg.NumUpvotes,
@@ -479,8 +480,8 @@ func (t *MessageService) InsertMessage(tx *sql.Tx, msg Message) (*Message, error
 }
 
 // InsertMessageText - Insert message text details in database
-func (t *MessageService) InsertMessageText(tx *sql.Tx, msgtxt MessageText) (*MessageText, error) {
-	stmt, err := tx.Prepare(`insert into message_texts
+func (t *MessageService) InsertMessageText(ctx context.Context, tx *sql.Tx, msgtxt MessageText) (*MessageText, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into message_texts
 	  ( 
 			mtext,
 			category_id,
@@ -506,7 +507,7 @@ func (t *MessageService) InsertMessageText(tx *sql.Tx, msgtxt MessageText) (*Mes
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		msgtxt.Mtext,
 		msgtxt.CategoryID,
 		msgtxt.TopicID,
@@ -547,8 +548,8 @@ func (t *MessageService) InsertMessageText(tx *sql.Tx, msgtxt MessageText) (*Mes
 }
 
 // InsertMessageAttachment - Insert message attachment details in database
-func (t *MessageService) InsertMessageAttachment(tx *sql.Tx, msgath MessageAttachment) (*MessageAttachment, error) {
-	stmt, err := tx.Prepare(`insert into message_attachments
+func (t *MessageService) InsertMessageAttachment(ctx context.Context, tx *sql.Tx, msgath MessageAttachment) (*MessageAttachment, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into message_attachments
 	  ( 
 			mattach,
 			category_id,
@@ -574,7 +575,7 @@ func (t *MessageService) InsertMessageAttachment(tx *sql.Tx, msgath MessageAttac
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		msgath.Mattach,
 		msgath.CategoryID,
 		msgath.TopicID,
@@ -614,8 +615,8 @@ func (t *MessageService) InsertMessageAttachment(tx *sql.Tx, msgath MessageAttac
 }
 
 // InsertUserReply - Insert user reply details into database
-func (t *MessageService) InsertUserReply(tx *sql.Tx, ur UserReply) (*UserReply, error) {
-	stmt, err := tx.Prepare(`insert into user_replies
+func (t *MessageService) InsertUserReply(ctx context.Context, tx *sql.Tx, ur UserReply) (*UserReply, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into user_replies
 	  ( 
 			topic_id,
 			message_id,
@@ -639,7 +640,7 @@ func (t *MessageService) InsertUserReply(tx *sql.Tx, ur UserReply) (*UserReply, 
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		ur.TopicID,
 		ur.MessageID,
 		ur.UserID,
@@ -678,8 +679,8 @@ func (t *MessageService) InsertUserReply(tx *sql.Tx, ur UserReply) (*UserReply, 
 }
 
 // InsertUserLike - Insert User like details in database
-func (t *MessageService) InsertUserLike(tx *sql.Tx, ur UserLike) (*UserLike, error) {
-	stmt, err := tx.Prepare(`insert into user_likes
+func (t *MessageService) InsertUserLike(ctx context.Context, tx *sql.Tx, ur UserLike) (*UserLike, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into user_likes
 	  ( 
 			topic_id,
 			message_id,
@@ -703,7 +704,7 @@ func (t *MessageService) InsertUserLike(tx *sql.Tx, ur UserLike) (*UserLike, err
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		ur.TopicID,
 		ur.MessageID,
 		ur.UgroupID,
@@ -742,8 +743,8 @@ func (t *MessageService) InsertUserLike(tx *sql.Tx, ur UserLike) (*UserLike, err
 }
 
 // InsertUserVote - Insert User vote details into database
-func (t *MessageService) InsertUserVote(tx *sql.Tx, ur UserVote) (*UserVote, error) {
-	stmt, err := tx.Prepare(`insert into user_votes
+func (t *MessageService) InsertUserVote(ctx context.Context, tx *sql.Tx, ur UserVote) (*UserVote, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into user_votes
 	  ( 
 			topic_id,
 			message_id,
@@ -768,7 +769,7 @@ func (t *MessageService) InsertUserVote(tx *sql.Tx, ur UserVote) (*UserVote, err
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		ur.TopicID,
 		ur.MessageID,
 		ur.Vote,
@@ -808,9 +809,9 @@ func (t *MessageService) InsertUserVote(tx *sql.Tx, ur UserVote) (*UserVote, err
 }
 
 // GetMessage - Get message
-func (t *MessageService) GetMessage(ID string) (*Message, error) {
+func (t *MessageService) GetMessage(ctx context.Context, ID string) (*Message, error) {
 	msg := Message{}
-	row := t.Db.QueryRow(`select
+	row := t.Db.QueryRowContext(ctx, `select
       id,
  			id_s,
 			num_likes,
@@ -864,20 +865,20 @@ func (t *MessageService) GetMessage(ID string) (*Message, error) {
 }
 
 // GetMessagesWithTextAttach - Get messages with attachemnts
-func (t *MessageService) GetMessagesWithTextAttach(messages []*Message) ([]*Message, error) {
+func (t *MessageService) GetMessagesWithTextAttach(ctx context.Context, messages []*Message) ([]*Message, error) {
 	db := t.Db
 	pohs := []*Message{}
 
 	for _, message := range messages {
 		var isPresent bool
-		row := db.QueryRow("select exists (select 1 from message_texts where message_id = ?);", message.ID)
+		row := db.QueryRowContext(ctx, `select exists (select 1 from message_texts where message_id = ?);`, message.ID)
 		err := row.Scan(&isPresent)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 		}
 		if isPresent {
 
-			rows, err := db.Query(`select 
+			rows, err := db.QueryContext(ctx, `select 
 				mtext,
 				category_id,
 				topic_id,
@@ -937,14 +938,14 @@ func (t *MessageService) GetMessagesWithTextAttach(messages []*Message) ([]*Mess
 		}
 
 		var isPresent1 bool
-		row1 := db.QueryRow("select exists (select 1 from message_attachments where message_id = ?);", message.ID)
+		row1 := db.QueryRowContext(ctx, `select exists (select 1 from message_attachments where message_id = ?);`, message.ID)
 		err = row1.Scan(&isPresent1)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 		}
 		if isPresent1 {
 			msgath := MessageAttachment{}
-			rows, err := db.Query(`select 
+			rows, err := db.QueryContext(ctx, `select 
 				mattach,
 				category_id,
 				topic_id,

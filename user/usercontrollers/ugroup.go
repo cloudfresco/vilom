@@ -102,7 +102,7 @@ func (uc *UgroupController) Index(w http.ResponseWriter, r *http.Request, limit 
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.GetUgroups(limit, cursor)
+		ugroups, err := uc.Service.GetUgroups(ctx, limit, cursor)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1200", err.Error(), 402, requestID)
@@ -121,7 +121,7 @@ func (uc *UgroupController) TopLevelGroups(w http.ResponseWriter, r *http.Reques
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.TopLevelUgroups()
+		ugroups, err := uc.Service.TopLevelUgroups(ctx)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1201", err.Error(), 402, requestID)
@@ -141,7 +141,7 @@ func (uc *UgroupController) Show(w http.ResponseWriter, r *http.Request, id stri
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroup, err := uc.Service.GetUgroup(id)
+		ugroup, err := uc.Service.GetUgroup(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1202", err.Error(), 402, requestID)
@@ -169,7 +169,7 @@ func (uc *UgroupController) Create(w http.ResponseWriter, r *http.Request, user 
 			common.RenderErrorJSON(w, "1203", err.Error(), 402, requestID)
 			return
 		}
-		ugroup, err := uc.Service.Create(&form)
+		ugroup, err := uc.Service.Create(ctx, &form)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1204", err.Error(), 402, requestID)
@@ -197,7 +197,7 @@ func (uc *UgroupController) CreateChild(w http.ResponseWriter, r *http.Request, 
 			common.RenderErrorJSON(w, "1205", err.Error(), 402, requestID)
 			return
 		}
-		ugroup, err := uc.Service.CreateChild(&form)
+		ugroup, err := uc.Service.CreateChild(ctx, &form)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1206", err.Error(), 402, requestID)
@@ -217,7 +217,7 @@ func (uc *UgroupController) Delete(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.Delete(id)
+		err := uc.Service.Delete(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1207", err.Error(), 402, requestID)
@@ -245,7 +245,7 @@ func (uc *UgroupController) AddUserToGroup(w http.ResponseWriter, r *http.Reques
 			common.RenderErrorJSON(w, "1208", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.AddUserToGroup(&form, id)
+		err = uc.Service.AddUserToGroup(ctx, &form, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1209", err.Error(), 402, requestID)
@@ -273,7 +273,7 @@ func (uc *UgroupController) DeleteUserFromGroup(w http.ResponseWriter, r *http.R
 			common.RenderErrorJSON(w, "1210", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.DeleteUserFromGroup(&form, id)
+		err = uc.Service.DeleteUserFromGroup(ctx, &form, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1211", err.Error(), 402, requestID)
@@ -293,7 +293,7 @@ func (uc *UgroupController) GetChdn(w http.ResponseWriter, r *http.Request, id s
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.GetChildUgroups(id)
+		ugroups, err := uc.Service.GetChildUgroups(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1212", err.Error(), 402, requestID)
@@ -313,7 +313,7 @@ func (uc *UgroupController) GetParent(w http.ResponseWriter, r *http.Request, id
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.GetParent(id)
+		ugroups, err := uc.Service.GetParent(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1213", err.Error(), 402, requestID)

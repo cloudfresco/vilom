@@ -216,7 +216,7 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 	v := ContextData{}
 	if resp == "" {
 		user := User{}
-		row := db.QueryRow("select id, id_s, email, role from users where email = ?;", data.Email)
+		row := db.QueryRow(`select id, id_s, email, role from users where email = ?;`, data.Email)
 		err = row.Scan(&user.ID, &user.IDS, &user.Email, &user.Role)
 		if user.ID == 0 {
 			log.Error(stacktrace.Propagate(err, ""))

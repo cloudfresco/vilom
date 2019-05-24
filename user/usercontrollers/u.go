@@ -95,7 +95,7 @@ func (uc *UController) Login(w http.ResponseWriter, r *http.Request, requestID s
 			common.RenderErrorJSON(w, "1100", err.Error(), 402, requestID)
 			return
 		}
-		user, err := uc.Service.Login(&form)
+		user, err := uc.Service.Login(ctx, &form)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1101", err.Error(), 402, requestID)
@@ -114,7 +114,7 @@ func (uc *UController) ConfirmEmail(w http.ResponseWriter, r *http.Request, id s
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.ConfirmEmail(id)
+		err := uc.Service.ConfirmEmail(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1102", err.Error(), 402, requestID)
@@ -142,7 +142,7 @@ func (uc *UController) Create(w http.ResponseWriter, r *http.Request, requestID 
 			common.RenderErrorJSON(w, "1103", err.Error(), 402, requestID)
 			return
 		}
-		user, err := uc.Service.Create(&form, r.Host)
+		user, err := uc.Service.Create(ctx, &form, r.Host)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1104", err.Error(), 402, requestID)
@@ -169,7 +169,7 @@ func (uc *UController) ForgotPassword(w http.ResponseWriter, r *http.Request, re
 			common.RenderErrorJSON(w, "1105", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ForgotPassword(&form, r.Host)
+		err = uc.Service.ForgotPassword(ctx, &form, r.Host)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1106", err.Error(), 402, requestID)
@@ -197,7 +197,7 @@ func (uc *UController) ConfirmForgotPassword(w http.ResponseWriter, r *http.Requ
 			common.RenderErrorJSON(w, "1107", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ConfirmForgotPassword(&form, id)
+		err = uc.Service.ConfirmForgotPassword(ctx, &form, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1108", err.Error(), 402, requestID)
@@ -217,7 +217,7 @@ func (uc *UController) ConfirmChangeEmail(w http.ResponseWriter, r *http.Request
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.ConfirmChangeEmail(id)
+		err := uc.Service.ConfirmChangeEmail(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1109", err.Error(), 402, requestID)

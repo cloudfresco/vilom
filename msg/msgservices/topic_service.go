@@ -1,6 +1,7 @@
 package msgservices
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -86,22 +87,22 @@ func NewTopicService(config *common.RedisOptions,
 }
 
 // Show - Get topic details
-func (t *TopicService) Show(ID string, UserID string) (*Topic, error) {
+func (t *TopicService) Show(ctx context.Context, ID string, UserID string) (*Topic, error) {
 	db := t.Db
-	topic, err := t.GetTopicWithMessages(ID)
+	topic, err := t.GetTopicWithMessages(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	//update topic_users table
 	userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-	user, err := userserv.GetUser(UserID)
+	user, err := userserv.GetUser(ctx, UserID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	var isPresent bool
-	row := db.QueryRow("select exists (select 1 from topics_users where topic_id = ? and user_id = ?);", topic.ID)
+	row := db.QueryRowContext(ctx, `select exists (select 1 from topics_users where topic_id = ? and user_id = ?);`, topic.ID)
 	err = row.Scan(&isPresent)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -116,14 +117,14 @@ func (t *TopicService) Show(ID string, UserID string) (*Topic, error) {
 
 	if isPresent {
 		//update
-		topicsuser, err := t.GetTopicsUser(topic.ID, user.ID)
+		topicsuser, err := t.GetTopicsUser(ctx, topic.ID, user.ID)
 
 		UpdatedDay := uint(day)
 		UpdatedWeek := uint(week)
 		UpdatedMonth := uint(tn.Month())
 		UpdatedYear := uint(tn.Year())
 
-		stmt, err := tx.Prepare(`update topics_users set 
+		stmt, err := tx.PrepareContext(ctx, `update topics_users set 
 					num_messages = ?,
           num_views = ?,
 					updated_at = ?, 
@@ -138,7 +139,7 @@ func (t *TopicService) Show(ID string, UserID string) (*Topic, error) {
 			return nil, err
 		}
 
-		_, err = stmt.Exec(
+		_, err = stmt.ExecContext(ctx,
 			topic.NumMessages,
 			topicsuser.NumViews+1,
 			tn,
@@ -182,7 +183,7 @@ func (t *TopicService) Show(ID string, UserID string) (*Topic, error) {
 		tu.UpdatedMonth = uint(tn.Month())
 		tu.UpdatedYear = uint(tn.Year())
 
-		_, err := t.InsertTopicsUser(tx, tu)
+		_, err := t.InsertTopicsUser(ctx, tx, tu)
 
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
@@ -200,17 +201,17 @@ func (t *TopicService) Show(ID string, UserID string) (*Topic, error) {
 }
 
 // GetTopicWithMessages - Get topic with messages
-func (t *TopicService) GetTopicWithMessages(ID string) (*Topic, error) {
+func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string) (*Topic, error) {
 	db := t.Db
 	poh := &Topic{}
 
-	tpc, err := t.GetTopic(ID)
+	tpc, err := t.GetTopic(ctx, ID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	var isPresent bool
-	row := db.QueryRow("select exists (select 1 from messages where topic_id = ?);", tpc.ID)
+	row := db.QueryRowContext(ctx, `select exists (select 1 from messages where topic_id = ?);`, tpc.ID)
 	err = row.Scan(&isPresent)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -218,7 +219,7 @@ func (t *TopicService) GetTopicWithMessages(ID string) (*Topic, error) {
 	}
 	if isPresent {
 
-		rows, err := db.Query(`select 
+		rows, err := db.QueryContext(ctx, `select 
       p.id,
 			p.id_s,
 			p.topic_name,
@@ -346,13 +347,19 @@ func (t *TopicService) GetTopicWithMessages(ID string) (*Topic, error) {
 			return nil, err
 		}
 
+		err = rows.Err()
+		if err != nil {
+			log.Error(stacktrace.Propagate(err, ""))
+			return nil, err
+		}
+
 	} else {
 		poh = tpc
 	}
 
 	if len(poh.Messages) > 0 {
 		msgserv := &MessageService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
-		Messages, err := msgserv.GetMessagesWithTextAttach(poh.Messages)
+		Messages, err := msgserv.GetMessagesWithTextAttach(ctx, poh.Messages)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 		}
@@ -362,9 +369,9 @@ func (t *TopicService) GetTopicWithMessages(ID string) (*Topic, error) {
 }
 
 // Create - Create topic
-func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
+func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string) (*Topic, error) {
 	userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-	user, err := userserv.GetUser(UserID)
+	user, err := userserv.GetUser(ctx, UserID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
@@ -412,7 +419,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 	topc.UpdatedMonth = uint(tn.Month())
 	topc.UpdatedYear = uint(tn.Year())
 
-	topic, err := t.InsertTopic(tx, topc)
+	topic, err := t.InsertTopic(ctx, tx, topc)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -426,13 +433,13 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 	UpdatedYear := uint(tn.Year())
 
 	catserv := &CategoryService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
-	category, err := catserv.GetCategoryByID(form.CategoryID)
+	category, err := catserv.GetCategoryByID(ctx, form.CategoryID)
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 		return nil, err
 	}
 	//update category count
-	stmt, err := tx.Prepare(`update categories set 
+	stmt, err := tx.PrepareContext(ctx, `update categories set 
     num_topics = ?,
 	  updated_at = ?, 
 		updated_day = ?, 
@@ -445,7 +452,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 		err = tx.Rollback()
 		return nil, err
 	}
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		category.NumTopics+1,
 		tn,
 		UpdatedDay,
@@ -490,7 +497,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 		msg.UpdatedWeek = uint(week)
 		msg.UpdatedMonth = uint(tn.Month())
 		msg.UpdatedYear = uint(tn.Year())
-		Message, err := msgserv.InsertMessage(tx, msg)
+		Message, err := msgserv.InsertMessage(ctx, tx, msg)
 
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
@@ -518,7 +525,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 		msgtxt.UpdatedMonth = uint(tn.Month())
 		msgtxt.UpdatedYear = uint(tn.Year())
 
-		_, err = msgserv.InsertMessageText(tx, msgtxt)
+		_, err = msgserv.InsertMessageText(ctx, tx, msgtxt)
 
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
@@ -527,7 +534,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 		}
 
 		//update messages count in topic table
-		stmt, err := tx.Prepare(`update topics set 
+		stmt, err := tx.PrepareContext(ctx, `update topics set 
 		  num_messages = ?,
 			updated_at = ?, 
 			updated_day = ?, 
@@ -540,7 +547,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 			err = tx.Rollback()
 			return nil, err
 		}
-		_, err = stmt.Exec(
+		_, err = stmt.ExecContext(ctx,
 			topic.NumMessages+1,
 			tn,
 			UpdatedDay,
@@ -581,7 +588,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 			msgatch.UpdatedMonth = uint(tn.Month())
 			msgatch.UpdatedYear = uint(tn.Year())
 
-			_, err := msgserv.InsertMessageAttachment(tx, msgatch)
+			_, err := msgserv.InsertMessageAttachment(ctx, tx, msgatch)
 
 			if err != nil {
 				log.Error(stacktrace.Propagate(err, ""))
@@ -609,7 +616,7 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 	ut.UpdatedMonth = uint(tn.Month())
 	ut.UpdatedYear = uint(tn.Year())
 
-	_, err = t.InsertUserTopic(tx, ut)
+	_, err = t.InsertUserTopic(ctx, tx, ut)
 
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
@@ -627,8 +634,8 @@ func (t *TopicService) Create(form *Topic, UserID string) (*Topic, error) {
 }
 
 // InsertTopic - Insert topic details into database
-func (t *TopicService) InsertTopic(tx *sql.Tx, topc Topic) (*Topic, error) {
-	stmt, err := tx.Prepare(`insert into topics
+func (t *TopicService) InsertTopic(ctx context.Context, tx *sql.Tx, topc Topic) (*Topic, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into topics
 	  ( id_s,
 			topic_name,
 			topic_desc,
@@ -667,7 +674,7 @@ func (t *TopicService) InsertTopic(tx *sql.Tx, topc Topic) (*Topic, error) {
 		err = stmt.Close()
 		return nil, err
 	}
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(ctx,
 		topc.IDS,
 		topc.TopicName,
 		topc.TopicDesc,
@@ -721,9 +728,9 @@ func (t *TopicService) InsertTopic(tx *sql.Tx, topc Topic) (*Topic, error) {
 }
 
 // GetTopicByID - Get topic by ID
-func (t *TopicService) GetTopicByID(ID uint) (*Topic, error) {
+func (t *TopicService) GetTopicByID(ctx context.Context, ID uint) (*Topic, error) {
 	poh := Topic{}
-	row := t.Db.QueryRow(`select
+	row := t.Db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		topic_name,
@@ -799,9 +806,9 @@ func (t *TopicService) GetTopicByID(ID uint) (*Topic, error) {
 }
 
 // GetTopic - Get topic
-func (t *TopicService) GetTopic(ID string) (*Topic, error) {
+func (t *TopicService) GetTopic(ctx context.Context, ID string) (*Topic, error) {
 	poh := Topic{}
-	row := t.Db.QueryRow(`select
+	row := t.Db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		topic_name,
@@ -877,9 +884,9 @@ func (t *TopicService) GetTopic(ID string) (*Topic, error) {
 }
 
 // GetTopicByName - Get topic by name
-func (t *TopicService) GetTopicByName(topicname string) (*Topic, error) {
+func (t *TopicService) GetTopicByName(ctx context.Context, topicname string) (*Topic, error) {
 	poh := Topic{}
-	row := t.Db.QueryRow(`select
+	row := t.Db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		topic_name,
@@ -955,9 +962,9 @@ func (t *TopicService) GetTopicByName(topicname string) (*Topic, error) {
 }
 
 // GetTopicsUser - Get user topics
-func (t *TopicService) GetTopicsUser(ID uint, UserID uint) (*TopicsUser, error) {
+func (t *TopicService) GetTopicsUser(ctx context.Context, ID uint, UserID uint) (*TopicsUser, error) {
 	poh := TopicsUser{}
-	row := t.Db.QueryRow(`select
+	row := t.Db.QueryRowContext(ctx, `select
     id,
 		id_s,
 		topic_id,
@@ -1007,8 +1014,8 @@ func (t *TopicService) GetTopicsUser(ID uint, UserID uint) (*TopicsUser, error) 
 }
 
 // InsertTopicsUser - Insert topic user details into database
-func (t *TopicService) InsertTopicsUser(tx *sql.Tx, poh TopicsUser) (*TopicsUser, error) {
-	stmt, err := tx.Prepare(`insert into topics_users
+func (t *TopicService) InsertTopicsUser(ctx context.Context, tx *sql.Tx, poh TopicsUser) (*TopicsUser, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into topics_users
 	  (id_s,
 		topic_id,
 		num_messages,
@@ -1033,7 +1040,7 @@ func (t *TopicService) InsertTopicsUser(tx *sql.Tx, poh TopicsUser) (*TopicsUser
 		err = stmt.Close()
 		return nil, err
 	}
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		poh.IDS,
 		poh.TopicID,
 		poh.NumMessages,
@@ -1069,8 +1076,8 @@ func (t *TopicService) InsertTopicsUser(tx *sql.Tx, poh TopicsUser) (*TopicsUser
 }
 
 // InsertUserTopic - Insert user topics details into database
-func (t *TopicService) InsertUserTopic(tx *sql.Tx, poh UserTopic) (*UserTopic, error) {
-	stmt, err := tx.Prepare(`insert into user_topics
+func (t *TopicService) InsertUserTopic(ctx context.Context, tx *sql.Tx, poh UserTopic) (*UserTopic, error) {
+	stmt, err := tx.PrepareContext(ctx, `insert into user_topics
 	  (
 		topic_id,
 		user_id,
@@ -1093,7 +1100,7 @@ func (t *TopicService) InsertUserTopic(tx *sql.Tx, poh UserTopic) (*UserTopic, e
 		err = stmt.Close()
 		return nil, err
 	}
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(ctx,
 		poh.TopicID,
 		poh.UserID,
 		poh.UgroupID,

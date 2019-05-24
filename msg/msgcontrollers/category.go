@@ -86,7 +86,7 @@ func (cc *CategoryController) Index(w http.ResponseWriter, r *http.Request, limi
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetCategories(limit, cursor)
+		categories, err := cc.Service.GetCategories(ctx, limit, cursor)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1300", err.Error(), 402, requestID)
@@ -106,7 +106,7 @@ func (cc *CategoryController) Show(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		category, err := cc.Service.GetCategoryWithTopics(id)
+		category, err := cc.Service.GetCategoryWithTopics(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1301", err.Error(), 402, requestID)
@@ -134,7 +134,7 @@ func (cc *CategoryController) Create(w http.ResponseWriter, r *http.Request, use
 			common.RenderErrorJSON(w, "1302", err.Error(), 402, requestID)
 			return
 		}
-		cat, err := cc.Service.Create(&form, user.UserID)
+		cat, err := cc.Service.Create(ctx, &form, user.UserID)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1303", err.Error(), 402, requestID)
@@ -162,7 +162,7 @@ func (cc *CategoryController) CreateChild(w http.ResponseWriter, r *http.Request
 			common.RenderErrorJSON(w, "1304", err.Error(), 402, requestID)
 			return
 		}
-		cat, err := cc.Service.CreateChild(&form, user.UserID)
+		cat, err := cc.Service.CreateChild(ctx, &form, user.UserID)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1305", err.Error(), 402, requestID)
@@ -182,7 +182,7 @@ func (cc *CategoryController) TopLevelCategories(w http.ResponseWriter, r *http.
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetTopLevelCategories()
+		categories, err := cc.Service.GetTopLevelCategories(ctx)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1306", err.Error(), 402, requestID)
@@ -202,7 +202,7 @@ func (cc *CategoryController) GetChdn(w http.ResponseWriter, r *http.Request, id
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetChildCategories(id)
+		categories, err := cc.Service.GetChildCategories(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1307", err.Error(), 402, requestID)
@@ -222,7 +222,7 @@ func (cc *CategoryController) GetParent(w http.ResponseWriter, r *http.Request, 
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		category, err := cc.Service.GetParentCategory(id)
+		category, err := cc.Service.GetParentCategory(ctx, id)
 		if err != nil {
 			log.Error(stacktrace.Propagate(err, ""))
 			common.RenderErrorJSON(w, "1308", err.Error(), 402, requestID)
