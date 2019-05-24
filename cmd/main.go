@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"os"
-	"os/signal"
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"os/signal"
 	"path/filepath"
 
 	log "github.com/Sirupsen/logrus"
@@ -113,47 +113,47 @@ func main() {
 			// We received an interrupt signal, shut down.
 			if err := srv.Shutdown(context.Background()); err != nil {
 				// Error from closing listeners, or context timeout:
-				log.Error("HTTP server Shutdown: %v", err)
+				log.Error("HTTP server Shutdown:", err)
 			}
 			close(idleConnsClosed)
 		}()
 
 		if err := srv.ListenAndServeTLS(certPath, keyPath); err != http.ErrServerClosed {
 			// Error starting or closing listener:
-			log.Error("HTTP server ListenAndServeTLS: %v", err)
+			log.Error("HTTP server ListenAndServeTLS:", err)
 		}
 		log.Error("Server shutting down")
 
 		<-idleConnsClosed
 	} else {
 
-			srv := &http.Server{
-				Addr:      appState.ServerAddr,
-				Handler:   mux,
+		srv := &http.Server{
+			Addr:    appState.ServerAddr,
+			Handler: mux,
+		}
+
+		idleConnsClosed := make(chan struct{})
+		go func() {
+			sigint := make(chan os.Signal, 1)
+			signal.Notify(sigint, os.Interrupt)
+			<-sigint
+
+			// We received an interrupt signal, shut down.
+			if err := srv.Shutdown(context.Background()); err != nil {
+				// Error from closing listeners, or context timeout:
+				log.Error("HTTP server Shutdown:", err)
 			}
+			close(idleConnsClosed)
+		}()
 
-			idleConnsClosed := make(chan struct{})
-			go func() {
-				sigint := make(chan os.Signal, 1)
-				signal.Notify(sigint, os.Interrupt)
-				<-sigint
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			// Error starting or closing listener:
+			log.Error("HTTP server ListenAndServe:", err)
+		}
 
-				// We received an interrupt signal, shut down.
-				if err := srv.Shutdown(context.Background()); err != nil {
-					// Error from closing listeners, or context timeout:
-					log.Error("HTTP server Shutdown: %v", err)
-				}
-				close(idleConnsClosed)
-			}()
+		log.Error("Server shutting down")
 
-			if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-				// Error starting or closing listener:
-				log.Error("HTTP server ListenAndServe: %v", err)
-			}
-
-			log.Error("Server shutting down")
-
-			<-idleConnsClosed
+		<-idleConnsClosed
 
 	}
 }
