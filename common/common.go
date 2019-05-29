@@ -198,7 +198,7 @@ func GetAuthBearerToken(r *http.Request) (string, error) {
 
 // ContextData - used for
 type ContextData struct {
-	User   interface{}
+	Email  string
 	UserID string
 	Roles  []string
 }
@@ -226,6 +226,7 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 			log.Error(stacktrace.Propagate(err, ""))
 			return nil, "", errors.New("User not found")
 		}
+		v.Email = user.Email
 		v.UserID = user.IDS
 		roles := []string{}
 		if user.Role != "" {
