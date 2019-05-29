@@ -278,16 +278,12 @@ func RenderErrorJSON(w http.ResponseWriter, errorCode string, errorMsg string, h
 
 // GetRequestID - used for GetRequestID generation
 func GetRequestID() string {
-	guid1 := xid.New()
-	b := guid1.String()
-	return fmt.Sprintf("%x", b)
+	return fmt.Sprintf("%x", xid.New().String())
 }
 
 // GetUID - used for id generation
 func GetUID() string {
-	guid1 := xid.New()
-	b := guid1.String()
-	return fmt.Sprintf("%x", b)
+	return fmt.Sprintf("%x", xid.New().String())
 }
 
 // ParseTemplate - used for parsing template
