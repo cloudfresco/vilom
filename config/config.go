@@ -21,18 +21,18 @@ import (
 func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOptions, *gomail.Dialer, *common.KeyOptions, string, string, *common.JWTOptions, *common.RateLimiterOptions, string, *common.UserOptions, error) {
 	v := viper.New()
 	v.AutomaticEnv()
-	var redisObj common.RedisOptions
-	redisObj.Addr = v.GetString("VILOM_REDIS_ADDRESS")
+	var redisOpt common.RedisOptions
+	redisOpt.Addr = v.GetString("VILOM_REDIS_ADDRESS")
 
-	var dbObj common.DbOptions
-	dbObj.User = v.GetString("VILOM_DBUSER")
-	dbObj.Password = v.GetString("VILOM_DBPASS")
-	dbObj.Host = v.GetString("VILOM_DBHOST")
-	dbObj.Port = v.GetString("VILOM_DBPORT")
-	dbObj.Schema = v.GetString("VILOM_DBNAME")
+	var dbOpt common.DbOptions
+	dbOpt.User = v.GetString("VILOM_DBUSER")
+	dbOpt.Password = v.GetString("VILOM_DBPASS")
+	dbOpt.Host = v.GetString("VILOM_DBHOST")
+	dbOpt.Port = v.GetString("VILOM_DBPORT")
+	dbOpt.Schema = v.GetString("VILOM_DBNAME")
 
-	db, err := sql.Open("mysql", fmt.Sprint(dbObj.User, ":", dbObj.Password, "@(", dbObj.Host,
-		":", dbObj.Port, ")/", dbObj.Schema, "?charset=utf8mb4&parseTime=True"))
+	db, err := sql.Open("mysql", fmt.Sprint(dbOpt.User, ":", dbOpt.Password, "@(", dbOpt.Host,
+		":", dbOpt.Port, ")/", dbOpt.Schema, "?charset=utf8mb4&parseTime=True"))
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 	}
@@ -47,7 +47,7 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 	redisClient := redis.NewClient(&redis.Options{
 		PoolSize:    10, // default
 		IdleTimeout: 30 * time.Second,
-		Addr:        redisObj.Addr,
+		Addr:        redisOpt.Addr,
 		Password:    "", // no password set
 		DB:          0,  // use default DB
 	})
@@ -56,35 +56,35 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 	oauth.ClientID = v.GetString("GOOGLE_OAUTH2_CLIENT_ID")
 	oauth.ClientSecret = v.GetString("GOOGLE_OAUTH2_CLIENT_SECRET")
 
-	var mailerObj common.MailerOptions
-	mailerObj.Server = v.GetString("VILOM_MAILER_SERVER")
+	var mailerOpt common.MailerOptions
+	mailerOpt.Server = v.GetString("VILOM_MAILER_SERVER")
 	MailerPort, err := strconv.Atoi(v.GetString("VILOM_MAILER_PORT"))
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 	}
-	mailerObj.Port = MailerPort
-	mailerObj.User = v.GetString("VILOM_MAILER_USER")
-	mailerObj.Password = v.GetString("VILOM_MAILER_PASS")
+	mailerOpt.Port = MailerPort
+	mailerOpt.User = v.GetString("VILOM_MAILER_USER")
+	mailerOpt.Password = v.GetString("VILOM_MAILER_PASS")
 
-	mailer := gomail.NewDialer(mailerObj.Server, mailerObj.Port, mailerObj.User, mailerObj.Password)
+	mailer := gomail.NewDialer(mailerOpt.Server, mailerOpt.Port, mailerOpt.User, mailerOpt.Password)
 
-	var keyObj common.KeyOptions
-	keyObj.CaCertPath = v.GetString("VILOM_CA_CERT_PATH")
-	keyObj.CertPath = v.GetString("VILOM_CERT_PATH")
-	keyObj.KeyPath = v.GetString("VILOM_KEY_PATH")
+	var keyOpt common.KeyOptions
+	keyOpt.CaCertPath = v.GetString("VILOM_CA_CERT_PATH")
+	keyOpt.CertPath = v.GetString("VILOM_CERT_PATH")
+	keyOpt.KeyPath = v.GetString("VILOM_KEY_PATH")
 
 	serverTLS := v.GetString("VILOM_SERVER_TLS")
 	serverAddr := v.GetString("VILOM_SERVER_ADDRESS")
 
-	var jwtObj common.JWTOptions
+	var jwtOpt common.JWTOptions
 
 	JWTKey := v.GetString("VILOM_JWT_KEY")
-	jwtObj.JWTKey = []byte(JWTKey)
+	jwtOpt.JWTKey = []byte(JWTKey)
 	JWTDuration, err := strconv.Atoi(v.GetString("VILOM_JWT_DURATION"))
 	if err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 	}
-	jwtObj.JWTDuration = JWTDuration
+	jwtOpt.JWTDuration = JWTDuration
 
 	v1 := viper.New()
 	v1.SetConfigName("config")
@@ -97,8 +97,8 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 		os.Exit(1)
 	}
 
-	var rateObj common.RateLimiterOptions
-	if err := v1.UnmarshalKey("ratelimit", &rateObj); err != nil {
+	var rateOpt common.RateLimiterOptions
+	if err := v1.UnmarshalKey("ratelimit", &rateOpt); err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 	}
 
@@ -107,10 +107,10 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 		log.Error(stacktrace.Propagate(err, ""))
 	}
 
-	var userObj common.UserOptions
-	if err := v1.UnmarshalKey("useroptions", &userObj); err != nil {
+	var userOpt common.UserOptions
+	if err := v1.UnmarshalKey("useroptions", &userOpt); err != nil {
 		log.Error(stacktrace.Propagate(err, ""))
 	}
 
-	return &redisObj, db, redisClient, &oauth, mailer, &keyObj, serverTLS, serverAddr, &jwtObj, &rateObj, limit, &userObj, nil
+	return &redisOpt, db, redisClient, &oauth, mailer, &keyOpt, serverTLS, serverAddr, &jwtOpt, &rateOpt, limit, &userOpt, nil
 }
