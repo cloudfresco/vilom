@@ -18,7 +18,6 @@ import (
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/go-redis/redis"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
@@ -59,20 +58,28 @@ func InitSearch(p string, db *sql.DB) bleve.Index {
 	if err == bleve.ErrorIndexPathDoesNotExist {
 		productMapping, err := BuildIndexMapping()
 		if err != nil {
-			log.Error("", " ", stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 7002,
+			}).Error(err)
 		}
 		productIndex, err = bleve.New(indexPath, productMapping)
 		if err != nil {
-			log.Error("", " ", stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 7003,
+			}).Error(err)
 		}
 
 	} else if err != nil {
-		log.Error("", " ", stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 7004,
+		}).Error(err)
 	}
 
 	err = IndexTopics(db, productIndex)
 	if err != nil {
-		log.Error("", " ", stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 7005,
+		}).Error(err)
 	}
 
 	bSearchIndex = productIndex
@@ -116,6 +123,9 @@ func BuildIndexMapping() (mapping.IndexMapping, error) {
 			"max":  25.0,
 		})
 	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 7006,
+		}).Error(err)
 		return nil, err
 	}
 
@@ -131,6 +141,9 @@ func BuildIndexMapping() (mapping.IndexMapping, error) {
 			},
 		})
 	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 7007,
+		}).Error(err)
 		return nil, err
 	}
 	indexMapping.TypeField = "Type"
@@ -148,13 +161,17 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 	topics, err := GetTopics(db)
 
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 7008,
+		}).Error(err)
 		return err
 	}
 	for _, topic := range topics {
 		messages, err := GetMessagesByTopicID(topic.ID, db)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 7009,
+			}).Error(err)
 			return err
 		}
 		for _, message := range messages {
@@ -174,25 +191,34 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 
 				err := json.Unmarshal(p, &prodInterface)
 				if err != nil {
-					log.Error(stacktrace.Propagate(err, ""))
+					log.WithFields(log.Fields{
+						"msgnum": 7010,
+					}).Error(err)
 					return err
 				}
 
 				err = batch.Index(docID, prod)
 				if err != nil {
-					log.Error(stacktrace.Propagate(err, ""))
+					log.WithFields(log.Fields{
+						"msgnum": 7011,
+					}).Error(err)
 					return err
 				}
 				if batch.Size() >= 100 {
 					err := index.Batch(batch)
 					if err != nil {
+						log.WithFields(log.Fields{
+							"msgnum": 7012,
+						}).Error(err)
 						return err
 					}
 					count += batch.Size()
 					batch = index.NewBatch()
 				}
 			} else {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{
+					"msgnum": 7013,
+				}).Error(err)
 			}
 		}
 	}
@@ -200,7 +226,9 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 	if batch.Size() > 0 {
 		err := index.Batch(batch)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 7014,
+			}).Error(err)
 			return err
 		}
 		count += batch.Size()
@@ -209,7 +237,7 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 }
 
 // Search - used for
-func (t *SearchService) Search(form *BleveForm) (*bleve.SearchResult, error) {
+func (t *SearchService) Search(form *BleveForm, userEmail string, requestID string) (*bleve.SearchResult, error) {
 	query := bleve.NewMatchQuery(form.SearchText)
 	search := bleve.NewSearchRequest(query)
 	fields := []string{"Name", "Description", "Pid", "MessageText"}
@@ -217,7 +245,11 @@ func (t *SearchService) Search(form *BleveForm) (*bleve.SearchResult, error) {
 	search.Fields = fields
 	searchResults, err := t.SearchIndex.Search(search)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 7015,
+		}).Error(err)
 		return nil, err
 	}
 	return searchResults, nil
@@ -247,7 +279,9 @@ func GetMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, erro
 		updated_year from message_texts where topic_id = ?`, ID)
 
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 7016,
+		}).Error(err)
 	}
 	for rows.Next() {
 		msgtxt := msgservices.MessageText{}
@@ -272,7 +306,9 @@ func GetMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, erro
 			&msgtxt.UpdatedMonth,
 			&msgtxt.UpdatedYear)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 7017,
+			}).Error(err)
 			return nil, err
 		}
 		msgs = append(msgs, &msgtxt)
@@ -280,7 +316,9 @@ func GetMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, erro
 
 	err = rows.Close()
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 7018,
+		}).Error(err)
 		return nil, err
 	}
 
@@ -325,7 +363,9 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 		updated_year from topics`)
 
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 7019,
+		}).Error(err)
 	}
 	for rows.Next() {
 		poh := msgservices.Topic{}
@@ -362,7 +402,9 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 			&poh.UpdatedMonth,
 			&poh.UpdatedYear)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 7020,
+			}).Error(err)
 			return nil, err
 		}
 		pohs = append(pohs, &poh)
@@ -371,7 +413,9 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 
 	err = rows.Close()
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 7021,
+		}).Error(err)
 		return nil, err
 	}
 

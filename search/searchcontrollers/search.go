@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/search/searchservices"
@@ -63,14 +62,22 @@ func (sc *SearchController) LookupTopics(w http.ResponseWriter, r *http.Request,
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1700", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 7000,
+			}).Error(err)
+			common.RenderErrorJSON(w, "7000", err.Error(), 402, requestID)
 			return
 		}
-		SearchResults, err := sc.Service.Search(&form)
+		SearchResults, err := sc.Service.Search(&form, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1701", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 7001,
+			}).Error(err)
+			common.RenderErrorJSON(w, "7001", err.Error(), 402, requestID)
 			return
 		}
 
