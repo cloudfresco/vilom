@@ -12,7 +12,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/routes"
 	"github.com/cloudfresco/vilom/search/searchservices"
@@ -26,14 +25,14 @@ func setUpLogging(logFile string, logLevel log.Level) error {
 	// open the log file
 	f, err = os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 100,
+		}).Error(err)
 		return err
 	}
 
-	// Log as JSON instead of the default ASCII formatter.
-	log.SetFormatter(&log.JSONFormatter{})
-
 	log.SetOutput(f)
+	log.SetFormatter(&log.JSONFormatter{})
 
 	log.SetLevel(logLevel)
 	return nil
@@ -43,7 +42,9 @@ func getKeys(caCertPath string, certPath string, keyPath string) *tls.Config {
 
 	caCert, err := ioutil.ReadFile(caCertPath)
 	if err != nil {
-		log.Fatal(err)
+		log.WithFields(log.Fields{
+			"msgnum": 101,
+		}).Error(err)
 	}
 
 	caCertpool := x509.NewCertPool()
@@ -52,7 +53,9 @@ func getKeys(caCertPath string, certPath string, keyPath string) *tls.Config {
 	// LoadX509KeyPair reads files, so we give it the paths
 	serverCert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
-		log.Fatal(err)
+		log.WithFields(log.Fields{
+			"msgnum": 102,
+		}).Error(err)
 	}
 
 	tlsConfig := tls.Config{
@@ -75,11 +78,11 @@ func main() {
 	logFile = pwd + filepath.FromSlash("/files/log/app.log")
 	logLevel = log.InfoLevel
 
-	stacktrace.DefaultFormat = stacktrace.FormatFull
-
 	err := setUpLogging(logFile, logLevel)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
 	}
 
 	appState = &routes.AppState{}
@@ -87,7 +90,6 @@ func main() {
 	appState.Init(devFlag)
 	appState.SearchIndex = searchservices.InitSearch("", appState.Db)
 	mux := appState.RoutesInit()
-	log.Info("Server Started")
 
 	if appState.ServerTLS == "true" {
 		var caCertPath, certPath, keyPath string
@@ -113,16 +115,22 @@ func main() {
 			// We received an interrupt signal, shut down.
 			if err := srv.Shutdown(context.Background()); err != nil {
 				// Error from closing listeners, or context timeout:
-				log.Error("HTTP server Shutdown:", err)
+				log.WithFields(log.Fields{
+					"msgnum": 104,
+				}).Warn("HTTP server Shutdown")
 			}
 			close(idleConnsClosed)
 		}()
 
 		if err := srv.ListenAndServeTLS(certPath, keyPath); err != http.ErrServerClosed {
 			// Error starting or closing listener:
-			log.Error("HTTP server ListenAndServeTLS:", err)
+			log.WithFields(log.Fields{
+				"msgnum": 105,
+			}).Warn("HTTP server ListenAndServeTLS")
 		}
-		log.Error("Server shutting down")
+		log.WithFields(log.Fields{
+			"msgnum": 106,
+		}).Warn("Server shutting down")
 
 		<-idleConnsClosed
 	} else {
@@ -141,19 +149,25 @@ func main() {
 			// We received an interrupt signal, shut down.
 			if err := srv.Shutdown(context.Background()); err != nil {
 				// Error from closing listeners, or context timeout:
-				log.Error("HTTP server Shutdown:", err)
+				log.WithFields(log.Fields{
+					"msgnum": 107,
+				}).Warn("HTTP server Shutdown")
 			}
 			close(idleConnsClosed)
 		}()
 
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
-			log.Error("HTTP server ListenAndServe:", err)
+			log.WithFields(log.Fields{
+				"msgnum": 108,
+			}).Warn("HTTP server ListenAndServe")
 		}
 
-		log.Error("Server shutting down")
+		log.Error("")
+		log.WithFields(log.Fields{
+			"msgnum": 109,
+		}).Warn("Server shutting down")
 
 		<-idleConnsClosed
-
 	}
 }
