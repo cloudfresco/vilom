@@ -16,7 +16,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
-	"github.com/palantir/stacktrace"
 	"github.com/rs/xid"
 	gomail "gopkg.in/gomail.v2"
 )
@@ -142,6 +141,9 @@ type User struct {
 func ParseURL(urlString string) ([]string, url.Values, error) {
 	pathString, queryString, err := GetPathQueryString(urlString)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 250,
+		}).Error(err)
 		return []string{}, nil, err
 	}
 	pathParts := GetPathParts(pathString)
@@ -158,6 +160,9 @@ func GetPathQueryString(s string) (string, url.Values, error) {
 	u, err := url.Parse(s)
 
 	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 251,
+		}).Error(err)
 		return "", nil, err
 	}
 
@@ -191,6 +196,9 @@ func GetAuthBearerToken(r *http.Request) (string, error) {
 	if len(bearer) > 7 && strings.ToUpper(bearer[0:6]) == "BEARER" {
 		APIkey = bearer[7:]
 	} else {
+		log.WithFields(log.Fields{
+			"msgnum": 252,
+		}).Error("APIkey Not Found")
 		return "", errors.New("APIkey Not Found ")
 	}
 	return APIkey, nil
@@ -219,11 +227,15 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 		row := db.QueryRow(`select id, id_s, email, role from users where email = ?;`, data.Email)
 		err = row.Scan(&user.ID, &user.IDS, &user.Email, &user.Role)
 		if user.ID == 0 {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 253,
+			}).Error("User not found")
 			return nil, "", errors.New("User not found")
 		}
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 254,
+			}).Error(err)
 			return nil, "", errors.New("User not found")
 		}
 		v.Email = user.Email
@@ -235,16 +247,25 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 		v.Roles = roles
 		usr, err := json.Marshal(v)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 255,
+			}).Error(err)
 			return nil, "", errors.New("User not found")
 		}
 		err = redisClient.Set(data.TokenString, usr, 0).Err()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 256,
+			}).Error(err)
 			return nil, "", errors.New("User not found")
 		}
 	} else {
 		err = json.Unmarshal([]byte(resp), &v)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 257,
+			}).Error(err)
+		}
 	}
 	requestID := GetRequestID()
 	return &v, requestID, nil
@@ -256,7 +277,9 @@ func RenderJSON(w http.ResponseWriter, data interface{}) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 258,
+		}).Error(err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -270,7 +293,9 @@ func RenderErrorJSON(w http.ResponseWriter, errorCode string, errorMsg string, h
 	e := Error{ErrorCode: errorCode, ErrorMsg: errorMsg, HTTPStatusCode: httpStatusCode, RequestID: requestID}
 	err := json.NewEncoder(w).Encode(e)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 259,
+		}).Error(err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -291,10 +316,16 @@ func GetUID() string {
 func ParseTemplate(templateFileName string, data interface{}) (string, error) {
 	t, err := template.ParseFiles(templateFileName)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 260,
+		}).Error(err)
 		return "", err
 	}
 	buf := new(bytes.Buffer)
 	if err = t.Execute(buf, data); err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 261,
+		}).Error(err)
 		return "", err
 	}
 	body := buf.String()
@@ -311,7 +342,9 @@ func SendMail(msg Email, gomailer *gomail.Dialer) error {
 
 	err := gomailer.DialAndSend(m)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 262,
+		}).Error(err)
 		return err
 	}
 	return nil
@@ -321,7 +354,9 @@ func SendMail(msg Email, gomailer *gomail.Dialer) error {
 func CheckRoles(AllowedRoles []string, UserRoles []string) error {
 	for _, permission := range AllowedRoles {
 		if err := checkRoles(UserRoles, permission); err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 263,
+			}).Error(err)
 			return err
 		}
 		break
@@ -357,7 +392,9 @@ func EncodeCursor(cursor uint) string {
 func DecodeCursor(cursor string) string {
 	cursorBytes, err := base64.StdEncoding.DecodeString(cursor)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 264,
+		}).Error(err)
 		return ""
 	}
 	return string(cursorBytes)

@@ -10,7 +10,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
-	"github.com/palantir/stacktrace"
 	"github.com/spf13/viper"
 	gomail "gopkg.in/gomail.v2"
 
@@ -34,14 +33,20 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 	db, err := sql.Open("mysql", fmt.Sprint(dbOpt.User, ":", dbOpt.Password, "@(", dbOpt.Host,
 		":", dbOpt.Port, ")/", dbOpt.Schema, "?charset=utf8mb4&parseTime=True"))
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 500,
+		}).Error(err)
 	}
 	// make sure connection is available
 	err = db.Ping()
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 501,
+		}).Error(err)
 	} else {
-		log.Info("Connected to Sql DB")
+		log.WithFields(log.Fields{
+			"msgnum": 502,
+		}).Info("Connected to Sql DB")
 	}
 
 	redisClient := redis.NewClient(&redis.Options{
@@ -60,7 +65,9 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 	mailerOpt.Server = v.GetString("VILOM_MAILER_SERVER")
 	MailerPort, err := strconv.Atoi(v.GetString("VILOM_MAILER_PORT"))
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 503,
+		}).Error(err)
 	}
 	mailerOpt.Port = MailerPort
 	mailerOpt.User = v.GetString("VILOM_MAILER_USER")
@@ -82,7 +89,9 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 	jwtOpt.JWTKey = []byte(JWTKey)
 	JWTDuration, err := strconv.Atoi(v.GetString("VILOM_JWT_DURATION"))
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 504,
+		}).Error(err)
 	}
 	jwtOpt.JWTDuration = JWTDuration
 
@@ -93,23 +102,31 @@ func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOp
 	v1.AddConfigPath(viewpath)
 
 	if err := v1.ReadInConfig(); err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 505,
+		}).Error(err)
 		os.Exit(1)
 	}
 
 	var rateOpt common.RateLimiterOptions
 	if err := v1.UnmarshalKey("ratelimit", &rateOpt); err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 506,
+		}).Error(err)
 	}
 
 	var limit string
 	if err := v1.UnmarshalKey("limit", &limit); err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 507,
+		}).Error(err)
 	}
 
 	var userOpt common.UserOptions
 	if err := v1.UnmarshalKey("useroptions", &userOpt); err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 508,
+		}).Error(err)
 	}
 
 	return &redisOpt, db, redisClient, &oauth, mailer, &keyOpt, serverTLS, serverAddr, &jwtOpt, &rateOpt, limit, &userOpt, nil

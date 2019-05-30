@@ -1,9 +1,8 @@
 package routes
 
 import (
-	"database/sql"
-	//"encoding/json"
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/blevesearch/bleve"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis"
-	"github.com/palantir/stacktrace"
 	"github.com/throttled/throttled"
 	"github.com/throttled/throttled/store/goredisstore"
 	gomail "gopkg.in/gomail.v2"
@@ -47,7 +45,9 @@ type AppState struct {
 func (appState *AppState) Init(devMode bool) {
 	redisObj, db, redisClient, oauth, mailer, keyObj, serverTLS, serverAddr, jwtObj, rateObj, limit, userObj, err := config.InitConfig()
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
 		return
 	}
 	appState.Config = redisObj
@@ -97,7 +97,9 @@ func (appState AppState) AuthenticateMiddleware(next http.Handler) http.Handler 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString, err := common.GetAuthBearerToken(r)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 751,
+			}).Error(err)
 			http.Error(w, "Error parsing token", http.StatusUnauthorized)
 			return
 		}
@@ -116,7 +118,9 @@ func (appState AppState) AuthenticateMiddleware(next http.Handler) http.Handler 
 			v.Email = claims["EmailAddr"].(string)
 			v.TokenString = tokenString
 		} else {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"msgnum": 752,
+			}).Error(err)
 			return
 		}
 		ctx := context.WithValue(r.Context(), common.KeyEmailToken, v)
@@ -130,7 +134,9 @@ func (appState AppState) GetHTTPRateLimiter(store *goredisstore.GoRedisStore, Ma
 
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
 	if err != nil {
-		log.Fatal(err)
+		log.WithFields(log.Fields{
+			"msgnum": 753,
+		}).Error(err)
 	}
 
 	httpRateLimiter := throttled.HTTPRateLimiter{
@@ -161,7 +167,9 @@ func (appState AppState) RoutesInit() *http.ServeMux {
 
 	store, err := goredisstore.New(appState.RedisClient, "throttled:")
 	if err != nil {
-		log.Fatal(err)
+		log.WithFields(log.Fields{
+			"msgnum": 754,
+		}).Error(err)
 	}
 	httpRateLimiter1 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UserMaxRate, appState.RateLimiter.UserMaxBurst)
 	httpRateLimiter2 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UgroupMaxRate, appState.RateLimiter.UgroupMaxBurst)
