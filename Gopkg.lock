@@ -10,12 +10,12 @@
   version = "v0.4.17"
 
 [[projects]]
-  digest = "1:e4c72127d910a96daf869a44f3dd563b86dbe6931a172863a0e99c5ff04b59e4"
+  digest = "1:04457f9f6f3ffc5fea48e71d62f2ca256637dee0a04d710288e27e05c8b41976"
   name = "github.com/Sirupsen/logrus"
   packages = ["."]
   pruneopts = "UT"
-  revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
-  version = "v1.4.0"
+  revision = "839c75faf7f98a33d445d181f3018b5c3409a45e"
+  version = "v1.4.2"
 
 [[projects]]
   branch = "master"
@@ -98,7 +98,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9ad2e6fc1f8f3e478ea342ebbc94d28db70d125e3575384e3c427783a0310647"
+  digest = "1:ee3656c40a0dc683f36c939970827298cb2241e759f546bee06de348f8946e5d"
   name = "github.com/couchbase/vellum"
   packages = [
     ".",
@@ -106,7 +106,7 @@
     "utf8",
   ]
   pruneopts = "UT"
-  revision = "e91b68ff3efe3cc11723aa25dd315cbc9276cd65"
+  revision = "462e86d8716b36a1397b30ef77fb11105065a232"
 
 [[projects]]
   digest = "1:76dc72490af7174349349838f2fe118996381b31ea83243812a97e5a0fd5ed55"
@@ -141,7 +141,7 @@
   revision = "f9677308dec2b35e76737f9713df328ad11b1fea"
 
 [[projects]]
-  digest = "1:33082c63746b464db3d1c2c07a1396d860484d97fe857ef9e8668a9b406db09f"
+  digest = "1:c950e574951c7199fb3d990d0e7a61996f40f8e646ba7cf8a557878d4c737f53"
   name = "github.com/go-redis/redis"
   packages = [
     ".",
@@ -153,8 +153,8 @@
     "internal/util",
   ]
   pruneopts = "UT"
-  revision = "d22fde8721cc915a55aeb6b00944a76a92bfeb6e"
-  version = "v6.15.2"
+  revision = "75795aa4236dc7341eefac3bbe945e68c99ef9df"
+  version = "v6.15.3"
 
 [[projects]]
   digest = "1:850c49ca338a10fec2cb9e78f793043ed23965489d09e30bcc19fe29719da313"
@@ -165,20 +165,18 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
+  digest = "1:8678e5fbb17ef2ba020f5369260d9adead06c4be5974e7aa556c245badbed139"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   pruneopts = "UT"
-  revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
-  version = "v1.3.1"
+  revision = "655cdfa588ea190e901bc5590e65d5621688847c"
 
 [[projects]]
-  digest = "1:e4f5819333ac698d294fe04dbf640f84719658d5c7ce195b10060cc37292ce79"
+  digest = "1:ffcba3b8daaaa29dd382bf24b62c5fce691de087a03dde25ed03b1dd02b8c6a8"
   name = "github.com/golang/snappy"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2a8bb927dd31d8daada140a5d09578521ce5c36a"
-  version = "v0.0.1"
+  revision = "cef980a12b316c5b7e5bb3a8e168eb43ae999a88"
 
 [[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
@@ -208,12 +206,12 @@
   version = "v1.0.2"
 
 [[projects]]
-  digest = "1:c568d7727aa262c32bdf8a3f7db83614f7af0ed661474b24588de635c20024c7"
+  digest = "1:5a0ef768465592efca0412f7e838cdc0826712f8447e70e6ccc52eb441e9ab13"
   name = "github.com/magiconair/properties"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c2353362d570a7bfa228149c62842019201cfb71"
-  version = "v1.8.0"
+  revision = "de8848e004dd33dc07a2947b3d76f618a7fc7ef1"
+  version = "v1.8.1"
 
 [[projects]]
   digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"
@@ -232,23 +230,12 @@
   revision = "90eadee771aeab36e8bf796039b8c261bebebe4f"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c497b54ed4be2a7753ae4bfc7629f7168530f22e70ede8badd2aae657ba472b4"
-  name = "github.com/palantir/stacktrace"
-  packages = [
-    ".",
-    "cleanpath",
-  ]
-  pruneopts = "UT"
-  revision = "78658fd2d1772b755720ed8c44367d11ee5380d6"
-
-[[projects]]
-  digest = "1:95741de3af260a92cc5c7f3f3061e85273f5a81b5db20d4bd68da74bd521675e"
+  digest = "1:93131d8002d7025da13582877c32d1fc302486775a1b06f62241741006428c5e"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
-  version = "v1.2.0"
+  revision = "728039f679cbcd4f6a54e080d2219a4c4928c546"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:5e73b34a27d827212102605789de00bd411b2e434812133c83935fe9897c75e1"
@@ -267,15 +254,15 @@
   version = "v1.2.1"
 
 [[projects]]
-  digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
+  digest = "1:bb495ec276ab82d3dd08504bbc0594a65de8c3b22c6f2aaa92d05b73fbf3a82e"
   name = "github.com/spf13/afero"
   packages = [
     ".",
     "mem",
   ]
   pruneopts = "UT"
-  revision = "f4711e4db9e9a1d3887343acb72b2bbfc2f686f5"
-  version = "v1.2.1"
+  revision = "588a75ec4f32903aa5e39a2619ba6a4631e28424"
+  version = "v1.2.2"
 
 [[projects]]
   digest = "1:08d65904057412fc0270fc4812a1c90c594186819243160dc779a402d4b6d0bc"
@@ -302,12 +289,12 @@
   version = "v1.0.3"
 
 [[projects]]
-  digest = "1:1b773526998f3dbde3a51a4a5881680c4d237d3600f570d900f97ac93c7ba0a8"
+  digest = "1:11118bd196646c6515fea3d6c43f66162833c6ae4939bfb229b9956d91c6cf17"
   name = "github.com/spf13/viper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "9e56dacc08fbbf8c9ee2dbc717553c758ce42bc9"
-  version = "v1.3.2"
+  revision = "b5bf975e5823809fb22c7644d008757f78a4259e"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
@@ -337,23 +324,23 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:542c6a724e70496d05fb3b40c45857fc0e353ed5f1c0ec4567fcf54c2f3b9619"
+  digest = "1:85ddc8a0e53c1ebe8ba228f2303fb156feffd8f2b4bead4d1d0af9c293c6054f"
   name = "github.com/willf/bitset"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5c3c0fce48842b2c0bbaa99b4e61b0175d84b47c"
+  revision = "20ad246f50b49590afcb1ed8ad143da7163869cb"
+  version = "v1.1.10"
 
 [[projects]]
   branch = "master"
-  digest = "1:0c75a1e88c2b1e0361102c133f2690fd1fd5ab5da829f60a9c2dd20b9c224c71"
+  digest = "1:9d5b5d543996dd584da1db1e0de1926f3e4c3a8dba0fa2f8db70f3ebee2342e0"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
     "blowfish",
-    "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "b7391e95e576cacdcdd422573063bc057239113d"
+  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
 
 [[projects]]
   digest = "1:6ad30c4e66653ca512cc3f3894686fc4cdd17af1c7fd51603a10e1b31538ad81"
@@ -364,17 +351,17 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:012ffea19e0c7f3bf69652ba71b42c8ffa9929ad53f8a1d50534b279cfd7a34f"
+  digest = "1:6cbace514cbe27ab19afd55e9fd63e1195cda506c3cc4ae21dfeb3dcd6b8c59f"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "f7bb7a8bee54210937e93ec56d007d892c1f0580"
+  revision = "46560c3f3c0a091352115a3d825af45663b983d8"
 
 [[projects]]
-  digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
+  digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
   name = "golang.org/x/text"
   packages = [
     "internal/gen",
@@ -385,8 +372,8 @@
     "unicode/norm",
   ]
   pruneopts = "UT"
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
 
 [[projects]]
   branch = "v3"
@@ -428,7 +415,6 @@
     "github.com/dgrijalva/jwt-go",
     "github.com/go-redis/redis",
     "github.com/go-sql-driver/mysql",
-    "github.com/palantir/stacktrace",
     "github.com/rs/xid",
     "github.com/spf13/viper",
     "github.com/throttled/throttled",
