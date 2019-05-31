@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/user/userservices"
@@ -90,10 +89,15 @@ func (uc *UbadgeController) Index(w http.ResponseWriter, r *http.Request, limit 
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ubadges, err := uc.Service.GetUbadges(ctx, limit, cursor)
+		ubadges, err := uc.Service.GetUbadges(ctx, limit, cursor, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1230", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3000,
+			}).Error(err)
+
+			common.RenderErrorJSON(w, "3000", err.Error(), 402, requestID)
 			return
 		}
 		common.RenderJSON(w, ubadges)
@@ -109,10 +113,14 @@ func (uc *UbadgeController) Show(w http.ResponseWriter, r *http.Request, id stri
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ubadge, err := uc.Service.GetUbadge(ctx, id)
+		ubadge, err := uc.Service.GetUbadge(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1231", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3001,
+			}).Error(err)
+			common.RenderErrorJSON(w, "3001", err.Error(), 402, requestID)
 			return
 		}
 
@@ -133,14 +141,24 @@ func (uc *UbadgeController) Create(w http.ResponseWriter, r *http.Request, user 
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1232", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3002,
+			}).Error(err)
+
+			common.RenderErrorJSON(w, "3002", err.Error(), 402, requestID)
 			return
 		}
-		ubadge, err := uc.Service.Create(ctx, &form)
+		ubadge, err := uc.Service.Create(ctx, &form, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1233", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3003,
+			}).Error(err)
+
+			common.RenderErrorJSON(w, "3003", err.Error(), 402, requestID)
 			return
 		}
 
@@ -157,10 +175,15 @@ func (uc *UbadgeController) Delete(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.Delete(ctx, id)
+		err := uc.Service.Delete(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1234", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3004,
+			}).Error(err)
+
+			common.RenderErrorJSON(w, "3004", err.Error(), 402, requestID)
 			return
 		}
 
@@ -181,14 +204,24 @@ func (uc *UbadgeController) AddUserToGroup(w http.ResponseWriter, r *http.Reques
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1235", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3005,
+			}).Error(err)
+
+			common.RenderErrorJSON(w, "3005", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.AddUserToGroup(ctx, &form, id)
+		err = uc.Service.AddUserToGroup(ctx, &form, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1236", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3006,
+			}).Error(err)
+
+			common.RenderErrorJSON(w, "3006", err.Error(), 402, requestID)
 			return
 		}
 
@@ -209,14 +242,23 @@ func (uc *UbadgeController) DeleteUserFromGroup(w http.ResponseWriter, r *http.R
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1237", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3007,
+			}).Error(err)
+			common.RenderErrorJSON(w, "3007", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.DeleteUserFromGroup(ctx, &form, id)
+		err = uc.Service.DeleteUserFromGroup(ctx, &form, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1238", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 3008,
+			}).Error(err)
+
+			common.RenderErrorJSON(w, "3008", err.Error(), 402, requestID)
 			return
 		}
 

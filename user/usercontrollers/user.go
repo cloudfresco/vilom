@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/user/userservices"
@@ -83,8 +82,12 @@ func (uc *UsersController) Index(w http.ResponseWriter, r *http.Request, limit s
 	AllowedRoles := []string{"co_admin"}
 	err := common.CheckRoles(AllowedRoles, user.Roles)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
-		common.RenderErrorJSON(w, "1150", "You are Not Authorised", 402, requestID)
+		log.WithFields(log.Fields{
+			"user":   user.Email,
+			"reqid":  requestID,
+			"msgnum": 1300,
+		}).Error(err)
+		common.RenderErrorJSON(w, "1300", "You are Not Authorised", 402, requestID)
 		return
 	}
 
@@ -95,10 +98,14 @@ func (uc *UsersController) Index(w http.ResponseWriter, r *http.Request, limit s
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		users, err := uc.Service.GetUsers(ctx, limit, cursor)
+		users, err := uc.Service.GetUsers(ctx, limit, cursor, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1151", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1301,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1301", err.Error(), 402, requestID)
 			return
 		}
 		common.RenderJSON(w, users)
@@ -110,8 +117,12 @@ func (uc *UsersController) Show(w http.ResponseWriter, r *http.Request, id strin
 	AllowedRoles := []string{"co_admin"}
 	err := common.CheckRoles(AllowedRoles, user.Roles)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
-		common.RenderErrorJSON(w, "1152", "You are Not Authorised", 402, requestID)
+		log.WithFields(log.Fields{
+			"user":   user.Email,
+			"reqid":  requestID,
+			"msgnum": 1302,
+		}).Error(err)
+		common.RenderErrorJSON(w, "1302", "You are Not Authorised", 402, requestID)
 		return
 	}
 
@@ -122,10 +133,14 @@ func (uc *UsersController) Show(w http.ResponseWriter, r *http.Request, id strin
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		usr, err := uc.Service.GetUser(ctx, id)
+		usr, err := uc.Service.GetUser(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1153", err.Error(), 400, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1303,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1303", err.Error(), 400, requestID)
 			return
 		}
 
@@ -147,14 +162,22 @@ func (uc *UsersController) ChangeEmail(w http.ResponseWriter, r *http.Request, u
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1154", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1304,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1304", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ChangeEmail(ctx, &form, r.Host)
+		err = uc.Service.ChangeEmail(ctx, &form, r.Host, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1155", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1305,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1305", err.Error(), 402, requestID)
 			return
 		}
 
@@ -175,14 +198,22 @@ func (uc *UsersController) ChangePassword(w http.ResponseWriter, r *http.Request
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1156", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1306,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1306", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ChangePassword(ctx, &form)
+		err = uc.Service.ChangePassword(ctx, &form, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1157", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1307,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1307", err.Error(), 402, requestID)
 			return
 		}
 
@@ -203,14 +234,22 @@ func (uc *UsersController) Getuserbyemail(w http.ResponseWriter, r *http.Request
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1158", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1308,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1308", err.Error(), 402, requestID)
 			return
 		}
-		usr, err := uc.Service.GetUserByEmail(ctx, form.Email)
+		usr, err := uc.Service.GetUserByEmail(ctx, form.Email, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1159", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 1309,
+			}).Error(err)
+			common.RenderErrorJSON(w, "1309", err.Error(), 402, requestID)
 			return
 		}
 		common.RenderJSON(w, usr)

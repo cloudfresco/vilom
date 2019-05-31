@@ -17,7 +17,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis"
-	"github.com/palantir/stacktrace"
 	"golang.org/x/crypto/bcrypt"
 	gomail "gopkg.in/gomail.v2"
 
@@ -136,10 +135,13 @@ type CustomClaims struct {
 }
 
 // HashPassword - Generate hash password
-func HashPassword(password string) ([]byte, error) {
+func HashPassword(password string, requestID string) ([]byte, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Error(stacktrace.Propagate(err, ""))
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1500,
+		}).Error(err)
 		return []byte{}, err
 	}
 	return hash, nil
@@ -151,9 +153,13 @@ func HashPassword(password string) ([]byte, error) {
 // verifier: hash of the second half of a 64 byte value
 // (to be stored in database but never used in SELECT query)
 // token: the user-facing base64 encoded selector+verifier
-func GenTokenHash() (selector, verifier, token string, err error) {
+func GenTokenHash(requestID string) (selector, verifier, token string, err error) {
 	rawToken := make([]byte, 64)
 	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1501,
+		}).Error(err)
 		return "", "", "", err
 	}
 	selectorBytes := sha512.Sum512(rawToken[:32])
@@ -166,14 +172,22 @@ func GenTokenHash() (selector, verifier, token string, err error) {
 }
 
 // GetSelectorForPasswdRecoveryToken - Get Selector For Password Recovery Token
-func GetSelectorForPasswdRecoveryToken(token string) ([64]byte, string, error) {
+func GetSelectorForPasswdRecoveryToken(token string, requestID string) ([64]byte, string, error) {
 
 	rawToken, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1502,
+		}).Error(err)
 		return [64]byte{}, "", errors.New("invalid recover token submitted, base64 decode failed")
 	}
 
 	if len(rawToken) != 64 {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1503,
+		}).Error("invalid recover token submitted, size was wrong")
 		return [64]byte{}, "", errors.New("invalid recover token submitted, size was wrong")
 	}
 
@@ -185,18 +199,30 @@ func GetSelectorForPasswdRecoveryToken(token string) ([64]byte, string, error) {
 }
 
 // ValidatePasswdRecoveryToken - Validate Passwd Recovery Token
-func ValidatePasswdRecoveryToken(verifierBytes [64]byte, verifier string, tokenExpiry time.Time) error {
+func ValidatePasswdRecoveryToken(verifierBytes [64]byte, verifier string, tokenExpiry time.Time, requestID string) error {
 	tn := time.Now().UTC()
 	if tn.UTC().After(tokenExpiry) {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1504,
+		}).Error("Token already expired")
 		return errors.New("Token already expired")
 	}
 
 	dbVerifierBytes, err := base64.StdEncoding.DecodeString(verifier)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1505,
+		}).Error(err)
 		return err
 	}
 	if subtle.ConstantTimeEq(int32(len(verifierBytes)), int32(len(dbVerifierBytes))) != 1 ||
 		subtle.ConstantTimeCompare(verifierBytes[:], dbVerifierBytes) != 1 {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1506,
+		}).Error("stored recover verifier does not match provided one")
 		return errors.New("stored recover verifier does not match provided one")
 	}
 
@@ -212,10 +238,15 @@ type UserCursor struct {
 }
 
 // GetUsers - Get all users
-func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor string) (*UserCursor, error) {
+func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*UserCursor, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 1507,
+		}).Error(err)
 		return nil, err
 	default:
 		if limit == "" {
@@ -231,7 +262,11 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 		users := []*User{}
 		rows, err := u.Db.QueryContext(ctx, `select id, id_s, auth_token, first_name, last_name, email, role from users `+query)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1508,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -239,7 +274,11 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 			user := User{}
 			err = rows.Scan(&user.ID, &user.IDS, &user.AuthToken, &user.FirstName, &user.LastName, &user.Email, &user.Role)
 			if err != nil {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{
+					"user":   userEmail,
+					"reqid":  requestID,
+					"msgnum": 1509,
+				}).Error(err)
 				err = rows.Close()
 				return nil, err
 			}
@@ -247,13 +286,21 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 		}
 		err = rows.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1510,
+			}).Error(err)
 			return nil, err
 		}
 
 		err = rows.Err()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1511,
+			}).Error(err)
 			return nil, err
 		}
 		x := UserCursor{}
@@ -271,10 +318,14 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 }
 
 // Login - used for Login user
-func (u *UserService) Login(ctx context.Context, form *LoginForm) (*User, error) {
+func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID string) (*User, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1512,
+		}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -286,24 +337,36 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm) (*User, error)
 			&user.Password)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1513,
+			}).Error(err)
 			return nil, err
 		}
 
 		err = bcrypt.CompareHashAndPassword(user.Password, []byte(form.Password))
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1514,
+			}).Error(err)
 			return nil, err
 		}
 		tokenDuration := time.Duration(u.JWTOptions.JWTDuration)
-		tokenStr, err := u.CreateJWT(form.Email, tokenDuration)
+		tokenStr, err := u.CreateJWT(form.Email, tokenDuration, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1515,
+			}).Error(err)
 			return nil, err
 		}
 		user.Tokenstring = tokenStr
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1516,
+			}).Error(err)
 			return nil, err
 		}
 		return &user, err
@@ -311,7 +374,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm) (*User, error)
 }
 
 // CreateJWT - Create jwt token
-func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration) (string, error) {
+func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration, requestID string) (string, error) {
 	tn := time.Now().UTC()
 	claims := CustomClaims{
 		EmailAddr: emailAddr,
@@ -325,6 +388,10 @@ func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration) (
 	// Sign token with key
 	tokenString, err := token.SignedString(u.JWTOptions.JWTKey)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1517,
+		}).Error("Failed to sign token")
 		return "", errors.New("Failed to sign token")
 	}
 
@@ -333,10 +400,14 @@ func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration) (
 }
 
 // Create - Create User
-func (u *UserService) Create(ctx context.Context, form *User, hostURL string) (*User, error) {
+func (u *UserService) Create(ctx context.Context, form *User, hostURL string, requestID string) (*User, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1518,
+		}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -345,24 +416,40 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string) (*
 		row := db.QueryRowContext(ctx, `select exists (select 1 from users where email = ?)`, form.Email)
 		err := row.Scan(&isPresent)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1519,
+			}).Error(err)
+
 			return nil, err
 		}
 		if isPresent {
 			err = errors.New("Email Already Exists")
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1520,
+			}).Error(err)
+
 			return nil, err
 		}
 
-		password1, err := HashPassword(form.PasswordS)
+		password1, err := HashPassword(form.PasswordS, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1521,
+			}).Error(err)
+
 			return nil, err
 		}
 
-		selector, verifier, token, err := GenTokenHash()
+		selector, verifier, token, err := GenTokenHash(requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1522,
+			}).Error(err)
+
 			return nil, err
 		}
 
@@ -418,19 +505,31 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string) (*
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1523,
+			}).Error(err)
+
 			return nil, err
 		}
-		usr, err := u.InsertUser(ctx, tx, user, hostURL)
+		usr, err := u.InsertUser(ctx, tx, user, hostURL, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1524,
+			}).Error(err)
+
 			err = tx.Rollback()
 			return nil, err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1525,
+			}).Error(err)
+
 			return nil, err
 		}
 		return usr, nil
@@ -438,10 +537,15 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string) (*
 }
 
 // InsertUser - Insert User details to database
-func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hostURL string) (*User, error) {
+func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hostURL string, requestID string) (*User, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1526,
+		}).Error(err)
+
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into users
@@ -495,7 +599,11 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 					?,?,?,?,?,?,?,?,?,?,
           ?,?,?);`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1527,
+			}).Error(err)
+
 			return nil, err
 		}
 		res, err := stmt.ExecContext(ctx,
@@ -543,20 +651,32 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 			user.UpdatedMonth,
 			user.UpdatedYear)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1528,
+			}).Error(err)
+
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1529,
+			}).Error(err)
+
 			err = stmt.Close()
 			return nil, err
 		}
 		user.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1530,
+			}).Error(err)
+
 			return nil, err
 		}
 
@@ -571,7 +691,11 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 		}
 		ConfirmationEmail, err := common.ParseTemplate(viewpath, templateData)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1531,
+			}).Error(err)
+
 			return nil, err
 		}
 
@@ -583,7 +707,11 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 
 		err = common.SendMail(email, u.Mailer)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1532,
+			}).Error(err)
+
 			return nil, err
 		}
 
@@ -592,16 +720,25 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 }
 
 // ConfirmEmail - used to confirm email
-func (u *UserService) ConfirmEmail(ctx context.Context, token string) error {
+func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1533,
+		}).Error(err)
+
 		return err
 	default:
 		db := u.Db
-		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token)
+		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1534,
+			}).Error(err)
+
 			return err
 		}
 		user := User{}
@@ -614,13 +751,21 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string) error {
 			&user.EmailTokenExpiry)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1535,
+			}).Error(err)
+
 			return err
 		}
 
-		err = ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry)
+		err = ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1536,
+			}).Error(err)
+
 			return err
 		}
 
@@ -646,7 +791,11 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string) error {
 				updated_month = ?, 
 				updated_year = ? where id= ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1537,
+			}).Error(err)
+
 			err = stmt.Close()
 			return err
 		}
@@ -665,14 +814,22 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string) error {
 			UpdatedYear,
 			user.ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1538,
+			}).Error(err)
+
 			err = stmt.Close()
 			return err
 		}
 		err = stmt.Close()
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1539,
+			}).Error(err)
+
 			return err
 		}
 
@@ -681,22 +838,35 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string) error {
 }
 
 // ForgotPassword - used to reset forgotten Password
-func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordForm, hostURL string) error {
+func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordForm, hostURL string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1540,
+		}).Error(err)
+
 		return err
 	default:
 		db := u.Db
-		user, err := u.GetUserByEmail(ctx, form.Email)
+		user, err := u.GetUserByEmail(ctx, form.Email, "", requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1541,
+			}).Error(err)
+
 			return err
 		}
 
-		selector, verifier, token, err := GenTokenHash()
+		selector, verifier, token, err := GenTokenHash(requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1542,
+			}).Error(err)
+
 			return err
 		}
 		tn := time.Now().UTC()
@@ -724,7 +894,11 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 				updated_month = ?, 
 				updated_year = ? where id= ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1543,
+			}).Error(err)
+
 			err = stmt.Close()
 			return err
 		}
@@ -742,14 +916,22 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 			UpdatedYear,
 			user.ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1544,
+			}).Error(err)
+
 			err = stmt.Close()
 			return err
 		}
 		err = stmt.Close()
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1545,
+			}).Error(err)
+
 			return err
 		}
 
@@ -766,7 +948,11 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 
 		ResetPasswordEmail, err := common.ParseTemplate(viewpath, templateData)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1546,
+			}).Error(err)
+
 			return err
 		}
 
@@ -779,7 +965,10 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 
 		err = common.SendMail(email, u.Mailer)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1547,
+			}).Error(err)
 			return err
 		}
 
@@ -788,21 +977,29 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 }
 
 // ConfirmForgotPassword - used to confirm forgotten password
-func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordForm, token string) error {
+func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordForm, token string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		return err
 	default:
 		db := u.Db
-		password1, err := HashPassword(form.Password)
+		password1, err := HashPassword(form.Password, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1548,
+			}).Error(err)
+
 		}
 
-		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token)
+		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1549,
+			}).Error(err)
+
 			return err
 		}
 		user := User{}
@@ -815,13 +1012,21 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 			&user.PasswordTokenExpiry)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1550,
+			}).Error(err)
+
 			return err
 		}
 
-		err = ValidatePasswdRecoveryToken(verifierBytes, user.PasswordVerifier, user.PasswordTokenExpiry)
+		err = ValidatePasswdRecoveryToken(verifierBytes, user.PasswordVerifier, user.PasswordTokenExpiry, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1551,
+			}).Error(err)
+
 			return err
 		}
 
@@ -836,7 +1041,11 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1552,
+			}).Error(err)
+
 			return err
 		}
 
@@ -854,7 +1063,11 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 				updated_month = ?, 
 				updated_year = ? where id= ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1553,
+			}).Error(err)
+
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
@@ -875,21 +1088,33 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 			UpdatedYear,
 			user.ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1554,
+			}).Error(err)
+
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
 		}
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1555,
+			}).Error(err)
+
 			err = tx.Rollback()
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1556,
+			}).Error(err)
+
 			return err
 		}
 		return nil
@@ -897,10 +1122,15 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 }
 
 // ChangePassword - used to update password
-func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm) error {
+func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 1557,
+		}).Error(err)
 		return err
 	default:
 		db := u.Db
@@ -911,14 +1141,22 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm) er
 			&user.Password)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1558,
+			}).Error(err)
 			return err
 		}
 
 		err = bcrypt.CompareHashAndPassword(user.Password,
 			[]byte(form.CurrentPassword))
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1559,
+			}).Error(err)
 			return err
 		}
 
@@ -931,9 +1169,13 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm) er
 		UpdatedMonth := uint(tn.Month())
 		UpdatedYear := uint(tn.Year())
 
-		password1, err := HashPassword(form.Password)
+		password1, err := HashPassword(form.Password, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1560,
+			}).Error(err)
 		}
 		stmt, err := db.PrepareContext(ctx, `update users set 
 		    password = ?,
@@ -943,7 +1185,11 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm) er
 				updated_month = ?, 
 				updated_year = ? where id= ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1561,
+			}).Error(err)
 			err = stmt.Close()
 			return err
 		}
@@ -957,13 +1203,21 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm) er
 			UpdatedYear,
 			form.ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1562,
+			}).Error(err)
 			err = stmt.Close()
 			return err
 		}
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1563,
+			}).Error(err)
 			return err
 		}
 
@@ -972,22 +1226,35 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm) er
 }
 
 // ChangeEmail - Change Email
-func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, hostURL string) error {
+func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, hostURL string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 1564,
+		}).Error(err)
 		return err
 	default:
 		db := u.Db
-		user, err := u.GetUserByEmail(ctx, form.Email)
+		user, err := u.GetUserByEmail(ctx, form.Email, userEmail, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1565,
+			}).Error(err)
 			return err
 		}
 
-		selector, verifier, token, err := GenTokenHash()
+		selector, verifier, token, err := GenTokenHash(requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1566,
+			}).Error(err)
 			return err
 		}
 
@@ -1016,7 +1283,11 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 				updated_month = ?, 
 				updated_year = ? where id= ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1567,
+			}).Error(err)
 			err = stmt.Close()
 			return err
 		}
@@ -1035,14 +1306,22 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			UpdatedYear,
 			user.ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1568,
+			}).Error(err)
 			err = stmt.Close()
 			return err
 		}
 		err = stmt.Close()
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1569,
+			}).Error(err)
 			return err
 		}
 
@@ -1059,7 +1338,11 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 
 		ChangeEmail, err := common.ParseTemplate(viewpath, templateData)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1570,
+			}).Error(err)
 			return err
 		}
 
@@ -1072,7 +1355,11 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 
 		err = common.SendMail(email, u.Mailer)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1571,
+			}).Error(err)
 			return err
 		}
 
@@ -1081,18 +1368,25 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 }
 
 // ConfirmChangeEmail - Confirm change email
-func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string) error {
+func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1572,
+		}).Error(err)
 		return err
 	default:
 		db := u.Db
 		tn := time.Now().UTC()
 
-		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token)
+		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1573,
+			}).Error(err)
 			return err
 		}
 		user := User{}
@@ -1107,13 +1401,19 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string) erro
 			&user.NewEmailTokenExpiry)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1574,
+			}).Error(err)
 			return err
 		}
 
-		err = ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry)
+		err = ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1575,
+			}).Error(err)
 			return err
 		}
 
@@ -1140,7 +1440,10 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string) erro
 				updated_month = ?, 
 				updated_year = ? where id= ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1576,
+			}).Error(err)
 			err = stmt.Close()
 			return err
 		}
@@ -1161,14 +1464,20 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string) erro
 			UpdatedYear,
 			user.ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1577,
+			}).Error(err)
 			err = stmt.Close()
 			return err
 		}
 		err = stmt.Close()
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1578,
+			}).Error(err)
 			return err
 		}
 
@@ -1177,10 +1486,15 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string) erro
 }
 
 // GetUserByEmail - Get user details by email
-func (u *UserService) GetUserByEmail(ctx context.Context, Email string) (*User, error) {
+func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmail string, requestID string) (*User, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 1579,
+		}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -1229,7 +1543,11 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string) (*User, 
 			&user.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1580,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -1238,10 +1556,14 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string) (*User, 
 }
 
 // GetUser - Get user details by ID
-func (u *UserService) GetUser(ctx context.Context, ID string) (*User, error) {
+func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, requestID string) (*User, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1581,
+		}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -1290,7 +1612,10 @@ func (u *UserService) GetUser(ctx context.Context, ID string) (*User, error) {
 			&user.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1582,
+			}).Error(err)
 			return nil, err
 		}
 

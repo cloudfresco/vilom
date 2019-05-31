@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/user/userservices"
@@ -102,10 +101,14 @@ func (uc *UgroupController) Index(w http.ResponseWriter, r *http.Request, limit 
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.GetUgroups(ctx, limit, cursor)
+		ugroups, err := uc.Service.GetUgroups(ctx, limit, cursor, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1200", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2000,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2000", err.Error(), 402, requestID)
 			return
 		}
 		common.RenderJSON(w, ugroups)
@@ -121,10 +124,14 @@ func (uc *UgroupController) TopLevelGroups(w http.ResponseWriter, r *http.Reques
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.TopLevelUgroups(ctx)
+		ugroups, err := uc.Service.TopLevelUgroups(ctx, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1201", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2001,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2001", err.Error(), 402, requestID)
 			return
 		}
 
@@ -141,10 +148,14 @@ func (uc *UgroupController) Show(w http.ResponseWriter, r *http.Request, id stri
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroup, err := uc.Service.GetUgroup(ctx, id)
+		ugroup, err := uc.Service.GetUgroup(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1202", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2002,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2002", err.Error(), 402, requestID)
 			return
 		}
 
@@ -165,14 +176,22 @@ func (uc *UgroupController) Create(w http.ResponseWriter, r *http.Request, user 
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1203", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2003,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2003", err.Error(), 402, requestID)
 			return
 		}
-		ugroup, err := uc.Service.Create(ctx, &form)
+		ugroup, err := uc.Service.Create(ctx, &form, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1204", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2004,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2004", err.Error(), 402, requestID)
 			return
 		}
 
@@ -193,14 +212,22 @@ func (uc *UgroupController) CreateChild(w http.ResponseWriter, r *http.Request, 
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1205", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2005,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2005", err.Error(), 402, requestID)
 			return
 		}
-		ugroup, err := uc.Service.CreateChild(ctx, &form)
+		ugroup, err := uc.Service.CreateChild(ctx, &form, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1206", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2006,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2006", err.Error(), 402, requestID)
 			return
 		}
 
@@ -217,10 +244,14 @@ func (uc *UgroupController) Delete(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.Delete(ctx, id)
+		err := uc.Service.Delete(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1207", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2007,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2007", err.Error(), 402, requestID)
 			return
 		}
 
@@ -241,14 +272,22 @@ func (uc *UgroupController) AddUserToGroup(w http.ResponseWriter, r *http.Reques
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1208", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2008,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2008", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.AddUserToGroup(ctx, &form, id)
+		err = uc.Service.AddUserToGroup(ctx, &form, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1209", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2009,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2009", err.Error(), 402, requestID)
 			return
 		}
 
@@ -269,14 +308,22 @@ func (uc *UgroupController) DeleteUserFromGroup(w http.ResponseWriter, r *http.R
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1210", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2010,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2010", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.DeleteUserFromGroup(ctx, &form, id)
+		err = uc.Service.DeleteUserFromGroup(ctx, &form, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1211", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2011,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2011", err.Error(), 402, requestID)
 			return
 		}
 
@@ -293,10 +340,14 @@ func (uc *UgroupController) GetChdn(w http.ResponseWriter, r *http.Request, id s
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.GetChildUgroups(ctx, id)
+		ugroups, err := uc.Service.GetChildUgroups(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1212", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2012,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2012", err.Error(), 402, requestID)
 			return
 		}
 
@@ -313,10 +364,14 @@ func (uc *UgroupController) GetParent(w http.ResponseWriter, r *http.Request, id
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		ugroups, err := uc.Service.GetParent(ctx, id)
+		ugroups, err := uc.Service.GetParent(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1213", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{
+				"user":   user.Email,
+				"reqid":  requestID,
+				"msgnum": 2013,
+			}).Error(err)
+			common.RenderErrorJSON(w, "2013", err.Error(), 402, requestID)
 			return
 		}
 

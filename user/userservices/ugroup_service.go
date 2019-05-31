@@ -8,7 +8,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 )
@@ -73,10 +72,11 @@ type UgroupCursor struct {
 }
 
 // GetUgroups - Get Groups
-func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor string) (*UgroupCursor, error) {
+func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*UgroupCursor, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2300}).Error(err)
 		return nil, err
 	default:
 		if limit == "" {
@@ -111,7 +111,7 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 			updated_month,
 			updated_year from ugroups `+query)
 		if err != nil {
-			log.Println(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2301}).Error(err)
 		}
 
 		for rows.Next() {
@@ -135,20 +135,20 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 				&ug.UpdatedMonth,
 				&ug.UpdatedYear)
 			if err != nil {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2302}).Error(err)
 				return nil, err
 			}
 			ugroups = append(ugroups, &ug)
 		}
 		err = rows.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2303}).Error(err)
 			return nil, err
 		}
 
 		err = rows.Err()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2304}).Error(err)
 			return nil, err
 		}
 		x := UgroupCursor{}
@@ -165,16 +165,17 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 }
 
 // Create - Create ugroup
-func (u *UgroupService) Create(ctx context.Context, form *Ugroup) (*Ugroup, error) {
+func (u *UgroupService) Create(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2305}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2306}).Error(err)
 			return nil, err
 		}
 
@@ -201,17 +202,17 @@ func (u *UgroupService) Create(ctx context.Context, form *Ugroup) (*Ugroup, erro
 		ug.UpdatedMonth = uint(tn.Month())
 		ug.UpdatedYear = uint(tn.Year())
 
-		ugrp, err := u.InsertUgroup(ctx, tx, ug)
+		ugrp, err := u.InsertUgroup(ctx, tx, ug, userEmail, requestID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2307}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2308}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -221,22 +222,23 @@ func (u *UgroupService) Create(ctx context.Context, form *Ugroup) (*Ugroup, erro
 }
 
 // CreateChild - Create child of ugroup
-func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup, error) {
+func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2309}).Error(err)
 		return nil, err
 	default:
-		parent, err := u.GetUgroupByIDuint(ctx, form.ParentID)
+		parent, err := u.GetUgroupByIDuint(ctx, form.ParentID, userEmail, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2310}).Error(err)
 			return nil, err
 		}
 
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2311}).Error(err)
 			return nil, err
 		}
 
@@ -262,10 +264,10 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup,
 		ug.UpdatedMonth = uint(tn.Month())
 		ug.UpdatedYear = uint(tn.Year())
 
-		ugrp, err := u.InsertUgroup(ctx, tx, ug)
+		ugrp, err := u.InsertUgroup(ctx, tx, ug, userEmail, requestID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2312}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -285,10 +287,10 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup,
 		Ugroupchd.UpdatedMonth = uint(tn.Month())
 		Ugroupchd.UpdatedYear = uint(tn.Year())
 
-		_, err = u.InsertChild(ctx, tx, Ugroupchd)
+		_, err = u.InsertChild(ctx, tx, Ugroupchd, userEmail, requestID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2313}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -306,7 +308,7 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup,
 					updated_month = ?, 
 					updated_year = ? where id = ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2314}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return nil, err
@@ -322,7 +324,7 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup,
 			parent.ID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2315}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return nil, err
@@ -331,14 +333,14 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup,
 		err = stmt.Close()
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2316}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2317}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -347,22 +349,23 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup) (*Ugroup,
 }
 
 // AddUserToGroup - Add user to ugroup
-func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID string) error {
+func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2318}).Error(err)
 		return err
 	default:
 		db := u.Db
-		ug, err := u.GetUgroupByID(ctx, ID)
+		ug, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2319}).Error(err)
 			return err
 		}
 
 		if ug.NumChd > 0 {
 			err = errors.New("Cannot add user to group")
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2320}).Error(err)
 			return err
 		}
 
@@ -387,17 +390,17 @@ func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID
 		Uguser.UpdatedMonth = uint(tn.Month())
 		Uguser.UpdatedYear = uint(tn.Year())
 
-		_, err = u.InsertUgroupUser(ctx, tx, Uguser)
+		_, err = u.InsertUgroupUser(ctx, tx, Uguser, userEmail, requestID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2321}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2322}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -406,10 +409,11 @@ func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID
 }
 
 // InsertUgroup - Insert Ugroup details into database
-func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug Ugroup) (*Ugroup, error) {
+func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug Ugroup, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2323}).Error(err)
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ugroups
@@ -434,7 +438,7 @@ func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug Ugroup)
   values (?,?,?,?,?,?,?,?,?,?,
 					?,?,?,?,?,?,?);`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2324}).Error(err)
 			return nil, err
 		}
 		res, err := stmt.ExecContext(ctx,
@@ -457,19 +461,19 @@ func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug Ugroup)
 			ug.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2325}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2326}).Error(err)
 			return nil, err
 		}
 		ug.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2327}).Error(err)
 			return nil, err
 		}
 		return &ug, nil
@@ -477,10 +481,11 @@ func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug Ugroup)
 }
 
 // InsertChild - Insert Child Ugroup details into database
-func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd UgroupChd) (*UgroupChd, error) {
+func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd UgroupChd, userEmail string, requestID string) (*UgroupChd, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2328}).Error(err)
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ugroup_chds
@@ -501,7 +506,7 @@ func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd U
   values (?,?,?,?,?,?,?,?,?,?,
 					?,?,?);`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2329}).Error(err)
 			return nil, err
 		}
 		res, err := stmt.ExecContext(ctx,
@@ -520,20 +525,20 @@ func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd U
 			ugroupchd.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2330}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2331}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		ugroupchd.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2332}).Error(err)
 			return nil, err
 		}
 		return &ugroupchd, nil
@@ -541,24 +546,25 @@ func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd U
 }
 
 // Delete - Delete ugroup
-func (u *UgroupService) Delete(ctx context.Context, ID string) error {
+func (u *UgroupService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2333}).Error(err)
 		return err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		stmt, err := tx.PrepareContext(ctx, "delete from ugroups where id_s= ?;")
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2334}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 
 		_, err = stmt.ExecContext(ctx, ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2335}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
@@ -566,14 +572,14 @@ func (u *UgroupService) Delete(ctx context.Context, ID string) error {
 
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2336}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2337}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -582,10 +588,11 @@ func (u *UgroupService) Delete(ctx context.Context, ID string) error {
 }
 
 // GetUgroup - Get ugroup details with users by ID
-func (u *UgroupService) GetUgroup(ctx context.Context, ID string) (*Ugroup, error) {
+func (u *UgroupService) GetUgroup(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2338}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -648,7 +655,7 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string) (*Ugroup, erro
 		v.updated_month,
 		v.updated_year from ugroups ug inner join ugroups_users ugu on (ug.id = ugu.ugroup_id) inner join users v on (ugu.user_id = v.id) where ug.id_s = ?`, ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2339}).Error(err)
 			return nil, err
 		}
 		for rows.Next() {
@@ -711,20 +718,20 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string) (*Ugroup, erro
 				&user.UpdatedYear)
 
 			if err != nil {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2340}).Error(err)
 			}
 			poh.Users = append(poh.Users, &user)
 		}
 
 		err = rows.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2341}).Error(err)
 			return nil, err
 		}
 
 		err = rows.Err()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2342}).Error(err)
 			return nil, err
 		}
 
@@ -733,10 +740,11 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string) (*Ugroup, erro
 }
 
 // GetUgroupByID - Get Ugroup By ID
-func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string) (*Ugroup, error) {
+func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2343}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -782,7 +790,7 @@ func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string) (*Ugroup, 
 			&ug.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2344}).Error(err)
 			return nil, err
 		}
 
@@ -791,10 +799,11 @@ func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string) (*Ugroup, 
 }
 
 // GetUgroupByIDuint - Get Ugroup By ID(uint)
-func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint) (*Ugroup, error) {
+func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2345}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -840,7 +849,7 @@ func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint) (*Ugroup
 			&ug.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2346}).Error(err)
 			return nil, err
 		}
 
@@ -849,21 +858,22 @@ func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint) (*Ugroup
 }
 
 // DeleteUserFromGroup - Delete user from group
-func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUser, ID string) error {
+func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2347}).Error(err)
 		return err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2348}).Error(err)
 			return err
 		}
 		stmt, err := tx.PrepareContext(ctx, `delete from ugroups_users where user_id= ? and ugroup_id = ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2349}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
@@ -871,21 +881,21 @@ func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUse
 
 		_, err = stmt.ExecContext(ctx, form.UserID, ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2350}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
 		}
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2351}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2352}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -894,10 +904,11 @@ func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUse
 }
 
 // InsertUgroupUser - Insert Ugroup User details into database
-func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser UgroupUser) (*UgroupUser, error) {
+func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser UgroupUser, userEmail string, requestID string) (*UgroupUser, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2353}).Error(err)
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ugroups_users
@@ -919,7 +930,7 @@ func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser
   values (?,?,?,?,?,?,?,?,?,?,
 					?,?,?,?);`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2354}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
@@ -940,20 +951,20 @@ func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser
 			Uguser.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2355}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2356}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		Uguser.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2357}).Error(err)
 			return nil, err
 		}
 		return &Uguser, nil
@@ -961,15 +972,16 @@ func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser
 }
 
 // GetChildUgroups - Get child ugroups
-func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string) ([]*Ugroup, error) {
+func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string, userEmail string, requestID string) ([]*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2358}).Error(err)
 		return nil, err
 	default:
-		ugroup, err := u.GetUgroupByID(ctx, ID)
+		ugroup, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2359}).Error(err)
 			return nil, err
 		}
 		Ugroups := []*Ugroup{}
@@ -993,7 +1005,7 @@ func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string) ([]*Ugro
 		ug.updated_month,
 		ug.updated_year from ugroups ug inner join ugroup_chds ugch on (ug.id = ugch.ugroup_chd_id) where ((ugch.ugroup_id = ?) and (ug.statusc = 1))`, ugroup.ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2360}).Error(err)
 			return nil, err
 		}
 
@@ -1019,19 +1031,19 @@ func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string) ([]*Ugro
 				&ug.UpdatedMonth,
 				&ug.UpdatedYear)
 			if err != nil {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2361}).Error(err)
 				return nil, err
 			}
 			Ugroups = append(Ugroups, &ug)
 		}
 		err = rows.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2362}).Error(err)
 			return nil, err
 		}
 		err = rows.Err()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2363}).Error(err)
 			return nil, err
 		}
 
@@ -1041,10 +1053,11 @@ func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string) ([]*Ugro
 }
 
 // TopLevelUgroups - Get top level ugroups
-func (u *UgroupService) TopLevelUgroups(ctx context.Context) ([]*Ugroup, error) {
+func (u *UgroupService) TopLevelUgroups(ctx context.Context, userEmail string, requestID string) ([]*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2364}).Error(err)
 		return nil, err
 	default:
 		Ugroups := []*Ugroup{}
@@ -1068,7 +1081,7 @@ func (u *UgroupService) TopLevelUgroups(ctx context.Context) ([]*Ugroup, error) 
 		updated_month,
 		updated_year from ugroups where ((levelc = 0) and (statusc = 1))`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2365}).Error(err)
 			return nil, err
 		}
 
@@ -1094,14 +1107,14 @@ func (u *UgroupService) TopLevelUgroups(ctx context.Context) ([]*Ugroup, error) 
 				&ug.UpdatedMonth,
 				&ug.UpdatedYear)
 			if err != nil {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2366}).Error(err)
 				return nil, err
 			}
 			Ugroups = append(Ugroups, &ug)
 		}
 		err = rows.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2367}).Error(err)
 			return nil, err
 		}
 		return Ugroups, nil
@@ -1109,16 +1122,17 @@ func (u *UgroupService) TopLevelUgroups(ctx context.Context) ([]*Ugroup, error) 
 }
 
 // GetParent - Get parent ugroup
-func (u *UgroupService) GetParent(ctx context.Context, ID string) (*Ugroup, error) {
+func (u *UgroupService) GetParent(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2368}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
-		ugroup, err := u.GetUgroupByID(ctx, ID)
+		ugroup, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2369}).Error(err)
 			return nil, err
 		}
 		ug := Ugroup{}
@@ -1163,7 +1177,7 @@ func (u *UgroupService) GetParent(ctx context.Context, ID string) (*Ugroup, erro
 			&ug.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2370}).Error(err)
 			return nil, err
 		}
 

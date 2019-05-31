@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/user/userservices"
@@ -91,13 +90,19 @@ func (uc *UController) Login(w http.ResponseWriter, r *http.Request, requestID s
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1100,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1100", err.Error(), 402, requestID)
 			return
 		}
-		user, err := uc.Service.Login(ctx, &form)
+		user, err := uc.Service.Login(ctx, &form, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1101,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1101", err.Error(), 402, requestID)
 			return
 		}
@@ -114,9 +119,12 @@ func (uc *UController) ConfirmEmail(w http.ResponseWriter, r *http.Request, id s
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.ConfirmEmail(ctx, id)
+		err := uc.Service.ConfirmEmail(ctx, id, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1102,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1102", err.Error(), 402, requestID)
 			return
 		}
@@ -138,13 +146,19 @@ func (uc *UController) Create(w http.ResponseWriter, r *http.Request, requestID 
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1103,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1103", err.Error(), 402, requestID)
 			return
 		}
-		user, err := uc.Service.Create(ctx, &form, r.Host)
+		user, err := uc.Service.Create(ctx, &form, r.Host, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1104,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1104", err.Error(), 402, requestID)
 			return
 		}
@@ -165,13 +179,19 @@ func (uc *UController) ForgotPassword(w http.ResponseWriter, r *http.Request, re
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1105,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1105", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ForgotPassword(ctx, &form, r.Host)
+		err = uc.Service.ForgotPassword(ctx, &form, r.Host, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1106,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1106", err.Error(), 402, requestID)
 			return
 		}
@@ -193,13 +213,19 @@ func (uc *UController) ConfirmForgotPassword(w http.ResponseWriter, r *http.Requ
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1107,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1107", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.ConfirmForgotPassword(ctx, &form, id)
+		err = uc.Service.ConfirmForgotPassword(ctx, &form, id, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1108,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1108", err.Error(), 402, requestID)
 			return
 		}
@@ -217,9 +243,12 @@ func (uc *UController) ConfirmChangeEmail(w http.ResponseWriter, r *http.Request
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.ConfirmChangeEmail(ctx, id)
+		err := uc.Service.ConfirmChangeEmail(ctx, id, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1109,
+			}).Error(err)
 			common.RenderErrorJSON(w, "1109", err.Error(), 402, requestID)
 			return
 		}

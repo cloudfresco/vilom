@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
@@ -71,10 +70,10 @@ func (tc *TopicController) Show(w http.ResponseWriter, r *http.Request, id strin
 		return
 	default:
 
-		topic, err := tc.Service.Show(ctx, id, user.UserID)
+		topic, err := tc.Service.Show(ctx, id, user.UserID, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1400", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5000}).Error(err)
+			common.RenderErrorJSON(w, "5000", err.Error(), 402, requestID)
 			return
 		}
 
@@ -95,14 +94,14 @@ func (tc *TopicController) Create(w http.ResponseWriter, r *http.Request, user *
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1401", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5001}).Error(err)
+			common.RenderErrorJSON(w, "5001", err.Error(), 402, requestID)
 			return
 		}
-		topic, err := tc.Service.Create(ctx, &form, user.UserID)
+		topic, err := tc.Service.Create(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1402", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5002}).Error(err)
+			common.RenderErrorJSON(w, "5002", err.Error(), 402, requestID)
 			return
 		}
 
@@ -123,14 +122,14 @@ func (tc *TopicController) Topicbyname(w http.ResponseWriter, r *http.Request, u
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1403", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5003}).Error(err)
+			common.RenderErrorJSON(w, "5003", err.Error(), 402, requestID)
 			return
 		}
-		topc, err := tc.Service.GetTopicByName(ctx, form.TopicName)
+		topc, err := tc.Service.GetTopicByName(ctx, form.TopicName, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1404", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5004}).Error(err)
+			common.RenderErrorJSON(w, "5004", err.Error(), 402, requestID)
 			return
 		}
 

@@ -8,7 +8,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 )
@@ -59,10 +58,15 @@ type UbadgeCursor struct {
 }
 
 // GetUbadges - Get Ubadges
-func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor string) (*UbadgeCursor, error) {
+func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*UbadgeCursor, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3300,
+		}).Error(err)
 		return nil, err
 	default:
 		if limit == "" {
@@ -94,7 +98,11 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 			updated_month,
 			updated_year from ubadges `+query)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3301,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -116,20 +124,32 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 				&ubadge.UpdatedMonth,
 				&ubadge.UpdatedYear)
 			if err != nil {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{
+					"user":   userEmail,
+					"reqid":  requestID,
+					"msgnum": 3302,
+				}).Error(err)
 				return nil, err
 			}
 			ubadges = append(ubadges, &ubadge)
 		}
 		err = rows.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3303,
+			}).Error(err)
 			return nil, err
 		}
 
 		err = rows.Err()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3304,
+			}).Error(err)
 			return nil, err
 		}
 		x := UbadgeCursor{}
@@ -146,16 +166,25 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 }
 
 // Create - Create Ubadge
-func (u *UbadgeService) Create(ctx context.Context, form *Ubadge) (*Ubadge, error) {
+func (u *UbadgeService) Create(ctx context.Context, form *Ubadge, userEmail string, requestID string) (*Ubadge, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3305,
+		}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3306,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -179,17 +208,25 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge) (*Ubadge, erro
 		Ubadge.UpdatedMonth = uint(tn.Month())
 		Ubadge.UpdatedYear = uint(tn.Year())
 
-		ugrp, err := u.InsertUbadge(ctx, tx, Ubadge)
+		ugrp, err := u.InsertUbadge(ctx, tx, Ubadge, userEmail, requestID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3307,
+			}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3308,
+			}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -199,22 +236,35 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge) (*Ubadge, erro
 }
 
 // AddUserToGroup - Add user to ubadge
-func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID string) error {
+func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3309,
+		}).Error(err)
 		return err
 	default:
 		db := u.Db
-		ubadge, err := u.GetUbadge(ctx, ID)
+		ubadge, err := u.GetUbadge(ctx, ID, userEmail, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3310,
+			}).Error(err)
 			return err
 		}
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3311,
+			}).Error(err)
 			return err
 		}
 		tn := time.Now().UTC()
@@ -237,17 +287,25 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 		Uguser.UpdatedMonth = uint(tn.Month())
 		Uguser.UpdatedYear = uint(tn.Year())
 
-		_, err = u.InsertUbadgeUser(ctx, tx, Uguser)
+		_, err = u.InsertUbadgeUser(ctx, tx, Uguser, userEmail, requestID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3312,
+			}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3313,
+			}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -256,10 +314,15 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 }
 
 // InsertUbadge - Insert Ubadge details into database
-func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Ubadge) (*Ubadge, error) {
+func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Ubadge, userEmail string, requestID string) (*Ubadge, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3314,
+		}).Error(err)
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ubadges
@@ -281,7 +344,11 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
   values (?,?,?,?,?,?,?,?,?,?,
 					?,?,?,?,?);`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3315,
+			}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
@@ -302,20 +369,32 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
 			Ubadge.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3316,
+			}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3317,
+			}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		Ubadge.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3318,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -324,21 +403,34 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
 }
 
 // Delete - Delele Ubadge
-func (u *UbadgeService) Delete(ctx context.Context, ID string) error {
+func (u *UbadgeService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3319,
+		}).Error(err)
 		return err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3320,
+			}).Error(err)
 			return err
 		}
 		stmt, err := tx.PrepareContext(ctx, "delete from ubadges where id_s= ?;")
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3321,
+			}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
@@ -347,13 +439,21 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string) error {
 		_, err = stmt.ExecContext(ctx, ID)
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3322,
+			}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3323,
+			}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -362,10 +462,15 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string) error {
 }
 
 // GetUbadge - Get Ubadge Details
-func (u *UbadgeService) GetUbadge(ctx context.Context, ID string) (*Ubadge, error) {
+func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail string, requestID string) (*Ubadge, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3324,
+		}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -425,7 +530,11 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string) (*Ubadge, erro
 		v.updated_year from ubadges p inner join ubadges_users ubu on (p.id = ubu.ubadge_id) inner join users v on (ubu.user_id = v.id) where p.id_s = ?`, ID)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3325,
+			}).Error(err)
 			return nil, err
 		}
 		for rows.Next() {
@@ -485,7 +594,11 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string) (*Ubadge, erro
 				&user.UpdatedYear)
 
 			if err != nil {
-				log.Error(stacktrace.Propagate(err, ""))
+				log.WithFields(log.Fields{
+					"user":   userEmail,
+					"reqid":  requestID,
+					"msgnum": 3326,
+				}).Error(err)
 				return nil, err
 			}
 			poh.Users = append(poh.Users, &user)
@@ -493,12 +606,20 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string) (*Ubadge, erro
 
 		err = rows.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3327,
+			}).Error(err)
 			return nil, err
 		}
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3328,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -507,10 +628,15 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string) (*Ubadge, erro
 }
 
 // GetUbadgeByID - Get Ubadge by ID
-func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string) (*Ubadge, error) {
+func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail string, requestID string) (*Ubadge, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3329,
+		}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
@@ -550,7 +676,11 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string) (*Ubadge, 
 			&Ubadge.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3330,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -559,21 +689,34 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string) (*Ubadge, 
 }
 
 // DeleteUserFromGroup - Delete user from Ubadge
-func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUser, ID string) error {
+func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUser, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3331,
+		}).Error(err)
 		return err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3332,
+			}).Error(err)
 			return err
 		}
 		stmt, err := tx.PrepareContext(ctx, `delete from ubadges_users where user_id= ? and ubadge_id = ?;`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3333,
+			}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
@@ -581,20 +724,32 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 
 		_, err = stmt.ExecContext(ctx, form.UserID, ID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3334,
+			}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
 		}
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3335,
+			}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 		err = tx.Commit()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3336,
+			}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -603,10 +758,15 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 }
 
 // InsertUbadgeUser - Insert Ubadge User details into database
-func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser UbadgeUser) (*UbadgeUser, error) {
+func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser UbadgeUser, userEmail string, requestID string) (*UbadgeUser, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 3337,
+		}).Error(err)
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ubadges_users
@@ -628,7 +788,11 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
   values (?,?,?,?,?,?,?,?,?,?,
 					?,?,?,?);`)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3338,
+			}).Error(err)
 			return nil, err
 		}
 		res, err := stmt.ExecContext(ctx,
@@ -648,20 +812,32 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 			Uguser.UpdatedYear)
 
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3339,
+			}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3340,
+			}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		Uguser.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 3341,
+			}).Error(err)
 			return nil, err
 		}
 

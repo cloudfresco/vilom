@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
@@ -70,10 +69,10 @@ func (mc *MessageController) Show(w http.ResponseWriter, r *http.Request, id str
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		msg, err := mc.Service.GetMessage(ctx, id)
+		msg, err := mc.Service.GetMessage(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1500", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6000}).Error(err)
+			common.RenderErrorJSON(w, "6000", err.Error(), 402, requestID)
 			return
 		}
 
@@ -94,14 +93,14 @@ func (mc *MessageController) Create(w http.ResponseWriter, r *http.Request, user
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1501", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6001}).Error(err)
+			common.RenderErrorJSON(w, "6001", err.Error(), 402, requestID)
 			return
 		}
-		msg, err := mc.Service.Create(ctx, &form, user.UserID)
+		msg, err := mc.Service.Create(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1502", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6002}).Error(err)
+			common.RenderErrorJSON(w, "6002", err.Error(), 402, requestID)
 			return
 		}
 
@@ -122,14 +121,14 @@ func (mc *MessageController) UserLikeCreate(w http.ResponseWriter, r *http.Reque
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1503", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6003}).Error(err)
+			common.RenderErrorJSON(w, "6003", err.Error(), 402, requestID)
 			return
 		}
-		msg, err := mc.Service.UserLikeCreate(ctx, &form, user.UserID)
+		msg, err := mc.Service.UserLikeCreate(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1504", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6004}).Error(err)
+			common.RenderErrorJSON(w, "6004", err.Error(), 402, requestID)
 			return
 		}
 

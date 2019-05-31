@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/palantir/stacktrace"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
@@ -86,10 +85,10 @@ func (cc *CategoryController) Index(w http.ResponseWriter, r *http.Request, limi
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetCategories(ctx, limit, cursor)
+		categories, err := cc.Service.GetCategories(ctx, limit, cursor, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1300", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4000}).Error(err)
+			common.RenderErrorJSON(w, "4000", err.Error(), 402, requestID)
 			return
 		}
 
@@ -106,10 +105,10 @@ func (cc *CategoryController) Show(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		category, err := cc.Service.GetCategoryWithTopics(ctx, id)
+		category, err := cc.Service.GetCategoryWithTopics(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1301", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4001}).Error(err)
+			common.RenderErrorJSON(w, "4001", err.Error(), 402, requestID)
 			return
 		}
 
@@ -130,14 +129,14 @@ func (cc *CategoryController) Create(w http.ResponseWriter, r *http.Request, use
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1302", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4002}).Error(err)
+			common.RenderErrorJSON(w, "4002", err.Error(), 402, requestID)
 			return
 		}
-		cat, err := cc.Service.Create(ctx, &form, user.UserID)
+		cat, err := cc.Service.Create(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1303", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4003}).Error(err)
+			common.RenderErrorJSON(w, "4003", err.Error(), 402, requestID)
 			return
 		}
 
@@ -158,14 +157,14 @@ func (cc *CategoryController) CreateChild(w http.ResponseWriter, r *http.Request
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1304", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4004}).Error(err)
+			common.RenderErrorJSON(w, "4004", err.Error(), 402, requestID)
 			return
 		}
-		cat, err := cc.Service.CreateChild(ctx, &form, user.UserID)
+		cat, err := cc.Service.CreateChild(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1305", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4005}).Error(err)
+			common.RenderErrorJSON(w, "4005", err.Error(), 402, requestID)
 			return
 		}
 
@@ -182,10 +181,10 @@ func (cc *CategoryController) TopLevelCategories(w http.ResponseWriter, r *http.
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetTopLevelCategories(ctx)
+		categories, err := cc.Service.GetTopLevelCategories(ctx, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1306", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4006}).Error(err)
+			common.RenderErrorJSON(w, "4006", err.Error(), 402, requestID)
 			return
 		}
 
@@ -202,10 +201,10 @@ func (cc *CategoryController) GetChdn(w http.ResponseWriter, r *http.Request, id
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetChildCategories(ctx, id)
+		categories, err := cc.Service.GetChildCategories(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1307", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4007}).Error(err)
+			common.RenderErrorJSON(w, "4007", err.Error(), 402, requestID)
 			return
 		}
 
@@ -222,10 +221,10 @@ func (cc *CategoryController) GetParent(w http.ResponseWriter, r *http.Request, 
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		category, err := cc.Service.GetParentCategory(ctx, id)
+		category, err := cc.Service.GetParentCategory(ctx, id, user.Email, requestID)
 		if err != nil {
-			log.Error(stacktrace.Propagate(err, ""))
-			common.RenderErrorJSON(w, "1308", err.Error(), 402, requestID)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4008}).Error(err)
+			common.RenderErrorJSON(w, "4008", err.Error(), 402, requestID)
 			return
 		}
 
