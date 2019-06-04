@@ -54,13 +54,13 @@ lint: linter
 	@for d in $$(go list ./... | grep -v /vendor/); do golint $${d}; done 
 
 errcheck: 
-	@go get github.com/kisielk/errcheck
+	@go get -u github.com/kisielk/errcheck
 
 err: errcheck 
 	@errcheck $(PKGS)
 
 safesql:
-	@go get github.com/stripe/safesql
+	@go get -u github.com/stripe/safesql
 
 sql: safesql
 	@safesql $(SRC)
