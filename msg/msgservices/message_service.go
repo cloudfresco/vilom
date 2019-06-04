@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
@@ -138,9 +137,7 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6302}).Error(err)
 			return nil, err
 		}
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		msg := Message{}
 
@@ -153,16 +150,16 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 		msg.UserID = user.ID
 		msg.UgroupID = form.UgroupID
 		msg.Statusc = common.Active
-		msg.CreatedAt = tn.UTC()
-		msg.UpdatedAt = tn.UTC()
-		msg.CreatedDay = uint(day)
-		msg.CreatedWeek = uint(week)
-		msg.CreatedMonth = uint(tn.Month())
-		msg.CreatedYear = uint(tn.Year())
-		msg.UpdatedDay = uint(day)
-		msg.UpdatedWeek = uint(week)
-		msg.UpdatedMonth = uint(tn.Month())
-		msg.UpdatedYear = uint(tn.Year())
+		msg.CreatedAt = tn
+		msg.UpdatedAt = tn
+		msg.CreatedDay = tnday
+		msg.CreatedWeek = tnweek
+		msg.CreatedMonth = tnmonth
+		msg.CreatedYear = tnyear
+		msg.UpdatedDay = tnday
+		msg.UpdatedWeek = tnweek
+		msg.UpdatedMonth = tnmonth
+		msg.UpdatedYear = tnyear
 
 		Message, err := t.InsertMessage(ctx, tx, msg, userEmail, requestID)
 
@@ -181,16 +178,16 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 		msgtxt.UgroupID = form.UgroupID
 		/*  StatusDates  */
 		msgtxt.Statusc = common.Active
-		msgtxt.CreatedAt = tn.UTC()
-		msgtxt.UpdatedAt = tn.UTC()
-		msgtxt.CreatedDay = uint(day)
-		msgtxt.CreatedWeek = uint(week)
-		msgtxt.CreatedMonth = uint(tn.Month())
-		msgtxt.CreatedYear = uint(tn.Year())
-		msgtxt.UpdatedDay = uint(day)
-		msgtxt.UpdatedWeek = uint(week)
-		msgtxt.UpdatedMonth = uint(tn.Month())
-		msgtxt.UpdatedYear = uint(tn.Year())
+		msgtxt.CreatedAt = tn
+		msgtxt.UpdatedAt = tn
+		msgtxt.CreatedDay = tnday
+		msgtxt.CreatedWeek = tnweek
+		msgtxt.CreatedMonth = tnmonth
+		msgtxt.CreatedYear = tnyear
+		msgtxt.UpdatedDay = tnday
+		msgtxt.UpdatedWeek = tnweek
+		msgtxt.UpdatedMonth = tnmonth
+		msgtxt.UpdatedYear = tnyear
 
 		_, err = t.InsertMessageText(ctx, tx, msgtxt, userEmail, requestID)
 
@@ -209,16 +206,16 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 		msgath.UgroupID = form.UgroupID
 		/*  StatusDates  */
 		msgath.Statusc = common.Active
-		msgath.CreatedAt = tn.UTC()
-		msgath.UpdatedAt = tn.UTC()
-		msgath.CreatedDay = uint(day)
-		msgath.CreatedWeek = uint(week)
-		msgath.CreatedMonth = uint(tn.Month())
-		msgath.CreatedYear = uint(tn.Year())
-		msgath.UpdatedDay = uint(day)
-		msgath.UpdatedWeek = uint(week)
-		msgath.UpdatedMonth = uint(tn.Month())
-		msgath.UpdatedYear = uint(tn.Year())
+		msgath.CreatedAt = tn
+		msgath.UpdatedAt = tn
+		msgath.CreatedDay = tnday
+		msgath.CreatedWeek = tnweek
+		msgath.CreatedMonth = tnmonth
+		msgath.CreatedYear = tnyear
+		msgath.UpdatedDay = tnday
+		msgath.UpdatedWeek = tnweek
+		msgath.UpdatedMonth = tnmonth
+		msgath.UpdatedYear = tnyear
 
 		_, err = t.InsertMessageAttachment(ctx, tx, msgath, userEmail, requestID)
 
@@ -228,10 +225,10 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 			return nil, err
 		}
 
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		topicserv := &TopicService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
 		topic, err := topicserv.GetTopicByID(ctx, form.TopicID, userEmail, requestID)
@@ -278,16 +275,16 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 		ur.UgroupID = form.UgroupID
 		/*  StatusDates  */
 		ur.Statusc = common.Active
-		ur.CreatedAt = tn.UTC()
-		ur.UpdatedAt = tn.UTC()
-		ur.CreatedDay = uint(day)
-		ur.CreatedWeek = uint(week)
-		ur.CreatedMonth = uint(tn.Month())
-		ur.CreatedYear = uint(tn.Year())
-		ur.UpdatedDay = uint(day)
-		ur.UpdatedWeek = uint(week)
-		ur.UpdatedMonth = uint(tn.Month())
-		ur.UpdatedYear = uint(tn.Year())
+		ur.CreatedAt = tn
+		ur.UpdatedAt = tn
+		ur.CreatedDay = tnday
+		ur.CreatedWeek = tnweek
+		ur.CreatedMonth = tnmonth
+		ur.CreatedYear = tnyear
+		ur.UpdatedDay = tnday
+		ur.UpdatedWeek = tnweek
+		ur.UpdatedMonth = tnmonth
+		ur.UpdatedYear = tnyear
 
 		_, err = t.InsertUserReply(ctx, tx, ur, userEmail, requestID)
 
@@ -327,9 +324,7 @@ func (t *MessageService) UserLikeCreate(ctx context.Context, form *UserLike, Use
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		ul := UserLike{}
 		ul.TopicID = form.TopicID
@@ -338,16 +333,16 @@ func (t *MessageService) UserLikeCreate(ctx context.Context, form *UserLike, Use
 		ul.UserID = user.ID
 		/*  StatusDates  */
 		ul.Statusc = common.Active
-		ul.CreatedAt = tn.UTC()
-		ul.UpdatedAt = tn.UTC()
-		ul.CreatedDay = uint(day)
-		ul.CreatedWeek = uint(week)
-		ul.CreatedMonth = uint(tn.Month())
-		ul.CreatedYear = uint(tn.Year())
-		ul.UpdatedDay = uint(day)
-		ul.UpdatedWeek = uint(week)
-		ul.UpdatedMonth = uint(tn.Month())
-		ul.UpdatedYear = uint(tn.Year())
+		ul.CreatedAt = tn
+		ul.UpdatedAt = tn
+		ul.CreatedDay = tnday
+		ul.CreatedWeek = tnweek
+		ul.CreatedMonth = tnmonth
+		ul.CreatedYear = tnyear
+		ul.UpdatedDay = tnday
+		ul.UpdatedWeek = tnweek
+		ul.UpdatedMonth = tnmonth
+		ul.UpdatedYear = tnyear
 
 		UserLk, err := t.InsertUserLike(ctx, tx, ul, userEmail, requestID)
 
@@ -387,9 +382,7 @@ func (t *MessageService) UserVoteCreate(ctx context.Context, form *UserVote, Use
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		ul := UserVote{}
 		ul.TopicID = form.TopicID
@@ -399,16 +392,16 @@ func (t *MessageService) UserVoteCreate(ctx context.Context, form *UserVote, Use
 		ul.Vote = form.Vote
 		/*  StatusDates  */
 		ul.Statusc = common.Active
-		ul.CreatedAt = tn.UTC()
-		ul.UpdatedAt = tn.UTC()
-		ul.CreatedDay = uint(day)
-		ul.CreatedWeek = uint(week)
-		ul.CreatedMonth = uint(tn.Month())
-		ul.CreatedYear = uint(tn.Year())
-		ul.UpdatedDay = uint(day)
-		ul.UpdatedWeek = uint(week)
-		ul.UpdatedMonth = uint(tn.Month())
-		ul.UpdatedYear = uint(tn.Year())
+		ul.CreatedAt = tn
+		ul.UpdatedAt = tn
+		ul.CreatedDay = tnday
+		ul.CreatedWeek = tnweek
+		ul.CreatedMonth = tnmonth
+		ul.CreatedYear = tnyear
+		ul.UpdatedDay = tnday
+		ul.UpdatedWeek = tnweek
+		ul.UpdatedMonth = tnmonth
+		ul.UpdatedYear = tnyear
 
 		UserVt, err := t.InsertUserVote(ctx, tx, ul, userEmail, requestID)
 

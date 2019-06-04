@@ -200,8 +200,8 @@ func GetSelectorForPasswdRecoveryToken(token string, requestID string) ([64]byte
 
 // ValidatePasswdRecoveryToken - Validate Passwd Recovery Token
 func ValidatePasswdRecoveryToken(verifierBytes [64]byte, verifier string, tokenExpiry time.Time, requestID string) error {
-	tn := time.Now().UTC()
-	if tn.UTC().After(tokenExpiry) {
+	tn, _, _, _, _ := common.GetTimeDetails()
+	if tn.After(tokenExpiry) {
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
 			"msgnum": 1504,
@@ -375,7 +375,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 
 // CreateJWT - Create jwt token
 func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration, requestID string) (string, error) {
-	tn := time.Now().UTC()
+	tn, _, _, _, _ := common.GetTimeDetails()
 	claims := CustomClaims{
 		EmailAddr: emailAddr,
 		StandardClaims: jwt.StandardClaims{
@@ -453,9 +453,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		tokenExpiry, _ := time.ParseDuration(u.UserOptions.ConfirmTokenDuration)
 
 		user := User{}
@@ -494,14 +492,14 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		user.Statusc = common.Active
 		user.CreatedAt = tn
 		user.UpdatedAt = tn
-		user.CreatedDay = uint(day)
-		user.CreatedWeek = uint(week)
-		user.CreatedMonth = uint(tn.Month())
-		user.CreatedYear = uint(tn.Year())
-		user.UpdatedDay = uint(day)
-		user.UpdatedWeek = uint(week)
-		user.UpdatedMonth = uint(tn.Month())
-		user.UpdatedYear = uint(tn.Year())
+		user.CreatedDay = tnday
+		user.CreatedWeek = tnweek
+		user.CreatedMonth = tnmonth
+		user.CreatedYear = tnyear
+		user.UpdatedDay = tnday
+		user.UpdatedWeek = tnweek
+		user.UpdatedMonth = tnmonth
+		user.UpdatedYear = tnyear
 
 		tx, err := db.Begin()
 		if err != nil {
@@ -769,14 +767,12 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 			return err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		stmt, err := db.PrepareContext(ctx, `update users set 
 				email_confirmation_token = ?,
@@ -869,18 +865,15 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 
 			return err
 		}
-		tn := time.Now().UTC()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		tokenExpiry, _ := time.ParseDuration(u.UserOptions.ResetTokenDuration)
 		resetExpiry := tn.Add(tokenExpiry)
 
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
-
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		stmt, err := db.PrepareContext(ctx, `update users set 
 		    password_reset_token = ?,
@@ -1030,14 +1023,12 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 			return err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		tx, err := db.Begin()
 		if err != nil {
@@ -1160,14 +1151,12 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			return err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		password1, err := HashPassword(form.Password, requestID)
 		if err != nil {
@@ -1258,17 +1247,14 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			return err
 		}
 
-		tn := time.Now().UTC()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		tokenExpiry, _ := time.ParseDuration(u.UserOptions.ResetTokenDuration)
 		resetExpiry := tn.Add(tokenExpiry)
 
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
-
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		stmt, err := db.PrepareContext(ctx, `update users set 
         new_email = ?,
@@ -1379,7 +1365,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		return err
 	default:
 		db := u.Db
-		tn := time.Now().UTC()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
@@ -1417,13 +1403,10 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 			return err
 		}
 
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
-
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		stmt, err := db.PrepareContext(ctx, `update users set 
         new_email_confirmed_at = ?

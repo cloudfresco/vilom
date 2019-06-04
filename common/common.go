@@ -399,3 +399,13 @@ func DecodeCursor(cursor string) string {
 	}
 	return string(cursorBytes)
 }
+
+// GetTimeDetails - get time details
+func GetTimeDetails() (time.Time, uint, uint, uint, uint) {
+	tn := time.Now().UTC().Truncate(time.Second)
+	tnday := uint(tn.YearDay())
+	_, tnweek := tn.ISOWeek()
+	tnmonth := uint(tn.Month())
+	tnyear := uint(tn.Year())
+	return tn, tnday, uint(tnweek), tnmonth, tnyear
+}

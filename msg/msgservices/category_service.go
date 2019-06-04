@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
@@ -309,14 +308,11 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, form *Category, ID
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4309}).Error(err)
 		return err
 	default:
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
-
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		stmt, err := c.Db.PrepareContext(ctx, `update categories set 
 				  category_name = ?,
@@ -371,9 +367,7 @@ func (c *CategoryService) Create(ctx context.Context, form *Category, UserID str
 		}
 		db := c.Db
 		tx, err := db.Begin()
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		cat := Category{}
 		cat.IDS = common.GetUID()
 		cat.CategoryName = form.CategoryName
@@ -389,14 +383,14 @@ func (c *CategoryService) Create(ctx context.Context, form *Category, UserID str
 		cat.Statusc = common.Active
 		cat.CreatedAt = tn
 		cat.UpdatedAt = tn
-		cat.CreatedDay = uint(day)
-		cat.CreatedWeek = uint(week)
-		cat.CreatedMonth = uint(tn.Month())
-		cat.CreatedYear = uint(tn.Year())
-		cat.UpdatedDay = uint(day)
-		cat.UpdatedWeek = uint(week)
-		cat.UpdatedMonth = uint(tn.Month())
-		cat.UpdatedYear = uint(tn.Year())
+		cat.CreatedDay = tnday
+		cat.CreatedWeek = tnweek
+		cat.CreatedMonth = tnmonth
+		cat.CreatedYear = tnyear
+		cat.UpdatedDay = tnday
+		cat.UpdatedWeek = tnweek
+		cat.UpdatedMonth = tnmonth
+		cat.UpdatedYear = tnyear
 
 		Cat, err := c.InsertCategory(ctx, tx, cat, userEmail, requestID)
 
@@ -687,9 +681,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		db := c.Db
 		tx, err := db.Begin()
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		cat := Category{}
 		cat.IDS = common.GetUID()
 		cat.CategoryName = form.CategoryName
@@ -705,14 +697,14 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		cat.Statusc = common.Active
 		cat.CreatedAt = tn
 		cat.UpdatedAt = tn
-		cat.CreatedDay = uint(day)
-		cat.CreatedWeek = uint(week)
-		cat.CreatedMonth = uint(tn.Month())
-		cat.CreatedYear = uint(tn.Year())
-		cat.UpdatedDay = uint(day)
-		cat.UpdatedWeek = uint(week)
-		cat.UpdatedMonth = uint(tn.Month())
-		cat.UpdatedYear = uint(tn.Year())
+		cat.CreatedDay = tnday
+		cat.CreatedWeek = tnweek
+		cat.CreatedMonth = tnmonth
+		cat.CreatedYear = tnyear
+		cat.UpdatedDay = tnday
+		cat.UpdatedWeek = tnweek
+		cat.UpdatedMonth = tnmonth
+		cat.UpdatedYear = tnyear
 
 		Cat, err := c.InsertCategory(ctx, tx, cat, userEmail, requestID)
 
@@ -729,14 +721,14 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		catchd.Statusc = common.Active
 		catchd.CreatedAt = tn
 		catchd.UpdatedAt = tn
-		catchd.CreatedDay = uint(day)
-		catchd.CreatedWeek = uint(week)
-		catchd.CreatedMonth = uint(tn.Month())
-		catchd.CreatedYear = uint(tn.Year())
-		catchd.UpdatedDay = uint(day)
-		catchd.UpdatedWeek = uint(week)
-		catchd.UpdatedMonth = uint(tn.Month())
-		catchd.UpdatedYear = uint(tn.Year())
+		catchd.CreatedDay = tnday
+		catchd.CreatedWeek = tnweek
+		catchd.CreatedMonth = tnmonth
+		catchd.CreatedYear = tnyear
+		catchd.UpdatedDay = tnday
+		catchd.UpdatedWeek = tnweek
+		catchd.UpdatedMonth = tnmonth
+		catchd.UpdatedYear = tnyear
 
 		_, err = c.InsertChild(ctx, tx, catchd, userEmail, requestID)
 
@@ -746,10 +738,10 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			return nil, err
 		}
 
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		stmt, err := tx.PrepareContext(ctx, `update categories set 
 				  num_chd = ?,

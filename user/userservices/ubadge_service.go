@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
@@ -188,10 +187,7 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge, userEmail stri
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
-
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		Ubadge := Ubadge{}
 		Ubadge.IDS = common.GetUID()
 		Ubadge.UbadgeName = form.UbadgeName
@@ -199,14 +195,14 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge, userEmail stri
 		Ubadge.Statusc = common.Active
 		Ubadge.CreatedAt = tn
 		Ubadge.UpdatedAt = tn
-		Ubadge.CreatedDay = uint(day)
-		Ubadge.CreatedWeek = uint(week)
-		Ubadge.CreatedMonth = uint(tn.Month())
-		Ubadge.CreatedYear = uint(tn.Year())
-		Ubadge.UpdatedDay = uint(day)
-		Ubadge.UpdatedWeek = uint(week)
-		Ubadge.UpdatedMonth = uint(tn.Month())
-		Ubadge.UpdatedYear = uint(tn.Year())
+		Ubadge.CreatedDay = tnday
+		Ubadge.CreatedWeek = tnweek
+		Ubadge.CreatedMonth = tnmonth
+		Ubadge.CreatedYear = tnyear
+		Ubadge.UpdatedDay = tnday
+		Ubadge.UpdatedWeek = tnweek
+		Ubadge.UpdatedMonth = tnmonth
+		Ubadge.UpdatedYear = tnyear
 
 		ugrp, err := u.InsertUbadge(ctx, tx, Ubadge, userEmail, requestID)
 
@@ -267,9 +263,7 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 			}).Error(err)
 			return err
 		}
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		Uguser := UbadgeUser{}
 		Uguser.IDS = common.GetUID()
@@ -278,14 +272,14 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 		Uguser.Statusc = common.Active
 		Uguser.CreatedAt = tn
 		Uguser.UpdatedAt = tn
-		Uguser.CreatedDay = uint(day)
-		Uguser.CreatedWeek = uint(week)
-		Uguser.CreatedMonth = uint(tn.Month())
-		Uguser.CreatedYear = uint(tn.Year())
-		Uguser.UpdatedDay = uint(day)
-		Uguser.UpdatedWeek = uint(week)
-		Uguser.UpdatedMonth = uint(tn.Month())
-		Uguser.UpdatedYear = uint(tn.Year())
+		Uguser.CreatedDay = tnday
+		Uguser.CreatedWeek = tnweek
+		Uguser.CreatedMonth = tnmonth
+		Uguser.CreatedYear = tnyear
+		Uguser.UpdatedDay = tnday
+		Uguser.UpdatedWeek = tnweek
+		Uguser.UpdatedMonth = tnmonth
+		Uguser.UpdatedYear = tnyear
 
 		_, err = u.InsertUbadgeUser(ctx, tx, Uguser, userEmail, requestID)
 

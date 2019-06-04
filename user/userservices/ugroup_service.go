@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
@@ -179,9 +178,7 @@ func (u *UgroupService) Create(ctx context.Context, form *Ugroup, userEmail stri
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		ug := Ugroup{}
 		ug.IDS = common.GetUID()
@@ -193,14 +190,14 @@ func (u *UgroupService) Create(ctx context.Context, form *Ugroup, userEmail stri
 		ug.Statusc = common.Active
 		ug.CreatedAt = tn
 		ug.UpdatedAt = tn
-		ug.CreatedDay = uint(day)
-		ug.CreatedWeek = uint(week)
-		ug.CreatedMonth = uint(tn.Month())
-		ug.CreatedYear = uint(tn.Year())
-		ug.UpdatedDay = uint(day)
-		ug.UpdatedWeek = uint(week)
-		ug.UpdatedMonth = uint(tn.Month())
-		ug.UpdatedYear = uint(tn.Year())
+		ug.CreatedDay = tnday
+		ug.CreatedWeek = tnweek
+		ug.CreatedMonth = tnmonth
+		ug.CreatedYear = tnyear
+		ug.UpdatedDay = tnday
+		ug.UpdatedWeek = tnweek
+		ug.UpdatedMonth = tnmonth
+		ug.UpdatedYear = tnyear
 
 		ugrp, err := u.InsertUgroup(ctx, tx, ug, userEmail, requestID)
 
@@ -242,9 +239,7 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		ug := Ugroup{}
 		ug.IDS = common.GetUID()
 		ug.UgroupName = form.UgroupName
@@ -255,14 +250,14 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 		ug.Statusc = common.Active
 		ug.CreatedAt = tn
 		ug.UpdatedAt = tn
-		ug.CreatedDay = uint(day)
-		ug.CreatedWeek = uint(week)
-		ug.CreatedMonth = uint(tn.Month())
-		ug.CreatedYear = uint(tn.Year())
-		ug.UpdatedDay = uint(day)
-		ug.UpdatedWeek = uint(week)
-		ug.UpdatedMonth = uint(tn.Month())
-		ug.UpdatedYear = uint(tn.Year())
+		ug.CreatedDay = tnday
+		ug.CreatedWeek = tnweek
+		ug.CreatedMonth = tnmonth
+		ug.CreatedYear = tnyear
+		ug.UpdatedDay = tnday
+		ug.UpdatedWeek = tnweek
+		ug.UpdatedMonth = tnmonth
+		ug.UpdatedYear = tnyear
 
 		ugrp, err := u.InsertUgroup(ctx, tx, ug, userEmail, requestID)
 
@@ -278,14 +273,14 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 		Ugroupchd.Statusc = common.Active
 		Ugroupchd.CreatedAt = tn
 		Ugroupchd.UpdatedAt = tn
-		Ugroupchd.CreatedDay = uint(day)
-		Ugroupchd.CreatedWeek = uint(week)
-		Ugroupchd.CreatedMonth = uint(tn.Month())
-		Ugroupchd.CreatedYear = uint(tn.Year())
-		Ugroupchd.UpdatedDay = uint(day)
-		Ugroupchd.UpdatedWeek = uint(week)
-		Ugroupchd.UpdatedMonth = uint(tn.Month())
-		Ugroupchd.UpdatedYear = uint(tn.Year())
+		Ugroupchd.CreatedDay = tnday
+		Ugroupchd.CreatedWeek = tnweek
+		Ugroupchd.CreatedMonth = tnmonth
+		Ugroupchd.CreatedYear = tnyear
+		Ugroupchd.UpdatedDay = tnday
+		Ugroupchd.UpdatedWeek = tnweek
+		Ugroupchd.UpdatedMonth = tnmonth
+		Ugroupchd.UpdatedYear = tnyear
 
 		_, err = u.InsertChild(ctx, tx, Ugroupchd, userEmail, requestID)
 
@@ -295,10 +290,10 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 			return nil, err
 		}
 
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
 				  num_chd = ?,
@@ -370,9 +365,7 @@ func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID
 		}
 
 		tx, err := db.Begin()
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		Uguser := UgroupUser{}
 		Uguser.IDS = common.GetUID()
@@ -381,14 +374,14 @@ func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID
 		Uguser.Statusc = common.Active
 		Uguser.CreatedAt = tn
 		Uguser.UpdatedAt = tn
-		Uguser.CreatedDay = uint(day)
-		Uguser.CreatedWeek = uint(week)
-		Uguser.CreatedMonth = uint(tn.Month())
-		Uguser.CreatedYear = uint(tn.Year())
-		Uguser.UpdatedDay = uint(day)
-		Uguser.UpdatedWeek = uint(week)
-		Uguser.UpdatedMonth = uint(tn.Month())
-		Uguser.UpdatedYear = uint(tn.Year())
+		Uguser.CreatedDay = tnday
+		Uguser.CreatedWeek = tnweek
+		Uguser.CreatedMonth = tnmonth
+		Uguser.CreatedYear = tnyear
+		Uguser.UpdatedDay = tnday
+		Uguser.UpdatedWeek = tnweek
+		Uguser.UpdatedMonth = tnmonth
+		Uguser.UpdatedYear = tnyear
 
 		_, err = u.InsertUgroupUser(ctx, tx, Uguser, userEmail, requestID)
 

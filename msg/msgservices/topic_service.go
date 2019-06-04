@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
@@ -115,9 +114,7 @@ func (t *TopicService) Show(ctx context.Context, ID string, UserID string, userE
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		tx, err := db.Begin()
 
@@ -125,10 +122,10 @@ func (t *TopicService) Show(ctx context.Context, ID string, UserID string, userE
 			//update
 			topicsuser, err := t.GetTopicsUser(ctx, topic.ID, user.ID, userEmail, requestID)
 
-			UpdatedDay := uint(day)
-			UpdatedWeek := uint(week)
-			UpdatedMonth := uint(tn.Month())
-			UpdatedYear := uint(tn.Year())
+			UpdatedDay := tnday
+			UpdatedWeek := tnweek
+			UpdatedMonth := tnmonth
+			UpdatedYear := tnyear
 
 			stmt, err := tx.PrepareContext(ctx, `update topics_users set 
 					num_messages = ?,
@@ -178,16 +175,16 @@ func (t *TopicService) Show(ctx context.Context, ID string, UserID string, userE
 			tu.UserID = user.ID
 			tu.UgroupID = uint(0)
 			tu.Statusc = common.Active
-			tu.CreatedAt = tn.UTC()
-			tu.UpdatedAt = tn.UTC()
-			tu.CreatedDay = uint(day)
-			tu.CreatedWeek = uint(week)
-			tu.CreatedMonth = uint(tn.Month())
-			tu.CreatedYear = uint(tn.Year())
-			tu.UpdatedDay = uint(day)
-			tu.UpdatedWeek = uint(week)
-			tu.UpdatedMonth = uint(tn.Month())
-			tu.UpdatedYear = uint(tn.Year())
+			tu.CreatedAt = tn
+			tu.UpdatedAt = tn
+			tu.CreatedDay = tnday
+			tu.CreatedWeek = tnweek
+			tu.CreatedMonth = tnmonth
+			tu.CreatedYear = tnyear
+			tu.UpdatedDay = tnday
+			tu.UpdatedWeek = tnweek
+			tu.UpdatedMonth = tnmonth
+			tu.UpdatedYear = tnyear
 
 			_, err := t.InsertTopicsUser(ctx, tx, tu, userEmail, requestID)
 
@@ -403,9 +400,8 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			return nil, err
 		}
 
-		tn := time.Now().UTC()
-		_, week := tn.ISOWeek()
-		day := tn.YearDay()
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
 		topc := Topic{}
 		topc.IDS = common.GetUID()
 		topc.TopicName = form.TopicName
@@ -428,16 +424,16 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 		topc.UgroupID = form.UgroupID
 		/*  StatusDates  */
 		topc.Statusc = common.Active
-		topc.CreatedAt = tn.UTC()
-		topc.UpdatedAt = tn.UTC()
-		topc.CreatedDay = uint(day)
-		topc.CreatedWeek = uint(week)
-		topc.CreatedMonth = uint(tn.Month())
-		topc.CreatedYear = uint(tn.Year())
-		topc.UpdatedDay = uint(day)
-		topc.UpdatedWeek = uint(week)
-		topc.UpdatedMonth = uint(tn.Month())
-		topc.UpdatedYear = uint(tn.Year())
+		topc.CreatedAt = tn
+		topc.UpdatedAt = tn
+		topc.CreatedDay = tnday
+		topc.CreatedWeek = tnweek
+		topc.CreatedMonth = tnmonth
+		topc.CreatedYear = tnyear
+		topc.UpdatedDay = tnday
+		topc.UpdatedWeek = tnweek
+		topc.UpdatedMonth = tnmonth
+		topc.UpdatedYear = tnyear
 
 		topic, err := t.InsertTopic(ctx, tx, topc, userEmail, requestID)
 
@@ -447,10 +443,10 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			return nil, err
 		}
 
-		UpdatedDay := uint(day)
-		UpdatedWeek := uint(week)
-		UpdatedMonth := uint(tn.Month())
-		UpdatedYear := uint(tn.Year())
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
 
 		catserv := &CategoryService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
 		category, err := catserv.GetCategoryByID(ctx, form.CategoryID, userEmail, requestID)
@@ -507,16 +503,17 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			msg.UgroupID = form.UgroupID
 			/*  StatusDates  */
 			msg.Statusc = common.Active
-			msg.CreatedAt = tn.UTC()
-			msg.UpdatedAt = tn.UTC()
-			msg.CreatedDay = uint(day)
-			msg.CreatedWeek = uint(week)
-			msg.CreatedMonth = uint(tn.Month())
-			msg.CreatedYear = uint(tn.Year())
-			msg.UpdatedDay = uint(day)
-			msg.UpdatedWeek = uint(week)
-			msg.UpdatedMonth = uint(tn.Month())
-			msg.UpdatedYear = uint(tn.Year())
+			msg.CreatedAt = tn
+			msg.UpdatedAt = tn
+			msg.CreatedDay = tnday
+			msg.CreatedWeek = tnweek
+			msg.CreatedMonth = tnmonth
+			msg.CreatedYear = tnyear
+			msg.UpdatedDay = tnday
+			msg.UpdatedWeek = tnweek
+			msg.UpdatedMonth = tnmonth
+			msg.UpdatedYear = tnyear
+
 			Message, err := msgserv.InsertMessage(ctx, tx, msg, userEmail, requestID)
 
 			if err != nil {
@@ -534,16 +531,16 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			msgtxt.UgroupID = form.UgroupID
 			/*  StatusDates  */
 			msgtxt.Statusc = common.Active
-			msgtxt.CreatedAt = tn.UTC()
-			msgtxt.UpdatedAt = tn.UTC()
-			msgtxt.CreatedDay = uint(day)
-			msgtxt.CreatedWeek = uint(week)
-			msgtxt.CreatedMonth = uint(tn.Month())
-			msgtxt.CreatedYear = uint(tn.Year())
-			msgtxt.UpdatedDay = uint(day)
-			msgtxt.UpdatedWeek = uint(week)
-			msgtxt.UpdatedMonth = uint(tn.Month())
-			msgtxt.UpdatedYear = uint(tn.Year())
+			msgtxt.CreatedAt = tn
+			msgtxt.UpdatedAt = tn
+			msgtxt.CreatedDay = tnday
+			msgtxt.CreatedWeek = tnweek
+			msgtxt.CreatedMonth = tnmonth
+			msgtxt.CreatedYear = tnyear
+			msgtxt.UpdatedDay = tnday
+			msgtxt.UpdatedWeek = tnweek
+			msgtxt.UpdatedMonth = tnmonth
+			msgtxt.UpdatedYear = tnyear
 
 			_, err = msgserv.InsertMessageText(ctx, tx, msgtxt, userEmail, requestID)
 
@@ -597,16 +594,16 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 				msgatch.UgroupID = form.UgroupID
 				/*  StatusDates  */
 				msgatch.Statusc = common.Active
-				msgatch.CreatedAt = tn.UTC()
-				msgatch.UpdatedAt = tn.UTC()
-				msgatch.CreatedDay = uint(day)
-				msgatch.CreatedWeek = uint(week)
-				msgatch.CreatedMonth = uint(tn.Month())
-				msgatch.CreatedYear = uint(tn.Year())
-				msgatch.UpdatedDay = uint(day)
-				msgatch.UpdatedWeek = uint(week)
-				msgatch.UpdatedMonth = uint(tn.Month())
-				msgatch.UpdatedYear = uint(tn.Year())
+				msgatch.CreatedAt = tn
+				msgatch.UpdatedAt = tn
+				msgatch.CreatedDay = tnday
+				msgatch.CreatedWeek = tnweek
+				msgatch.CreatedMonth = tnmonth
+				msgatch.CreatedYear = tnyear
+				msgatch.UpdatedDay = tnday
+				msgatch.UpdatedWeek = tnweek
+				msgatch.UpdatedMonth = tnmonth
+				msgatch.UpdatedYear = tnyear
 
 				_, err := msgserv.InsertMessageAttachment(ctx, tx, msgatch, userEmail, requestID)
 
@@ -625,16 +622,16 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 		ut.UgroupID = uint(0)
 		/*  StatusDates  */
 		ut.Statusc = common.Active
-		ut.CreatedAt = tn.UTC()
-		ut.UpdatedAt = tn.UTC()
-		ut.CreatedDay = uint(day)
-		ut.CreatedWeek = uint(week)
-		ut.CreatedMonth = uint(tn.Month())
-		ut.CreatedYear = uint(tn.Year())
-		ut.UpdatedDay = uint(day)
-		ut.UpdatedWeek = uint(week)
-		ut.UpdatedMonth = uint(tn.Month())
-		ut.UpdatedYear = uint(tn.Year())
+		ut.CreatedAt = tn
+		ut.UpdatedAt = tn
+		ut.CreatedDay = tnday
+		ut.CreatedWeek = tnweek
+		ut.CreatedMonth = tnmonth
+		ut.CreatedYear = tnyear
+		ut.UpdatedDay = tnday
+		ut.UpdatedWeek = tnweek
+		ut.UpdatedMonth = tnmonth
+		ut.UpdatedYear = tnyear
 
 		_, err = t.InsertUserTopic(ctx, tx, ut, userEmail, requestID)
 
