@@ -2,11 +2,8 @@ package common
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -15,12 +12,12 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/go-redis/redis"
+	"github.com/google/uuid"
 	"github.com/rs/xid"
 	gomail "gopkg.in/gomail.v2"
 )
 
-// StatusDates - Used for all structs
+// StatusDates - Used in all the database tables
 type StatusDates struct {
 	Statusc      uint
 	CreatedAt    time.Time
@@ -35,14 +32,8 @@ type StatusDates struct {
 	UpdatedYear  uint
 }
 
-// Active - used for status of all struct
+// Active - value of status
 const Active = 1
-
-// Key - Its key type
-type Key string
-
-// KeyEmailToken - used for context key
-const KeyEmailToken Key = "emailtoken"
 
 // Error - used for
 type Error struct {
@@ -120,7 +111,7 @@ type UserOptions struct {
 	ResetTokenDuration   string `mapstructure:"resettokenduration"`
 }
 
-// Email - used for email
+// Email - for sending email notifications
 type Email struct {
 	From    string
 	To      string
@@ -129,15 +120,8 @@ type Email struct {
 	Cc      string
 }
 
-// User - used for
-type User struct {
-	ID    uint
-	IDS   string
-	Email string
-	Role  string
-}
-
-// ParseURL - used for
+// ParseURL - parses a url into a slice (GetPathParts) and
+// the query string (GetPathQueryString)
 func ParseURL(urlString string) ([]string, url.Values, error) {
 	pathString, queryString, err := GetPathQueryString(urlString)
 	if err != nil {
@@ -146,9 +130,8 @@ func ParseURL(urlString string) ([]string, url.Values, error) {
 		}).Error(err)
 		return []string{}, nil, err
 	}
-	pathParts := GetPathParts(pathString)
 
-	return pathParts, queryString, nil
+	return GetPathParts(pathString), queryString, nil
 }
 
 // GetPathQueryString -- given url string, returns the path, and the
@@ -166,13 +149,11 @@ func GetPathQueryString(s string) (string, url.Values, error) {
 		return "", nil, err
 	}
 
-	p := u.Path
-	q := u.Query()
-
-	return p, q, nil
+	return u.Path, u.Query(), nil
 }
 
-// GetPathParts - used for spliting routes
+// GetPathParts - given a url, returns a slice
+// of the parts of the url
 func GetPathParts(url string) []string {
 
 	var pathParts []string
@@ -186,89 +167,6 @@ func GetPathParts(url string) []string {
 	}
 
 	return pathParts
-}
-
-// GetAuthBearerToken - extract the BEARER token from the auth header
-func GetAuthBearerToken(r *http.Request) (string, error) {
-
-	var APIkey string
-	bearer := r.Header.Get("Authorization")
-	if len(bearer) > 7 && strings.ToUpper(bearer[0:6]) == "BEARER" {
-		APIkey = bearer[7:]
-	} else {
-		log.WithFields(log.Fields{
-			"msgnum": 252,
-		}).Error("APIkey Not Found")
-		return "", errors.New("APIkey Not Found ")
-	}
-	return APIkey, nil
-}
-
-// ContextData - used for
-type ContextData struct {
-	Email  string
-	UserID string
-	Roles  []string
-}
-
-// ContextStruct - used for
-type ContextStruct struct {
-	Email       string
-	TokenString string
-}
-
-// GetAuthUserDetails - used for fetching redis details
-func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) (*ContextData, string, error) {
-	data := r.Context().Value(KeyEmailToken).(ContextStruct)
-	resp, err := redisClient.Get(data.TokenString).Result()
-	v := ContextData{}
-	if resp == "" {
-		user := User{}
-		row := db.QueryRow(`select id, id_s, email, role from users where email = ?;`, data.Email)
-		err = row.Scan(&user.ID, &user.IDS, &user.Email, &user.Role)
-		if user.ID == 0 {
-			log.WithFields(log.Fields{
-				"msgnum": 253,
-			}).Error("User not found")
-			return nil, "", errors.New("User not found")
-		}
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 254,
-			}).Error(err)
-			return nil, "", errors.New("User not found")
-		}
-		v.Email = user.Email
-		v.UserID = user.IDS
-		roles := []string{}
-		if user.Role != "" {
-			roles = append(roles, user.Role)
-		}
-		v.Roles = roles
-		usr, err := json.Marshal(v)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 255,
-			}).Error(err)
-			return nil, "", errors.New("User not found")
-		}
-		err = redisClient.Set(data.TokenString, usr, 0).Err()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 256,
-			}).Error(err)
-			return nil, "", errors.New("User not found")
-		}
-	} else {
-		err = json.Unmarshal([]byte(resp), &v)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 257,
-			}).Error(err)
-		}
-	}
-	requestID := GetRequestID()
-	return &v, requestID, nil
 }
 
 // RenderJSON - send JSON response
@@ -286,7 +184,7 @@ func RenderJSON(w http.ResponseWriter, data interface{}) {
 	return
 }
 
-// RenderErrorJSON - send JSON response
+// RenderErrorJSON - send error JSON response
 func RenderErrorJSON(w http.ResponseWriter, errorCode string, errorMsg string, httpStatusCode int, requestID string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
@@ -302,17 +200,37 @@ func RenderErrorJSON(w http.ResponseWriter, errorCode string, errorMsg string, h
 	return
 }
 
-// GetRequestID - used for GetRequestID generation
+// GetRequestID - used for RequestID generation
 func GetRequestID() string {
-	return fmt.Sprintf("%x", xid.New().String())
+	return xid.New().String()
 }
 
-// GetUID - used for id generation
+// GetUID - used for ID generation
 func GetUID() string {
-	return fmt.Sprintf("%x", xid.New().String())
+	return xid.New().String()
 }
 
-// ParseTemplate - used for parsing template
+// GetUUID - used for UUID generation
+func GetUUID() uuid.UUID {
+	return uuid.New()
+}
+
+// GetUUIDBytes - used for UUID generation, to save in the db
+func GetUUIDBytes() ([]byte, error) {
+	return uuid.New().MarshalBinary()
+}
+
+// UUIDBytesToStr - convert a UUID retrieved from the DB as str,
+// to string for sending to the client
+func UUIDBytesToStr(b []byte) (string, error) {
+	u, err := uuid.FromBytes(b)
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
+}
+
+// ParseTemplate - used for parsing template (for emails)
 func ParseTemplate(templateFileName string, data interface{}) (string, error) {
 	t, err := template.ParseFiles(templateFileName)
 	if err != nil {
@@ -350,38 +268,6 @@ func SendMail(msg Email, gomailer *gomail.Dialer) error {
 	return nil
 }
 
-// CheckRoles - used for checking roles
-func CheckRoles(AllowedRoles []string, UserRoles []string) error {
-	for _, permission := range AllowedRoles {
-		if err := checkRoles(UserRoles, permission); err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 263,
-			}).Error(err)
-			return err
-		}
-		break
-	}
-	return nil
-}
-
-func checkRoles(roles []string, role string) error {
-	if roles == nil {
-		return errors.New("No user supplied")
-	}
-
-	if role == "" {
-		return errors.New("You must supply a valid permission to check against")
-	}
-
-	for _, roleName := range roles {
-		if role == roleName {
-			return nil
-		}
-	}
-
-	return errors.New("User not authorized")
-}
-
 // EncodeCursor - encode cursor
 func EncodeCursor(cursor uint) string {
 	cursorStr := strconv.FormatUint(uint64(cursor), 10)
@@ -400,7 +286,8 @@ func DecodeCursor(cursor string) string {
 	return string(cursorBytes)
 }
 
-// GetTimeDetails - get time details
+// GetTimeDetails - used to populate created_by and updated_by fields
+// when inserting/updating records in the database
 func GetTimeDetails() (time.Time, uint, uint, uint, uint) {
 	tn := time.Now().UTC().Truncate(time.Second)
 	tnday := uint(tn.YearDay())
