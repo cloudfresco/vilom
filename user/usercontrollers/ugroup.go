@@ -43,7 +43,7 @@ func (uc *UgroupController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			           GET  "/v1/ugroups/{id}/getparent"
 		*/
 
-		if (len(pathParts) == 1) && (pathParts[1] == "ugroups") {
+		if (len(pathParts) == 2) && (pathParts[1] == "ugroups") {
 			limit := queryString.Get("limit")
 			cursor := queryString.Get("cursor")
 			uc.Index(w, r, limit, cursor, user, requestID)

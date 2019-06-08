@@ -47,11 +47,11 @@ func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			limit := queryString.Get("limit")
 			cursor := queryString.Get("cursor")
 			cc.Index(w, r, limit, cursor, user, requestID)
+		} else if (len(pathParts) == 3) && (pathParts[2] == "topcats") {
+			cc.TopLevelCategories(w, r, user, requestID)
 		} else if (len(pathParts) == 3) && (pathParts[1] == "categories") {
 			cc.Show(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "topcats") {
-			cc.TopLevelCategories(w, r, user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "chdn") {
+		}  else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "chdn") {
 			cc.GetChdn(w, r, pathParts[2], user, requestID)
 		} else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "getparent") {
 			cc.GetParent(w, r, pathParts[2], user, requestID)
