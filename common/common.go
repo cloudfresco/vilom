@@ -197,11 +197,6 @@ func GetRequestID() string {
 	return xid.New().String()
 }
 
-// GetUID - used for ID generation
-func GetUID() string {
-	return xid.New().String()
-}
-
 // GetUUID - used for UUID generation
 func GetUUID() uuid.UUID {
 	return uuid.New()
