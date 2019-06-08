@@ -125,9 +125,7 @@ type Email struct {
 func ParseURL(urlString string) ([]string, url.Values, error) {
 	pathString, queryString, err := GetPathQueryString(urlString)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 250,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 250}).Error(err)
 		return []string{}, nil, err
 	}
 
@@ -143,9 +141,7 @@ func GetPathQueryString(s string) (string, url.Values, error) {
 	u, err := url.Parse(s)
 
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 251,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 251}).Error(err)
 		return "", nil, err
 	}
 
@@ -175,9 +171,7 @@ func RenderJSON(w http.ResponseWriter, data interface{}) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 258,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 252}).Error(err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -191,9 +185,7 @@ func RenderErrorJSON(w http.ResponseWriter, errorCode string, errorMsg string, h
 	e := Error{ErrorCode: errorCode, ErrorMsg: errorMsg, HTTPStatusCode: httpStatusCode, RequestID: requestID}
 	err := json.NewEncoder(w).Encode(e)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 259,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 253}).Error(err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -225,25 +217,42 @@ func GetUUIDBytes() ([]byte, error) {
 func UUIDBytesToStr(b []byte) (string, error) {
 	u, err := uuid.FromBytes(b)
 	if err != nil {
+		log.WithFields(log.Fields{"msgnum": 254}).Error(err)
 		return "", err
 	}
 	return u.String(), nil
+}
+
+// UUIDStrToUUID - convert a UUID str into UUID
+func UUIDStrToUUID(s string) (uuid.UUID, error) {
+	u, err := uuid.Parse(s)
+	if err != nil {
+		log.WithFields(log.Fields{"msgnum": 255}).Error(err)
+		return u, err
+	}
+	return u, nil
+}
+
+// UUIDStrToBytes - convert a UUID str into bytes
+func UUIDStrToBytes(s string) ([]byte, error) {
+	u, err := uuid.Parse(s)
+	if err != nil {
+		log.WithFields(log.Fields{"msgnum": 256}).Error(err)
+		return nil, err
+	}
+	return u.MarshalBinary()
 }
 
 // ParseTemplate - used for parsing template (for emails)
 func ParseTemplate(templateFileName string, data interface{}) (string, error) {
 	t, err := template.ParseFiles(templateFileName)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 260,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 257}).Error(err)
 		return "", err
 	}
 	buf := new(bytes.Buffer)
 	if err = t.Execute(buf, data); err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 261,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 258}).Error(err)
 		return "", err
 	}
 	body := buf.String()
@@ -260,9 +269,7 @@ func SendMail(msg Email, gomailer *gomail.Dialer) error {
 
 	err := gomailer.DialAndSend(m)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 262,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 259}).Error(err)
 		return err
 	}
 	return nil
@@ -278,9 +285,7 @@ func EncodeCursor(cursor uint) string {
 func DecodeCursor(cursor string) string {
 	cursorBytes, err := base64.StdEncoding.DecodeString(cursor)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 264,
-		}).Error(err)
+		log.WithFields(log.Fields{"msgnum": 260}).Error(err)
 		return ""
 	}
 	return string(cursorBytes)

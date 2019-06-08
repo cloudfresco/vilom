@@ -13,8 +13,9 @@ import (
 
 // Ubadge - Ubadge view representation
 type Ubadge struct {
-	ID  uint
-	IDS string
+	ID    uint
+	UUID4 []byte
+	IDS   string
 
 	UbadgeName string
 	UbadgeDesc string
@@ -25,8 +26,9 @@ type Ubadge struct {
 
 // UbadgeUser - Ubadge User view representation
 type UbadgeUser struct {
-	ID  uint
-	IDS string
+	ID    uint
+	UUID4 []byte
+	IDS   string
 
 	UbadgeID uint
 	UserID   uint
@@ -61,11 +63,7 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3300,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3300}).Error(err)
 		return nil, err
 	default:
 		if limit == "" {
@@ -82,7 +80,7 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 		ubadges := []*Ubadge{}
 		rows, err := u.Db.QueryContext(ctx, `select 
       id,
-			id_s,
+			uuid4,
 			ubadge_name,
 			ubadge_desc,
 			statusc,
@@ -97,18 +95,14 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 			updated_month,
 			updated_year from ubadges `+query)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3301,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3301}).Error(err)
 			return nil, err
 		}
 
 		for rows.Next() {
 			ubadge := Ubadge{}
 			err = rows.Scan(&ubadge.ID,
-				&ubadge.IDS,
+				&ubadge.UUID4,
 				&ubadge.UbadgeName,
 				&ubadge.UbadgeDesc,
 				&ubadge.Statusc,
@@ -123,32 +117,27 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 				&ubadge.UpdatedMonth,
 				&ubadge.UpdatedYear)
 			if err != nil {
-				log.WithFields(log.Fields{
-					"user":   userEmail,
-					"reqid":  requestID,
-					"msgnum": 3302,
-				}).Error(err)
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3302}).Error(err)
 				return nil, err
 			}
+
+			uUID4Str, err := common.UUIDBytesToStr(ubadge.UUID4)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3303}).Error(err)
+				return nil, err
+			}
+			ubadge.IDS = uUID4Str
 			ubadges = append(ubadges, &ubadge)
 		}
 		err = rows.Close()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3303,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3304}).Error(err)
 			return nil, err
 		}
 
 		err = rows.Err()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3304,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3305}).Error(err)
 			return nil, err
 		}
 		x := UbadgeCursor{}
@@ -169,27 +158,24 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge, userEmail stri
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3305,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3306}).Error(err)
 		return nil, err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3306,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3307}).Error(err)
 			return nil, err
 		}
 
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		Ubadge := Ubadge{}
-		Ubadge.IDS = common.GetUID()
+		Ubadge.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3308}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
 		Ubadge.UbadgeName = form.UbadgeName
 		Ubadge.UbadgeDesc = form.UbadgeDesc
 		Ubadge.Statusc = common.Active
@@ -207,22 +193,14 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge, userEmail stri
 		ugrp, err := u.InsertUbadge(ctx, tx, Ubadge, userEmail, requestID)
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3307,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3309}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3308,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3310}).Error(err)
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -236,37 +214,31 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3309,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3311}).Error(err)
 		return err
 	default:
 		db := u.Db
 		ubadge, err := u.GetUbadge(ctx, ID, userEmail, requestID)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3310,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3312}).Error(err)
 			return err
 		}
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3311,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3313}).Error(err)
 			return err
 		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		Uguser := UbadgeUser{}
-		Uguser.IDS = common.GetUID()
+		Uguser.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3314}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
 		Uguser.UbadgeID = ubadge.ID
 		Uguser.UserID = form.UserID
 		Uguser.Statusc = common.Active
@@ -284,22 +256,14 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 		_, err = u.InsertUbadgeUser(ctx, tx, Uguser, userEmail, requestID)
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3312,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3315}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3313,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3316}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -312,16 +276,12 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3314,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3317}).Error(err)
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ubadges
 	  (
-		id_s,
+		uuid4,
 		ubadge_name,
 		ubadge_desc,
 		statusc,
@@ -338,16 +298,12 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
   values (?,?,?,?,?,?,?,?,?,?,
 					?,?,?,?,?);`)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3315,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3318}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		res, err := stmt.ExecContext(ctx,
-			Ubadge.IDS,
+			Ubadge.UUID4,
 			Ubadge.UbadgeName,
 			Ubadge.UbadgeDesc,
 			Ubadge.Statusc,
@@ -363,32 +319,26 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
 			Ubadge.UpdatedYear)
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3316,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3319}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3317,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3320}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		Ubadge.ID = uint(uID)
+		uUID4Str, err := common.UUIDBytesToStr(Ubadge.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3321}).Error(err)
+			return nil, err
+		}
+		Ubadge.IDS = uUID4Str
 		err = stmt.Close()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3318,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3322}).Error(err)
 			return nil, err
 		}
 
@@ -401,53 +351,38 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string, userEmail string,
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3319,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3323}).Error(err)
 		return err
 	default:
+		uUID4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3324}).Error(err)
+			return err
+		}
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3320,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3325}).Error(err)
 			return err
 		}
-		stmt, err := tx.PrepareContext(ctx, "delete from ubadges where id_s= ?;")
+		stmt, err := tx.PrepareContext(ctx, "delete from ubadges where uuid4= ?;")
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3321,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3326}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx, ID)
+		_, err = stmt.ExecContext(ctx, uUID4byte)
 		err = stmt.Close()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3322,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3327}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 		err = tx.Commit()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3323,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3328}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -460,18 +395,19 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3324,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3329}).Error(err)
 		return nil, err
 	default:
+		uUID4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3330}).Error(err)
+			return nil, err
+		}
 		db := u.Db
 		poh := Ubadge{}
 		rows, err := db.QueryContext(ctx, `select 
     p.id,
-		p.id_s,
+		p.uuid4,
 		p.ubadge_name,
 		p.ubadge_desc,
 		p.statusc,
@@ -486,7 +422,7 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 		p.updated_month,
 		p.updated_year,
     v.id,
-		v.id_s,
+		v.uuid4,
     v.auth_token,
 		v.email,
 		v.first_name,
@@ -521,21 +457,17 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 		v.updated_day,
 		v.updated_week,
 		v.updated_month,
-		v.updated_year from ubadges p inner join ubadges_users ubu on (p.id = ubu.ubadge_id) inner join users v on (ubu.user_id = v.id) where p.id_s = ?`, ID)
+		v.updated_year from ubadges p inner join ubadges_users ubu on (p.id = ubu.ubadge_id) inner join users v on (ubu.user_id = v.id) where p.uuid4 = ?`, uUID4byte)
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3325,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3331}).Error(err)
 			return nil, err
 		}
 		for rows.Next() {
 			user := User{}
 			err = rows.Scan(
 				&poh.ID,
-				&poh.IDS,
+				&poh.UUID4,
 				&poh.UbadgeName,
 				&poh.UbadgeDesc,
 				&poh.Statusc,
@@ -550,7 +482,7 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 				&poh.UpdatedMonth,
 				&poh.UpdatedYear,
 				&user.ID,
-				&user.IDS,
+				&user.UUID4,
 				&user.AuthToken,
 				&user.Email,
 				&user.FirstName,
@@ -588,32 +520,33 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 				&user.UpdatedYear)
 
 			if err != nil {
-				log.WithFields(log.Fields{
-					"user":   userEmail,
-					"reqid":  requestID,
-					"msgnum": 3326,
-				}).Error(err)
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3332}).Error(err)
 				return nil, err
 			}
+			uUID4Str1, err := common.UUIDBytesToStr(poh.UUID4)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3333}).Error(err)
+				return nil, err
+			}
+			poh.IDS = uUID4Str1
+
+			uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3334}).Error(err)
+				return nil, err
+			}
+			user.IDS = uUID4Str
 			poh.Users = append(poh.Users, &user)
 		}
 
 		err = rows.Close()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3327,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3335}).Error(err)
 			return nil, err
 		}
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3328,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3336}).Error(err)
 			return nil, err
 		}
 
@@ -626,18 +559,19 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3329,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3337}).Error(err)
 		return nil, err
 	default:
+		uUID4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3338}).Error(err)
+			return nil, err
+		}
 		db := u.Db
 		Ubadge := Ubadge{}
 		row := db.QueryRowContext(ctx, `select
     id,
-		id_s,
+		uuid4,
 		ubadge_name,
 		ubadge_desc,
 		statusc,
@@ -650,11 +584,11 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ubadges where id_s = ?;`, ID)
+		updated_year from ubadges where uuid4 = ?;`, uUID4byte)
 
-		err := row.Scan(
+		err = row.Scan(
 			&Ubadge.ID,
-			&Ubadge.IDS,
+			&Ubadge.UUID4,
 			&Ubadge.UbadgeName,
 			&Ubadge.UbadgeDesc,
 			&Ubadge.Statusc,
@@ -670,14 +604,15 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 			&Ubadge.UpdatedYear)
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3330,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3339}).Error(err)
 			return nil, err
 		}
-
+		uUID4Str, err := common.UUIDBytesToStr(Ubadge.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3340}).Error(err)
+			return nil, err
+		}
+		Ubadge.IDS = uUID4Str
 		return &Ubadge, nil
 	}
 }
@@ -687,30 +622,18 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3331,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3341}).Error(err)
 		return err
 	default:
 		db := u.Db
 		tx, err := db.Begin()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3332,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3342}).Error(err)
 			return err
 		}
 		stmt, err := tx.PrepareContext(ctx, `delete from ubadges_users where user_id= ? and ubadge_id = ?;`)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3333,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3343}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
@@ -718,32 +641,20 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 
 		_, err = stmt.ExecContext(ctx, form.UserID, ID)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3334,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3344}).Error(err)
 			err = stmt.Close()
 			err = tx.Rollback()
 			return err
 		}
 		err = stmt.Close()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3335,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3345}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 		err = tx.Commit()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3336,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3346}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
@@ -756,16 +667,12 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 3337,
-		}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3347}).Error(err)
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ubadges_users
 	  (
-		id_s,
+		uuid4,
 		ubadge_id,
 		user_id,
 		statusc,
@@ -782,15 +689,11 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
   values (?,?,?,?,?,?,?,?,?,?,
 					?,?,?,?);`)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3338,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3348}).Error(err)
 			return nil, err
 		}
 		res, err := stmt.ExecContext(ctx,
-			Uguser.IDS,
+			Uguser.UUID4,
 			Uguser.UbadgeID,
 			Uguser.UserID,
 			Uguser.Statusc,
@@ -806,32 +709,27 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 			Uguser.UpdatedYear)
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3339,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3349}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3340,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3350}).Error(err)
 			err = stmt.Close()
 			return nil, err
 		}
 		Uguser.ID = uint(uID)
+		uUID4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3351}).Error(err)
+			return nil, err
+		}
+		Uguser.IDS = uUID4Str
+
 		err = stmt.Close()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 3341,
-			}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3352}).Error(err)
 			return nil, err
 		}
 

@@ -331,7 +331,7 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 	pohs := []*msgservices.Topic{}
 	rows, err := db.Query(`select 
     id,
-		id_s,
+		uuid4,
 		topic_name,
 		topic_desc,
 		num_tags,
@@ -371,7 +371,7 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 		poh := msgservices.Topic{}
 		err = rows.Scan(
 			&poh.ID,
-			&poh.IDS,
+			&poh.UUID4,
 			&poh.TopicName,
 			&poh.TopicDesc,
 			&poh.NumTags,
@@ -407,6 +407,14 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 			}).Error(err)
 			return nil, err
 		}
+		uUID4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 7021,
+			}).Error(err)
+			log.Println(err)
+		}
+		poh.IDS = uUID4Str
 		pohs = append(pohs, &poh)
 
 	}
@@ -414,7 +422,7 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 	err = rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"msgnum": 7021,
+			"msgnum": 7022,
 		}).Error(err)
 		return nil, err
 	}

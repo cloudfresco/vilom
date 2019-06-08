@@ -34,6 +34,7 @@ type ContextStruct struct {
 // User - details of the user from the database
 type User struct {
 	ID    uint
+	UUID4 []byte
 	IDS   string
 	Email string
 	Role  string
@@ -70,22 +71,29 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 	v := ContextData{}
 	if resp == "" {
 		user := User{}
-		row := db.QueryRow(`select id, id_s, email, role from users where email = ?;`, data.Email)
-		err = row.Scan(&user.ID, &user.IDS, &user.Email, &user.Role)
+		row := db.QueryRow(`select id, uuid4, email, role from users where email = ?;`, data.Email)
+		err = row.Scan(&user.ID, &user.UUID4, &user.Email, &user.Role)
 		if user.ID == 0 {
 			log.WithFields(log.Fields{
-				"msgnum": 253,
+				"msgnum": 261,
 			}).Error("User not found")
 			return nil, "", errors.New("User not found")
 		}
 		if err != nil {
 			log.WithFields(log.Fields{
-				"msgnum": 254,
+				"msgnum": 262,
+			}).Error(err)
+			return nil, "", errors.New("User not found")
+		}
+		IDS, err := UUIDBytesToStr(user.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 263,
 			}).Error(err)
 			return nil, "", errors.New("User not found")
 		}
 		v.Email = user.Email
-		v.UserID = user.IDS
+		v.UserID = IDS
 		roles := []string{}
 		if user.Role != "" {
 			roles = append(roles, user.Role)
@@ -94,14 +102,14 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 		usr, err := json.Marshal(v)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"msgnum": 255,
+				"msgnum": 264,
 			}).Error(err)
 			return nil, "", errors.New("User not found")
 		}
 		err = redisClient.Set(data.TokenString, usr, 0).Err()
 		if err != nil {
 			log.WithFields(log.Fields{
-				"msgnum": 256,
+				"msgnum": 265,
 			}).Error(err)
 			return nil, "", errors.New("User not found")
 		}
@@ -109,7 +117,7 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 		err = json.Unmarshal([]byte(resp), &v)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"msgnum": 257,
+				"msgnum": 266,
 			}).Error(err)
 		}
 	}
@@ -121,7 +129,7 @@ func CheckRoles(AllowedRoles []string, UserRoles []string) error {
 	for _, permission := range AllowedRoles {
 		if err := checkRoles(UserRoles, permission); err != nil {
 			log.WithFields(log.Fields{
-				"msgnum": 263,
+				"msgnum": 267,
 			}).Error(err)
 			return err
 		}

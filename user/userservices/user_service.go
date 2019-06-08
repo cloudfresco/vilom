@@ -26,6 +26,7 @@ import (
 // User - User view representation
 type User struct {
 	ID        uint
+	UUID4     []byte
 	IDS       string
 	AuthToken string
 
@@ -260,7 +261,7 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 			query = query + "where " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 		}
 		users := []*User{}
-		rows, err := u.Db.QueryContext(ctx, `select id, id_s, auth_token, first_name, last_name, email, role from users `+query)
+		rows, err := u.Db.QueryContext(ctx, `select id, uuid4, auth_token, first_name, last_name, email, role from users `+query)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -272,7 +273,7 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 
 		for rows.Next() {
 			user := User{}
-			err = rows.Scan(&user.ID, &user.IDS, &user.AuthToken, &user.FirstName, &user.LastName, &user.Email, &user.Role)
+			err = rows.Scan(&user.ID, &user.UUID4, &user.AuthToken, &user.FirstName, &user.LastName, &user.Email, &user.Role)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"user":   userEmail,
@@ -282,6 +283,12 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 				err = rows.Close()
 				return nil, err
 			}
+			uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1510}).Error(err)
+				return nil, err
+			}
+			user.IDS = uUID4Str
 			users = append(users, &user)
 		}
 		err = rows.Close()
@@ -289,7 +296,7 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1510,
+				"msgnum": 1511,
 			}).Error(err)
 			return nil, err
 		}
@@ -299,7 +306,7 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1511,
+				"msgnum": 1512,
 			}).Error(err)
 			return nil, err
 		}
@@ -324,7 +331,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1512,
+			"msgnum": 1513,
 		}).Error(err)
 		return nil, err
 	default:
@@ -339,7 +346,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1513,
+				"msgnum": 1514,
 			}).Error(err)
 			return nil, err
 		}
@@ -348,7 +355,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1514,
+				"msgnum": 1515,
 			}).Error(err)
 			return nil, err
 		}
@@ -357,7 +364,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1515,
+				"msgnum": 1516,
 			}).Error(err)
 			return nil, err
 		}
@@ -365,7 +372,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1516,
+				"msgnum": 1517,
 			}).Error(err)
 			return nil, err
 		}
@@ -390,7 +397,7 @@ func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration, r
 	if err != nil {
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1517,
+			"msgnum": 1518,
 		}).Error("Failed to sign token")
 		return "", errors.New("Failed to sign token")
 	}
@@ -406,7 +413,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1518,
+			"msgnum": 1519,
 		}).Error(err)
 		return nil, err
 	default:
@@ -418,7 +425,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1519,
+				"msgnum": 1520,
 			}).Error(err)
 
 			return nil, err
@@ -427,7 +434,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 			err = errors.New("Email Already Exists")
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1520,
+				"msgnum": 1521,
 			}).Error(err)
 
 			return nil, err
@@ -437,7 +444,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1521,
+				"msgnum": 1522,
 			}).Error(err)
 
 			return nil, err
@@ -447,7 +454,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1522,
+				"msgnum": 1523,
 			}).Error(err)
 
 			return nil, err
@@ -457,7 +464,15 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		tokenExpiry, _ := time.ParseDuration(u.UserOptions.ConfirmTokenDuration)
 
 		user := User{}
-		user.IDS = common.GetUID()
+		user.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1524,
+			}).Error(err)
+
+			return nil, err
+		}
 		user.AuthToken = ""
 		user.Email = form.Email
 		user.Username = form.Email
@@ -505,7 +520,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1523,
+				"msgnum": 1525,
 			}).Error(err)
 
 			return nil, err
@@ -514,7 +529,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1524,
+				"msgnum": 1526,
 			}).Error(err)
 
 			err = tx.Rollback()
@@ -525,7 +540,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1525,
+				"msgnum": 1527,
 			}).Error(err)
 
 			return nil, err
@@ -541,14 +556,14 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1526,
+			"msgnum": 1528,
 		}).Error(err)
 
 		return nil, err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into users
 	  (
-		id_s,
+		uuid4,
     auth_token,
 		email,
     username,
@@ -599,13 +614,13 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1527,
+				"msgnum": 1529,
 			}).Error(err)
 
 			return nil, err
 		}
 		res, err := stmt.ExecContext(ctx,
-			user.IDS,
+			user.UUID4,
 			user.AuthToken,
 			user.Email,
 			user.Username,
@@ -651,7 +666,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1528,
+				"msgnum": 1530,
 			}).Error(err)
 
 			err = stmt.Close()
@@ -661,18 +676,24 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1529,
+				"msgnum": 1531,
 			}).Error(err)
 
 			err = stmt.Close()
 			return nil, err
 		}
 		user.ID = uint(uID)
+		uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"reqid": requestID, "msgnum": 1532}).Error(err)
+			return nil, err
+		}
+		user.IDS = uUID4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1530,
+				"msgnum": 1533,
 			}).Error(err)
 
 			return nil, err
@@ -691,7 +712,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1531,
+				"msgnum": 1534,
 			}).Error(err)
 
 			return nil, err
@@ -707,7 +728,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1532,
+				"msgnum": 1535,
 			}).Error(err)
 
 			return nil, err
@@ -724,7 +745,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1533,
+			"msgnum": 1536,
 		}).Error(err)
 
 		return err
@@ -734,7 +755,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1534,
+				"msgnum": 1537,
 			}).Error(err)
 
 			return err
@@ -751,7 +772,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1535,
+				"msgnum": 1538,
 			}).Error(err)
 
 			return err
@@ -761,7 +782,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1536,
+				"msgnum": 1539,
 			}).Error(err)
 
 			return err
@@ -789,7 +810,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1537,
+				"msgnum": 1540,
 			}).Error(err)
 
 			err = stmt.Close()
@@ -812,7 +833,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1538,
+				"msgnum": 1541,
 			}).Error(err)
 
 			err = stmt.Close()
@@ -823,7 +844,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1539,
+				"msgnum": 1542,
 			}).Error(err)
 
 			return err
@@ -840,7 +861,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1540,
+			"msgnum": 1543,
 		}).Error(err)
 
 		return err
@@ -850,7 +871,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1541,
+				"msgnum": 1544,
 			}).Error(err)
 
 			return err
@@ -860,7 +881,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1542,
+				"msgnum": 1545,
 			}).Error(err)
 
 			return err
@@ -889,7 +910,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1543,
+				"msgnum": 1546,
 			}).Error(err)
 
 			err = stmt.Close()
@@ -911,7 +932,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1544,
+				"msgnum": 1547,
 			}).Error(err)
 
 			err = stmt.Close()
@@ -922,7 +943,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1545,
+				"msgnum": 1548,
 			}).Error(err)
 
 			return err
@@ -943,7 +964,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1546,
+				"msgnum": 1549,
 			}).Error(err)
 
 			return err
@@ -960,7 +981,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1547,
+				"msgnum": 1550,
 			}).Error(err)
 			return err
 		}
@@ -981,7 +1002,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1548,
+				"msgnum": 1551,
 			}).Error(err)
 
 		}
@@ -990,7 +1011,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1549,
+				"msgnum": 1552,
 			}).Error(err)
 
 			return err
@@ -1007,7 +1028,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1550,
+				"msgnum": 1553,
 			}).Error(err)
 
 			return err
@@ -1017,7 +1038,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1551,
+				"msgnum": 1554,
 			}).Error(err)
 
 			return err
@@ -1034,7 +1055,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1552,
+				"msgnum": 1555,
 			}).Error(err)
 
 			return err
@@ -1056,7 +1077,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1553,
+				"msgnum": 1556,
 			}).Error(err)
 
 			err = stmt.Close()
@@ -1081,7 +1102,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1554,
+				"msgnum": 1557,
 			}).Error(err)
 
 			err = stmt.Close()
@@ -1092,7 +1113,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1555,
+				"msgnum": 1558,
 			}).Error(err)
 
 			err = tx.Rollback()
@@ -1103,7 +1124,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1556,
+				"msgnum": 1559,
 			}).Error(err)
 
 			return err
@@ -1120,14 +1141,19 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 		log.WithFields(log.Fields{
 			"user":   userEmail,
 			"reqid":  requestID,
-			"msgnum": 1557,
+			"msgnum": 1560,
 		}).Error(err)
 		return err
 	default:
+		uUID4byte, err := common.UUIDStrToBytes(form.ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1561}).Error(err)
+			return err
+		}
 		db := u.Db
 		user := User{}
-		row := db.QueryRowContext(ctx, `select id, password from users where id_s = ?;`, form.ID)
-		err := row.Scan(
+		row := db.QueryRowContext(ctx, `select id, password from users where uuid4 = ?;`, uUID4byte)
+		err = row.Scan(
 			&user.ID,
 			&user.Password)
 
@@ -1135,7 +1161,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1558,
+				"msgnum": 1562,
 			}).Error(err)
 			return err
 		}
@@ -1146,7 +1172,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1559,
+				"msgnum": 1563,
 			}).Error(err)
 			return err
 		}
@@ -1163,7 +1189,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1560,
+				"msgnum": 1564,
 			}).Error(err)
 		}
 		stmt, err := db.PrepareContext(ctx, `update users set 
@@ -1177,7 +1203,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1561,
+				"msgnum": 1565,
 			}).Error(err)
 			err = stmt.Close()
 			return err
@@ -1190,12 +1216,12 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			UpdatedWeek,
 			UpdatedMonth,
 			UpdatedYear,
-			form.ID)
+			user.ID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1562,
+				"msgnum": 1566,
 			}).Error(err)
 			err = stmt.Close()
 			return err
@@ -1205,7 +1231,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1563,
+				"msgnum": 1567,
 			}).Error(err)
 			return err
 		}
@@ -1222,7 +1248,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 		log.WithFields(log.Fields{
 			"user":   userEmail,
 			"reqid":  requestID,
-			"msgnum": 1564,
+			"msgnum": 1568,
 		}).Error(err)
 		return err
 	default:
@@ -1232,7 +1258,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1565,
+				"msgnum": 1569,
 			}).Error(err)
 			return err
 		}
@@ -1242,7 +1268,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1566,
+				"msgnum": 1570,
 			}).Error(err)
 			return err
 		}
@@ -1272,7 +1298,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1567,
+				"msgnum": 1571,
 			}).Error(err)
 			err = stmt.Close()
 			return err
@@ -1295,7 +1321,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1568,
+				"msgnum": 1572,
 			}).Error(err)
 			err = stmt.Close()
 			return err
@@ -1306,7 +1332,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1569,
+				"msgnum": 1573,
 			}).Error(err)
 			return err
 		}
@@ -1327,7 +1353,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1570,
+				"msgnum": 1574,
 			}).Error(err)
 			return err
 		}
@@ -1344,7 +1370,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1571,
+				"msgnum": 1575,
 			}).Error(err)
 			return err
 		}
@@ -1360,7 +1386,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1572,
+			"msgnum": 1576,
 		}).Error(err)
 		return err
 	default:
@@ -1371,7 +1397,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1573,
+				"msgnum": 1577,
 			}).Error(err)
 			return err
 		}
@@ -1389,7 +1415,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1574,
+				"msgnum": 1578,
 			}).Error(err)
 			return err
 		}
@@ -1398,7 +1424,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1575,
+				"msgnum": 1579,
 			}).Error(err)
 			return err
 		}
@@ -1425,7 +1451,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1576,
+				"msgnum": 1580,
 			}).Error(err)
 			err = stmt.Close()
 			return err
@@ -1449,7 +1475,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1577,
+				"msgnum": 1581,
 			}).Error(err)
 			err = stmt.Close()
 			return err
@@ -1459,7 +1485,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1578,
+				"msgnum": 1582,
 			}).Error(err)
 			return err
 		}
@@ -1476,7 +1502,7 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmai
 		log.WithFields(log.Fields{
 			"user":   userEmail,
 			"reqid":  requestID,
-			"msgnum": 1579,
+			"msgnum": 1583,
 		}).Error(err)
 		return nil, err
 	default:
@@ -1484,7 +1510,7 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmai
 		user := User{}
 		row := db.QueryRowContext(ctx, `select
     id,
-		id_s,
+		uuid4,
 		email,
     username,
 		first_name,
@@ -1505,7 +1531,7 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmai
 
 		err := row.Scan(
 			&user.ID,
-			&user.IDS,
+			&user.UUID4,
 			&user.Email,
 			&user.Username,
 			&user.FirstName,
@@ -1529,11 +1555,16 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmai
 			log.WithFields(log.Fields{
 				"user":   userEmail,
 				"reqid":  requestID,
-				"msgnum": 1580,
+				"msgnum": 1584,
 			}).Error(err)
 			return nil, err
 		}
-
+		uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1585}).Error(err)
+			return nil, err
+		}
+		user.IDS = uUID4Str
 		return &user, nil
 	}
 }
@@ -1545,15 +1576,20 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{
 			"reqid":  requestID,
-			"msgnum": 1581,
+			"msgnum": 1586,
 		}).Error(err)
 		return nil, err
 	default:
+		uUID4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1587}).Error(err)
+			return nil, err
+		}
 		db := u.Db
 		user := User{}
 		row := db.QueryRowContext(ctx, `select
     id,
-		id_s,
+		uuid4,
 		email,
     username,
 		first_name,
@@ -1570,11 +1606,11 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from users where id_s = ?;`, ID)
+		updated_year from users where uuid4 = ?;`, uUID4byte)
 
-		err := row.Scan(
+		err = row.Scan(
 			&user.ID,
-			&user.IDS,
+			&user.UUID4,
 			&user.Email,
 			&user.Username,
 			&user.FirstName,
@@ -1597,11 +1633,16 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
-				"msgnum": 1582,
+				"msgnum": 1588,
 			}).Error(err)
 			return nil, err
 		}
-
+		uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1589}).Error(err)
+			return nil, err
+		}
+		user.IDS = uUID4Str
 		return &user, nil
 	}
 }
