@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 )
 
 // ContextData - details of a user stored in the Redis cache

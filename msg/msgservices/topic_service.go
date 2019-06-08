@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/user/userservices"

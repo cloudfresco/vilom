@@ -10,8 +10,8 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	log "github.com/Sirupsen/logrus"
 	_ "github.com/go-sql-driver/mysql"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/routes"
 	"github.com/cloudfresco/vilom/search/searchservices"

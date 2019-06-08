@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/blevesearch/bleve"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 	"github.com/throttled/throttled"
 	"github.com/throttled/throttled/store/goredisstore"
 	gomail "gopkg.in/gomail.v2"

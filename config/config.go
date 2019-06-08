@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	gomail "gopkg.in/gomail.v2"
 

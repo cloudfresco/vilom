@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/google/uuid"
 	"github.com/rs/xid"
+	log "github.com/sirupsen/logrus"
 	gomail "gopkg.in/gomail.v2"
 )
 

@@ -14,9 +14,9 @@ import (
 	//"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	gomail "gopkg.in/gomail.v2"
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
@@ -51,7 +51,7 @@ func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			cc.TopLevelCategories(w, r, user, requestID)
 		} else if (len(pathParts) == 3) && (pathParts[1] == "categories") {
 			cc.Show(w, r, pathParts[2], user, requestID)
-		}  else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "chdn") {
+		} else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "chdn") {
 			cc.GetChdn(w, r, pathParts[2], user, requestID)
 		} else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "getparent") {
 			cc.GetParent(w, r, pathParts[2], user, requestID)

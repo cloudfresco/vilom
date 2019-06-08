@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"database/sql"
-	log "github.com/Sirupsen/logrus"
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/analysis/analyzer/keyword"
@@ -18,6 +17,7 @@ import (
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
