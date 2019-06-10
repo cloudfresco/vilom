@@ -10,6 +10,8 @@ import (
 	"github.com/cloudfresco/vilom/msg/msgservices"
 )
 
+/* error message range: 4000-4299 */
+
 // CategoryController - Create Category Controller
 type CategoryController struct {
 	Service *msgservices.CategoryService

@@ -11,6 +11,8 @@ import (
 	"github.com/cloudfresco/vilom/common"
 )
 
+/* error message range: 3300-3999 */
+
 // Ubadge - Ubadge view representation
 type Ubadge struct {
 	ID    uint

@@ -17,6 +17,8 @@ import (
 	"github.com/cloudfresco/vilom/search/searchservices"
 )
 
+/* error message range: 100-249 */
+
 // SetUpLogging - start the logging sub-system
 func setUpLogging(logFile string, logLevel log.Level) error {
 	var err error

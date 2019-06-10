@@ -10,6 +10,8 @@ import (
 	"github.com/cloudfresco/vilom/msg/msgservices"
 )
 
+/* error message range: 5000-5299 */
+
 // TopicController - Create Topic Controller
 type TopicController struct {
 	Service *msgservices.TopicService

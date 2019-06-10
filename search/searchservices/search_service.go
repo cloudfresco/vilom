@@ -23,6 +23,8 @@ import (
 	"github.com/cloudfresco/vilom/msg/msgservices"
 )
 
+/* error message range: 7300-7999 */
+
 // BleveForm - Search form
 type BleveForm struct {
 	SearchText string

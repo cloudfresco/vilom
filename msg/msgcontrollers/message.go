@@ -10,6 +10,8 @@ import (
 	"github.com/cloudfresco/vilom/msg/msgservices"
 )
 
+/* error message range: 6000-6299 */
+
 // MessageController - used for Messages
 type MessageController struct {
 	Service *msgservices.MessageService

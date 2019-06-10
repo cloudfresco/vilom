@@ -10,6 +10,8 @@ import (
 	"github.com/cloudfresco/vilom/search/searchservices"
 )
 
+/* error message range: 7000-7299 */
+
 // SearchController - Create Search Controller
 type SearchController struct {
 	Service *searchservices.SearchService

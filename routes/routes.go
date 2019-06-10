@@ -24,6 +24,8 @@ import (
 	"github.com/cloudfresco/vilom/user/userservices"
 )
 
+/* error message range: 750-999 */
+
 // AppState - Create AppState Handler
 type AppState struct {
 	Config       *common.RedisOptions

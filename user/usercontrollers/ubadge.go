@@ -10,6 +10,8 @@ import (
 	"github.com/cloudfresco/vilom/user/userservices"
 )
 
+/* error message range: 3000-3299 */
+
 // UbadgeController - Create Ubadge Controller
 type UbadgeController struct {
 	Service *userservices.UbadgeService

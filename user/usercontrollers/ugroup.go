@@ -10,6 +10,8 @@ import (
 	"github.com/cloudfresco/vilom/user/userservices"
 )
 
+/* error message range: 2000-2299 */
+
 // UgroupController - Create Ugroup Controller
 type UgroupController struct {
 	Service *userservices.UgroupService

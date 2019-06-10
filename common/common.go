@@ -17,6 +17,8 @@ import (
 	gomail "gopkg.in/gomail.v2"
 )
 
+/* error message range: 250-499 */
+
 // StatusDates - Used in all the database tables
 type StatusDates struct {
 	Statusc      uint

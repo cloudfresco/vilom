@@ -16,6 +16,8 @@ import (
 	"github.com/cloudfresco/vilom/common"
 )
 
+/* error message range: 500-749 */
+
 // InitConfig - Confirguration
 func InitConfig() (*common.RedisOptions, *sql.DB, *redis.Client, *common.OauthOptions, *gomail.Dialer, *common.KeyOptions, string, string, *common.JWTOptions, *common.RateLimiterOptions, string, *common.UserOptions, error) {
 	v := viper.New()

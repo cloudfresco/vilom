@@ -11,7 +11,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	//"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -22,6 +21,8 @@ import (
 
 	"github.com/cloudfresco/vilom/common"
 )
+
+/* error message range: 1500-1999 */
 
 // User - User view representation
 type User struct {
