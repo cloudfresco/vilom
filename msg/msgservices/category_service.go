@@ -16,19 +16,19 @@ import (
 
 // Category - Category view representation
 type Category struct {
-	ID           uint
-	UUID4        []byte
-	IDS          string
-	CategoryName string
-	CategoryDesc string
-	NumViews     uint
-	NumTopics    uint
-	Levelc       uint
-	ParentID     uint
-	NumChd       uint
+	ID           uint   `json:"id,omitempty"`
+	UUID4        []byte `json:"-"`
+	IDS          string `json:"id_s,omitempty"`
+	CategoryName string `json:"category_name,omitempty"`
+	CategoryDesc string `json:"category_desc,omitempty"`
+	NumViews     uint   `json:"num_views,omitempty"`
+	NumTopics    uint   `json:"num_topics,omitempty"`
+	Levelc       uint   `json:"levelc,omitempty"`
+	ParentID     uint   `json:"parent_id,omitempty"`
+	NumChd       uint   `json:"num_chd,omitempty"`
 
-	UgroupID uint
-	UserID   uint
+	UgroupID uint `json:"ugroup_id,omitempty"`
+	UserID   uint `json:"user_id,omitempty"`
 
 	common.StatusDates
 	Topics []*Topic
@@ -36,10 +36,10 @@ type Category struct {
 
 // CategoryChd - CategoryChd view representation
 type CategoryChd struct {
-	ID            uint
-	UUID4         []byte
-	CategoryID    uint
-	CategoryChdID uint
+	ID            uint   `json:"id,omitempty"`
+	UUID4         []byte `json:"-"`
+	CategoryID    uint   `json:"category_id,omitempty"`
+	CategoryChdID uint   `json:"category_chd_id,omitempty"`
 
 	common.StatusDates
 }
@@ -63,7 +63,7 @@ func NewCategoryService(config *common.RedisOptions,
 // CategoryCursor - used to get categories
 type CategoryCursor struct {
 	Categories []*Category
-	NextCursor string
+	NextCursor string `json:"next_cursor,omitempty"`
 }
 
 // GetCategories - Get Categories

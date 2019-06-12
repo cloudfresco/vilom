@@ -26,53 +26,52 @@ import (
 
 // User - User view representation
 type User struct {
-	ID        uint
-	UUID4     []byte
-	IDS       string
-	AuthToken string
+	ID        uint   `json:"id,omitempty"`
+	UUID4     []byte `json:"-"`
+	IDS       string `json:"id_s,omitempty"`
+	AuthToken string `json:"auth_token,omitempty"`
 
-	Email     string
-	Username  string
-	FirstName string `sql:"not null"`
-	LastName  string
-	Role      string
-	Password  []byte
-	Active    bool `sql:"default:false"`
+	Email     string `json:"email,omitempty"`
+	Username  string `json:"username,omitempty"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Role      string `json:"role,omitempty"`
+	Password  []byte `json:"password,omitempty"`
+	Active    bool   `json:"active,omitempty"`
 
-	EmailConfirmationToken string
-	EmailSelector          string
-	EmailVerifier          string
-	EmailTokenSentAt       time.Time
-	EmailTokenExpiry       time.Time
-	EmailConfirmedAt       time.Time
+	EmailConfirmationToken string    `json:"email_confirmation_token,omitempty"`
+	EmailSelector          string    `json:"email_selector,omitempty"`
+	EmailVerifier          string    `json:"email_verifier,omitempty"`
+	EmailTokenSentAt       time.Time `json:"email_token_sent_at,omitempty"`
+	EmailTokenExpiry       time.Time `json:"email_token_expiry,omitempty"`
+	EmailConfirmedAt       time.Time `json:"email_confirmed_at,omitempty"`
 
-	NewEmail            string
-	NewEmailResetToken  string
-	NewEmailSelector    string
-	NewEmailVerifier    string
-	NewEmailTokenSentAt time.Time
-	NewEmailTokenExpiry time.Time
-	NewEmailConfirmedAt time.Time
+	NewEmail            string    `json:"new_email,omitempty"`
+	NewEmailResetToken  string    `json:"new_email_reset_token,omitempty"`
+	NewEmailSelector    string    `json:"new_email_selector,omitempty"`
+	NewEmailVerifier    string    `json:"new_email_verifier,omitempty"`
+	NewEmailTokenSentAt time.Time `json:"new_email_token_sent_at,omitempty"`
+	NewEmailTokenExpiry time.Time `json:"new_email_token_expiry,omitempty"`
+	NewEmailConfirmedAt time.Time `json:"new_email_confirmed_at,omitempty"`
 
-	PasswordResetToken  string
-	PasswordSelector    string
-	PasswordVerifier    string
-	PasswordTokenSentAt time.Time
-	PasswordTokenExpiry time.Time
-	PasswordConfirmedAt time.Time
+	PasswordResetToken  string    `json:"password_reset_token,omitempty"`
+	PasswordSelector    string    `json:"password_selector,omitempty"`
+	PasswordVerifier    string    `json:"password_verifier,omitempty"`
+	PasswordTokenSentAt time.Time `json:"password_token_sent_at,omitempty"`
+	PasswordTokenExpiry time.Time `json:"password_token_expiry,omitempty"`
+	PasswordConfirmedAt time.Time `json:"password_confirmed_at,omitempty"`
 
-	Timezone        string `sql:"default:'Asia/Kolkata'"`
-	SignInCount     uint
-	CurrentSignInAt time.Time
-	LastSignInAt    time.Time
+	Timezone        string    `json:"timezone,omitempty"`
+	SignInCount     uint      `json:"sign_in_count,omitempty"`
+	CurrentSignInAt time.Time `json:"current_sign_in_at,omitempty"`
+	LastSignInAt    time.Time `json:"last_sign_in_at,omitempty"`
 
 	common.StatusDates
 
 	/* used only for logic purpose */
-	Roles       []string
-	PasswordS   string
-	HostURL     string
-	Tokenstring string
+	Roles       []string `json:"roles,omitempty"`
+	PasswordS   string   `json:"password_s,omitempty"`
+	Tokenstring string   `json:"tokenstring,omitempty"`
 }
 
 // LoginForm - user login form
@@ -88,9 +87,9 @@ type UserEmailForm struct {
 
 // PasswordForm - change password form
 type PasswordForm struct {
-	Password        string `form:"passwd" binding:"required"`
-	ConfirmPassword string `form:"confrmpasswd" binding:"required"`
-	CurrentPassword string `form:"cpasswd"`
+	Password        string
+	ConfirmPassword string
+	CurrentPassword string
 	ID              string
 }
 
@@ -102,7 +101,7 @@ type ChangeEmailForm struct {
 
 // ForgotPasswordForm - used for forgot password
 type ForgotPasswordForm struct {
-	Email string `form:"email" binding:"required"`
+	Email string
 }
 
 // UserService - For accessing user services
@@ -236,7 +235,7 @@ func ValidatePasswdRecoveryToken(verifierBytes [64]byte, verifier string, tokenE
 // UserCursor - used for getting users list
 type UserCursor struct {
 	Users      []*User
-	NextCursor string
+	NextCursor string `json:"next_cursor,omitempty"`
 }
 
 // GetUsers - Get all users

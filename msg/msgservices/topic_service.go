@@ -16,30 +16,30 @@ import (
 
 // Topic - Topic view representation
 type Topic struct {
-	ID    uint
-	UUID4 []byte
+	ID    uint   `json:"id,omitempty"`
+	UUID4 []byte `json:"-"`
+	IDS   string `json:"id_s,omitempty"`
 
-	IDS       string
-	TopicName string
-	TopicDesc string
-	NumTags   uint
-	Tag1      string
-	Tag2      string
-	Tag3      string
-	Tag4      string
-	Tag5      string
-	Tag6      string
-	Tag7      string
-	Tag8      string
-	Tag9      string
-	Tag10     string
+	TopicName string `json:"topic_name,omitempty"`
+	TopicDesc string `json:"topic_desc,omitempty"`
+	NumTags   uint   `json:"num_tags,omitempty"`
+	Tag1      string `json:"tag1,omitempty"`
+	Tag2      string `json:"tag2,omitempty"`
+	Tag3      string `json:"tag3,omitempty"`
+	Tag4      string `json:"tag4,omitempty"`
+	Tag5      string `json:"tag5,omitempty"`
+	Tag6      string `json:"tag6,omitempty"`
+	Tag7      string `json:"tag7,omitempty"`
+	Tag8      string `json:"tag8,omitempty"`
+	Tag9      string `json:"tag9,omitempty"`
+	Tag10     string `json:"tag10,omitempty"`
 
-	NumViews    uint
-	NumMessages uint
+	NumViews    uint `json:"num_views,omitempty"`
+	NumMessages uint `json:"num_messages,omitempty"`
 
-	CategoryID uint
-	UserID     uint
-	UgroupID   uint
+	CategoryID uint `json:"category_id,omitempty"`
+	UserID     uint `json:"user_id,omitempty"`
+	UgroupID   uint `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 	Messages []*Message
@@ -51,25 +51,25 @@ type Topic struct {
 
 // TopicsUser - TopicsUser view representation
 type TopicsUser struct {
-	ID          uint
-	UUID4       []byte
-	IDS         string
-	TopicID     uint
-	NumMessages uint `sql:"default:'0'"`
-	NumViews    uint `sql:"default:'0'"`
-	UserID      uint
-	UgroupID    uint
+	ID          uint   `json:"id,omitempty"`
+	UUID4       []byte `json:"-"`
+	IDS         string `json:"id_s,omitempty"`
+	TopicID     uint   `json:"topic_id,omitempty"`
+	NumMessages uint   `json:"num_messages,omitempty"`
+	NumViews    uint   `json:"num_views,omitempty"`
+	UserID      uint   `json:"user_id,omitempty"`
+	UgroupID    uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
 
 // UserTopic - UserTopic view representation
 type UserTopic struct {
-	ID       uint
-	UUID4    []byte
-	TopicID  uint
-	UserID   uint
-	UgroupID uint `sql:"default:'0'"`
+	ID       uint   `json:"id,omitempty"`
+	UUID4    []byte `json:"-"`
+	TopicID  uint   `json:"topic_id,omitempty"`
+	UserID   uint   `json:"user_id,omitempty"`
+	UgroupID uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }

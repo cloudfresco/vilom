@@ -15,12 +15,12 @@ import (
 
 // Ubadge - Ubadge view representation
 type Ubadge struct {
-	ID    uint
-	UUID4 []byte
-	IDS   string
+	ID    uint   `json:"id,omitempty"`
+	UUID4 []byte `json:"-"`
+	IDS   string `json:"id_s,omitempty"`
 
-	UbadgeName string
-	UbadgeDesc string
+	UbadgeName string `json:"ubadge_name,omitempty"`
+	UbadgeDesc string `json:"ubadge_desc,omitempty"`
 
 	common.StatusDates
 	Users []*User
@@ -28,12 +28,12 @@ type Ubadge struct {
 
 // UbadgeUser - Ubadge User view representation
 type UbadgeUser struct {
-	ID    uint
-	UUID4 []byte
-	IDS   string
+	ID    uint   `json:"id,omitempty"`
+	UUID4 []byte `json:"-"`
+	IDS   string `json:"id_s,omitempty"`
 
-	UbadgeID uint
-	UserID   uint
+	UbadgeID uint `json:"ubadge_id,omitempty"`
+	UserID   uint `json:"user_id,omitempty"`
 
 	common.StatusDates
 }
@@ -57,7 +57,7 @@ func NewUbadgeService(config *common.RedisOptions,
 // UbadgeCursor - used to get ubadges
 type UbadgeCursor struct {
 	Ubadges    []*Ubadge
-	NextCursor string
+	NextCursor string `json:"next_cursor,omitempty"`
 }
 
 // GetUbadges - Get Ubadges

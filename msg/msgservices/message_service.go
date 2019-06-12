@@ -16,18 +16,18 @@ import (
 
 // Message - Message view representation
 type Message struct {
-	ID    uint
-	UUID4 []byte
-	IDS   string
+	ID    uint   `json:"id,omitempty"`
+	UUID4 []byte `json:"-"`
+	IDS   string `json:"id_s,omitempty"`
 
-	NumLikes     uint
-	NumUpvotes   uint
-	NumDownvotes uint
+	NumLikes     uint `json:"num_likes,omitempty"`
+	NumUpvotes   uint `json:"num_upvotes,omitempty"`
+	NumDownvotes uint `json:"num_downvotes,omitempty"`
 
-	CategoryID uint
-	TopicID    uint
-	UserID     uint
-	UgroupID   uint
+	CategoryID uint `json:"category_id,omitempty"`
+	TopicID    uint `json:"topic_id,omitempty"`
+	UserID     uint `json:"user_id,omitempty"`
+	UgroupID   uint `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 
@@ -41,68 +41,65 @@ type Message struct {
 
 // MessageText - MessageText view representation
 type MessageText struct {
-	ID    uint
-	UUID4 []byte
-	Mtext string
-
-	CategoryID uint
-	TopicID    uint
-	MessageID  uint
-	UserID     uint
-	UgroupID   uint
+	ID         uint   `json:"id,omitempty"`
+	UUID4      []byte `json:"-"`
+	Mtext      string `json:"mtext,omitempty"`
+	CategoryID uint   `json:"category_id,omitempty"`
+	TopicID    uint   `json:"topic_id,omitempty"`
+	MessageID  uint   `json:"message_id,omitempty"`
+	UserID     uint   `json:"user_id,omitempty"`
+	UgroupID   uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
 
 // MessageAttachment - MessageAttachment view representation
 type MessageAttachment struct {
-	ID         uint
-	UUID4      []byte
-	Mattach    string
-	CategoryID uint
-	TopicID    uint
-	MessageID  uint
-	UserID     uint
-	UgroupID   uint
+	ID         uint   `json:"id,omitempty"`
+	UUID4      []byte `json:"-"`
+	Mattach    string `json:"mattach,omitempty"`
+	CategoryID uint   `json:"category_id,omitempty"`
+	TopicID    uint   `json:"topic_id,omitempty"`
+	MessageID  uint   `json:"message_id,omitempty"`
+	UserID     uint   `json:"user_id,omitempty"`
+	UgroupID   uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
 
 // UserReply - UserReply view representation
 type UserReply struct {
-	ID        uint
-	UUID4     []byte
-	TopicID   uint
-	MessageID uint `sql:"default:'0'"`
-	UserID    uint
-	UgroupID  uint `sql:"default:'0'"`
+	ID        uint   `json:"id,omitempty"`
+	UUID4     []byte `json:"-"`
+	TopicID   uint   `json:"topic_id,omitempty"`
+	MessageID uint   `json:"message_id,omitempty"`
+	UserID    uint   `json:"user_id,omitempty"`
+	UgroupID  uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
 
 // UserLike - UserLike view representation
 type UserLike struct {
-	ID        uint
-	UUID4     []byte
-	TopicID   uint
-	MessageID uint `sql:"default:'0'"`
-
-	UgroupID uint `sql:"default:'0'"`
-	UserID   uint
+	ID        uint   `json:"id,omitempty"`
+	UUID4     []byte `json:"-"`
+	TopicID   uint   `json:"topic_id,omitempty"`
+	MessageID uint   `json:"message_id,omitempty"`
+	UserID    uint   `json:"user_id,omitempty"`
+	UgroupID  uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
 
 // UserVote - UserVote view representation
 type UserVote struct {
-	ID        uint
-	UUID4     []byte
-	TopicID   uint
-	MessageID uint `sql:"default:'0'"`
-	Vote      uint `sql:"default:'0'"`
-
-	UgroupID uint `sql:"default:'0'"`
-	UserID   uint
+	ID        uint   `json:"id,omitempty"`
+	UUID4     []byte `json:"-"`
+	Vote      uint   `json:"vote,omitempty"`
+	TopicID   uint   `json:"topic_id,omitempty"`
+	MessageID uint   `json:"message_id,omitempty"`
+	UserID    uint   `json:"user_id,omitempty"`
+	UgroupID  uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }

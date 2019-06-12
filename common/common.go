@@ -21,17 +21,17 @@ import (
 
 // StatusDates - Used in all the database tables
 type StatusDates struct {
-	Statusc      uint
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	CreatedDay   uint
-	CreatedWeek  uint
-	CreatedMonth uint
-	CreatedYear  uint
-	UpdatedDay   uint
-	UpdatedWeek  uint
-	UpdatedMonth uint
-	UpdatedYear  uint
+	Statusc      uint      `json:"statusc,omitempty"`
+	CreatedAt    time.Time `json:"created_at,omitempty"`
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	CreatedDay   uint      `json:"created_day,omitempty"`
+	CreatedWeek  uint      `json:"created_week,omitempty"`
+	CreatedMonth uint      `json:"created_month,omitempty"`
+	CreatedYear  uint      `json:"created_year,omitempty"`
+	UpdatedDay   uint      `json:"updated_day,omitempty"`
+	UpdatedWeek  uint      `json:"updated_week,omitempty"`
+	UpdatedMonth uint      `json:"updated_month,omitempty"`
+	UpdatedYear  uint      `json:"updated_year,omitempty"`
 }
 
 // Active - value of status

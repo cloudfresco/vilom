@@ -15,15 +15,15 @@ import (
 
 // Ugroup - Ugroup view representation
 type Ugroup struct {
-	ID    uint
-	UUID4 []byte
-	IDS   string
+	ID    uint   `json:"id,omitempty"`
+	UUID4 []byte `json:"-"`
+	IDS   string `json:"id_s,omitempty"`
 
-	UgroupName string
-	UgroupDesc string
-	Levelc     uint
-	ParentID   uint
-	NumChd     uint
+	UgroupName string `json:"ugroup_name,omitempty"`
+	UgroupDesc string `json:"ugroup_desc,omitempty"`
+	Levelc     uint   `json:"levelc,omitempty"`
+	ParentID   uint   `json:"parent_id,omitempty"`
+	NumChd     uint   `json:"num_chd,omitempty"`
 
 	common.StatusDates
 
@@ -32,22 +32,22 @@ type Ugroup struct {
 
 // UgroupChd - UgroupChd view representation
 type UgroupChd struct {
-	ID          uint
-	UUID4       []byte
-	UgroupID    uint
-	UgroupChdID uint
+	ID          uint   `json:"id,omitempty"`
+	UUID4       []byte `json:"-"`
+	UgroupID    uint   `json:"ugroup_id,omitempty"`
+	UgroupChdID uint   `json:"ugroup_chd_id,omitempty"`
 
 	common.StatusDates
 }
 
 // UgroupUser - UgroupUser view representation
 type UgroupUser struct {
-	ID    uint
-	UUID4 []byte
-	IDS   string
+	ID    uint   `json:"id,omitempty"`
+	UUID4 []byte `json:"-"`
+	IDS   string `json:"id_s,omitempty"`
 
-	UgroupID uint
-	UserID   uint
+	UgroupID uint `json:"ugroup_id,omitempty"`
+	UserID   uint `json:"user_id,omitempty"`
 
 	common.StatusDates
 }
@@ -71,7 +71,7 @@ func NewUgroupService(config *common.RedisOptions,
 // UgroupCursor - used to get groups
 type UgroupCursor struct {
 	Ugroups    []*Ugroup
-	NextCursor string
+	NextCursor string `json:"next_cursor,omitempty"`
 }
 
 // GetUgroups - Get Groups
