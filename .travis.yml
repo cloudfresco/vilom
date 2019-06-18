@@ -6,4 +6,5 @@ env:
 notifications:
  email: false
 script:
+ - make
  - make test
