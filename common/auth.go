@@ -68,6 +68,12 @@ func GetAuthBearerToken(r *http.Request) (string, error) {
 func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) (*ContextData, string, error) {
 	data := r.Context().Value(KeyEmailToken).(ContextStruct)
 	resp, err := redisClient.Get(data.TokenString).Result()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 268,
+		}).Error(err)
+		return nil, "", err)
+	}
 	v := ContextData{}
 	if resp == "" {
 		user := User{}
