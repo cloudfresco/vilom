@@ -72,7 +72,7 @@ func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) 
 		log.WithFields(log.Fields{
 			"msgnum": 268,
 		}).Error(err)
-		return nil, "", err)
+		return nil, "", err
 	}
 	v := ContextData{}
 	if resp == "" {
