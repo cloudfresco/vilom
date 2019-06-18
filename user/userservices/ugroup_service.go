@@ -328,6 +328,11 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2318}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2388}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -344,6 +349,11 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2319}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2389}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -388,6 +398,11 @@ func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID
 		}
 
 		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2390}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		Uguser := UgroupUser{}
@@ -589,6 +604,11 @@ func (u *UgroupService) Delete(ctx context.Context, ID string, userEmail string,
 		}
 		db := u.Db
 		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2391}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
 		stmt, err := tx.PrepareContext(ctx, "delete from ugroups where uuid4= ?;")
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2341}).Error(err)
@@ -600,6 +620,11 @@ func (u *UgroupService) Delete(ctx context.Context, ID string, userEmail string,
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2342}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2392}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}
@@ -943,6 +968,11 @@ func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUse
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2362}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2392}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}
@@ -951,6 +981,11 @@ func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUse
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2363}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2393}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}

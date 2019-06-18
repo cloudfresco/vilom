@@ -122,11 +122,19 @@ func (t *TopicService) Show(ctx context.Context, ID string, UserID string, userE
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		tx, err := db.Begin()
-
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5372}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
 		if isPresent {
 			//update
 			topicsuser, err := t.GetTopicsUser(ctx, topic.ID, user.ID, userEmail, requestID)
-
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5373}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			UpdatedDay := tnday
 			UpdatedWeek := tnweek
 			UpdatedMonth := tnmonth
@@ -143,6 +151,11 @@ func (t *TopicService) Show(ctx context.Context, ID string, UserID string, userE
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5304}).Error(err)
 				err = stmt.Close()
+				if err != nil {
+					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5374}).Error(err)
+					err = tx.Rollback()
+					return nil, err
+				}
 				err = tx.Rollback()
 				return nil, err
 			}
@@ -159,6 +172,11 @@ func (t *TopicService) Show(ctx context.Context, ID string, UserID string, userE
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5305}).Error(err)
 				err = stmt.Close()
+				if err != nil {
+					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5375}).Error(err)
+					err = tx.Rollback()
+					return nil, err
+				}
 				err = tx.Rollback()
 				return nil, err
 			}
@@ -495,6 +513,11 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5327}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5376}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -508,6 +531,11 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5328}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5329}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -602,6 +630,11 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5334}).Error(err)
 				err = stmt.Close()
+				if err != nil {
+					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5377}).Error(err)
+					err = tx.Rollback()
+					return nil, err
+				}
 				err = tx.Rollback()
 				return nil, err
 			}
@@ -615,6 +648,11 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5335}).Error(err)
 				err = stmt.Close()
+				if err != nil {
+					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5378}).Error(err)
+					err = tx.Rollback()
+					return nil, err
+				}
 				err = tx.Rollback()
 				return nil, err
 			}
@@ -624,7 +662,7 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 				return nil, err
 			}
 
-			//insert atatchment
+			//insert attatchment
 			if form.Mattach != "" {
 				msgatch := MessageAttachment{}
 				msgatch.UUID4, err = common.GetUUIDBytes()

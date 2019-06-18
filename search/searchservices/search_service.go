@@ -156,9 +156,8 @@ func BuildIndexMapping() (mapping.IndexMapping, error) {
 
 // IndexTopics - used for
 func IndexTopics(db *sql.DB, index bleve.Index) error {
-	count := 0
 	batch := index.NewBatch()
-	prod := make(map[string]string)
+	var topicMsgMap map[string]string
 	docID := ""
 	topics, err := GetTopics(db)
 
@@ -177,16 +176,16 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 			return err
 		}
 		for _, message := range messages {
-			prod = map[string]string{"Type": "Name"}
+			topicMsgMap = map[string]string{"Type": "Name"}
 
-			prod["Name"] = topic.TopicName
-			prod["Description"] = topic.TopicDesc
-			prod["Pid"] = strconv.FormatUint(uint64(topic.ID), 10)
-			prod["MessageText"] = message.Mtext
+			topicMsgMap["Name"] = topic.TopicName
+			topicMsgMap["Description"] = topic.TopicDesc
+			topicMsgMap["Pid"] = strconv.FormatUint(uint64(topic.ID), 10)
+			topicMsgMap["MessageText"] = message.Mtext
 
 			docID = fmt.Sprintf("%d##%d", topic.ID, message.ID)
 
-			p, err := json.Marshal(prod)
+			p, err := json.Marshal(topicMsgMap)
 
 			if err == nil {
 				var prodInterface interface{}
@@ -199,7 +198,7 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 					return err
 				}
 
-				err = batch.Index(docID, prod)
+				err = batch.Index(docID, topicMsgMap)
 				if err != nil {
 					log.WithFields(log.Fields{
 						"msgnum": 7011,
@@ -214,7 +213,6 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 						}).Error(err)
 						return err
 					}
-					count += batch.Size()
 					batch = index.NewBatch()
 				}
 			} else {
@@ -233,7 +231,6 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 			}).Error(err)
 			return err
 		}
-		count += batch.Size()
 	}
 	return nil
 }

@@ -371,11 +371,27 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string, userEmail string,
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3326}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3353}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}
 
 		_, err = stmt.ExecContext(ctx, uUID4byte)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3354}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3355}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3327}).Error(err)
@@ -637,6 +653,11 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3343}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3356}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}
@@ -645,6 +666,11 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3344}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3357}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}

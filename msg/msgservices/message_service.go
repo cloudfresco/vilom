@@ -267,6 +267,11 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6310}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6371}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -277,11 +282,21 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 			UpdatedWeek,
 			UpdatedMonth,
 			UpdatedYear, topic.ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6372}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6373}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
+			err = tx.Rollback()
+			return nil, err
+		}
 
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
-			err = stmt.Close()
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -990,7 +1005,7 @@ func (t *MessageService) GetMessage(ctx context.Context, ID string, userEmail st
 	}
 }
 
-// GetMessagesWithTextAttach - Get messages with attachemnts
+// GetMessagesWithTextAttach - Get messages with attachements
 func (t *MessageService) GetMessagesWithTextAttach(ctx context.Context, messages []*Message, userEmail string, requestID string) ([]*Message, error) {
 	select {
 	case <-ctx.Done():

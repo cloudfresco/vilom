@@ -1081,6 +1081,15 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 			}).Error(err)
 
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1590,
+				}).Error(err)
+
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}
@@ -1106,6 +1115,15 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 			}).Error(err)
 
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1591,
+				}).Error(err)
+
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
 			return err
 		}

@@ -398,6 +398,10 @@ func (c *CategoryService) Create(ctx context.Context, form *Category, UserID str
 		}
 		db := c.Db
 		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4368}).Error(err)
+			return nil, err
+		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		cat := Category{}
 		cat.UUID4, err = common.GetUUIDBytes()
@@ -738,7 +742,11 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 
 		db := c.Db
 		tx, err := db.Begin()
-
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		cat := Category{}
 		cat.UUID4, err = common.GetUUIDBytes()
@@ -822,6 +830,11 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4345}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4370}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -837,6 +850,11 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4346}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4371}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 			err = tx.Rollback()
 			return nil, err
 		}
@@ -850,6 +868,10 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		}
 
 		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4372}).Error(err)
+			return nil, err
+		}
 		return Cat, nil
 	}
 }
