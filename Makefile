@@ -20,55 +20,62 @@ SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 MFILE = cmd/main.go
 EXEC = cmd/vilom
 PKGS = ./...
-.PHONY: all deps build buildp test clean fmt vet lint err sql run runp doc
+.PHONY: all build buildp test clean fmt vet lint err sql run runp doc
 
-all: 
+all: chk buildp
 
 chk: fmt vet lint err
 
-deps: 
-	@dep ensure
-
 build: 
+	@echo "Building vilom"	
 	@go build -i -o $(EXEC) $(MFILE)
 
 buildp:
+	@echo "Building vilom"	
 	@go build -i -o $(EXEC) $(MFILE)
 
-test: deps buildp
+test:
+	@echo "Starting tests"	
 	@go test -v $(PKGS)
 
 clean:
 	@rm -f $(EXEC)
 
 fmt:
+	@echo "Running gofmt"	
 	@gofmt -s -l -w $(SRC)
 
 vet:
+	@echo "Running vet"	
 	@go vet $(PKGS)
 
 linter:
 	@go get -u golang.org/x/lint/golint
 
 lint: linter
+	@echo "Running lint"
 	@for d in $$(go list ./... | grep -v /vendor/); do golint $${d}; done 
 
 errcheck: 
 	@go get -u github.com/kisielk/errcheck
 
 err: errcheck 
+	@echo "Running errcheck"
 	@errcheck $(PKGS)
 
 safesql:
 	@go get -u github.com/stripe/safesql
 
 sql: safesql
+	@echo "Running safesql"
 	@safesql $(SRC)
 
-run: build	
+run: build
+	@echo "Starting vilom"	
 	@./$(EXEC) --dev 
 
 runp: buildp	
+	@echo "Starting vilom"	
 	@./$(EXEC) 
 
 doc: 

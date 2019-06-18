@@ -38,12 +38,12 @@ require (
 	github.com/throttled/throttled v2.2.4+incompatible
 	github.com/tinylib/msgp v1.1.0
 	github.com/willf/bitset v1.1.10
-	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+	golang.org/x/crypto v0.0.0-20190617133340-57b3e21c3d56
 	golang.org/x/lint v0.0.0-20190409202823-959b441ac422 // indirect
-	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
-	golang.org/x/sys v0.0.0-20190608050228-5b15430b70e3
+	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 	golang.org/x/text v0.3.2
-	golang.org/x/tools v0.0.0-20190608022120-eacb66d2a7c3 // indirect
+	golang.org/x/tools v0.0.0-20190617190820-da514acc4774 // indirect
 	google.golang.org/appengine v1.6.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
