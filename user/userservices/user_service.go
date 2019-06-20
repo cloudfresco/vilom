@@ -2,13 +2,8 @@ package userservices
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha512"
-	"crypto/subtle"
 	"database/sql"
-	"encoding/base64"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -133,103 +128,6 @@ type Roles []string
 type CustomClaims struct {
 	EmailAddr string
 	jwt.StandardClaims
-}
-
-// HashPassword - Generate hash password
-func HashPassword(password string, requestID string) ([]byte, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1500,
-		}).Error(err)
-		return []byte{}, err
-	}
-	return hash, nil
-}
-
-// GenTokenHash - GenTokenHash generates pieces needed for passwd recovery
-// hash of the first half of a 64 byte value
-// (to be stored in the database and used in SELECT query)
-// verifier: hash of the second half of a 64 byte value
-// (to be stored in database but never used in SELECT query)
-// token: the user-facing base64 encoded selector+verifier
-func GenTokenHash(requestID string) (selector, verifier, token string, err error) {
-	rawToken := make([]byte, 64)
-	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1501,
-		}).Error(err)
-		return "", "", "", err
-	}
-	selectorBytes := sha512.Sum512(rawToken[:32])
-	verifierBytes := sha512.Sum512(rawToken[32:])
-
-	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
-		base64.StdEncoding.EncodeToString(verifierBytes[:]),
-		base64.URLEncoding.EncodeToString(rawToken),
-		nil
-}
-
-// GetSelectorForPasswdRecoveryToken - Get Selector For Password Recovery Token
-func GetSelectorForPasswdRecoveryToken(token string, requestID string) ([64]byte, string, error) {
-
-	rawToken, err := base64.URLEncoding.DecodeString(token)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1502,
-		}).Error(err)
-		return [64]byte{}, "", errors.New("invalid recover token submitted, base64 decode failed")
-	}
-
-	if len(rawToken) != 64 {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1503,
-		}).Error("invalid recover token submitted, size was wrong")
-		return [64]byte{}, "", errors.New("invalid recover token submitted, size was wrong")
-	}
-
-	selectorBytes := sha512.Sum512(rawToken[:32])
-	verifierBytes := sha512.Sum512(rawToken[32:])
-	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
-
-	return verifierBytes, selector, nil
-}
-
-// ValidatePasswdRecoveryToken - Validate Passwd Recovery Token
-func ValidatePasswdRecoveryToken(verifierBytes [64]byte, verifier string, tokenExpiry time.Time, requestID string) error {
-	tn, _, _, _, _ := common.GetTimeDetails()
-	if tn.After(tokenExpiry) {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1504,
-		}).Error("Token already expired")
-		return errors.New("Token already expired")
-	}
-
-	dbVerifierBytes, err := base64.StdEncoding.DecodeString(verifier)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1505,
-		}).Error(err)
-		return err
-	}
-	if subtle.ConstantTimeEq(int32(len(verifierBytes)), int32(len(dbVerifierBytes))) != 1 ||
-		subtle.ConstantTimeCompare(verifierBytes[:], dbVerifierBytes) != 1 {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1506,
-		}).Error("stored recover verifier does not match provided one")
-		return errors.New("stored recover verifier does not match provided one")
-	}
-
-	log.Info("validated")
-	return nil
-
 }
 
 // UserCursor - used for getting users list
@@ -440,7 +338,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 			return nil, err
 		}
 
-		password1, err := HashPassword(form.PasswordS, requestID)
+		password1, err := common.HashPassword(form.PasswordS, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -450,7 +348,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 			return nil, err
 		}
 
-		selector, verifier, token, err := GenTokenHash(requestID)
+		selector, verifier, token, err := common.GenTokenHash(requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -751,7 +649,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 		return err
 	default:
 		db := u.Db
-		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token, requestID)
+		verifierBytes, selector, err := common.GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -778,7 +676,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 			return err
 		}
 
-		err = ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry, requestID)
+		err = common.ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -877,7 +775,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 			return err
 		}
 
-		selector, verifier, token, err := GenTokenHash(requestID)
+		selector, verifier, token, err := common.GenTokenHash(requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -998,7 +896,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		return err
 	default:
 		db := u.Db
-		password1, err := HashPassword(form.Password, requestID)
+		password1, err := common.HashPassword(form.Password, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1007,7 +905,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 
 		}
 
-		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token, requestID)
+		verifierBytes, selector, err := common.GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1034,7 +932,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 			return err
 		}
 
-		err = ValidatePasswdRecoveryToken(verifierBytes, user.PasswordVerifier, user.PasswordTokenExpiry, requestID)
+		err = common.ValidatePasswdRecoveryToken(verifierBytes, user.PasswordVerifier, user.PasswordTokenExpiry, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1202,7 +1100,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 		UpdatedMonth := tnmonth
 		UpdatedYear := tnyear
 
-		password1, err := HashPassword(form.Password, requestID)
+		password1, err := common.HashPassword(form.Password, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -1281,7 +1179,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			return err
 		}
 
-		selector, verifier, token, err := GenTokenHash(requestID)
+		selector, verifier, token, err := common.GenTokenHash(requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -1411,7 +1309,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		db := u.Db
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
-		verifierBytes, selector, err := GetSelectorForPasswdRecoveryToken(token, requestID)
+		verifierBytes, selector, err := common.GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1438,7 +1336,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 			return err
 		}
 
-		err = ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry, requestID)
+		err = common.ValidatePasswdRecoveryToken(verifierBytes, user.EmailVerifier, user.EmailTokenExpiry, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
