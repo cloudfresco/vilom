@@ -22,6 +22,7 @@ func NewTopicController(s *msgservices.TopicService) *TopicController {
 	return &TopicController{s}
 }
 
+// ServeHTTP - parse url and call controller action
 func (tc *TopicController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := common.GetAuthUserDetails(r, tc.Service.RedisClient, tc.Service.Db)
 	if err != nil {
@@ -35,24 +36,9 @@ func (tc *TopicController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-
-		/*
-		   GET  "/v1/topics/{id}"
-		*/
-		if (len(pathParts) == 3) && (pathParts[1] == "topics") {
-			tc.Show(w, r, pathParts[2], user, requestID)
-		}
-
+		tc.processGet(w, r, user, requestID, pathParts)
 	case http.MethodPost:
-		/*
-					   POST  "/v1/topics/create/"
-			       POST  "/v1/topics/topicbyname/"
-		*/
-		if (len(pathParts) == 3) && (pathParts[1] == "topics") && (pathParts[2] == "create") {
-			tc.Create(w, r, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "topics") && (pathParts[2] == "topicbyname") {
-			tc.Topicbyname(w, r, user, requestID)
-		}
+		tc.processPost(w, r, user, requestID, pathParts)
 	case http.MethodPut:
 	case http.MethodDelete:
 	default:
@@ -60,6 +46,43 @@ func (tc *TopicController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+// processGet - Parse URL for all the GET paths and call the controller action
+/*
+ GET  "/v1/topics/{id}"
+*/
+func (tc *TopicController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
+		tc.Show(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
+}
+
+// processPost - Parse URL for all the POST paths and call the controller action
+/*
+ POST  "/v1/topics/create/"
+ POST  "/v1/topics/topicbyname/"
+*/
+func (tc *TopicController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
+		if pathParts[2] == "create" {
+			tc.Create(w, r, user, requestID)
+		} else if pathParts[2] == "topicbyname" {
+			tc.Topicbyname(w, r, user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
 }
 
 // Show - used to view Topic

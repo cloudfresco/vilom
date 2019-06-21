@@ -3,6 +3,7 @@ package usercontrollers
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	log "github.com/sirupsen/logrus"
 
@@ -22,6 +23,7 @@ func NewUsersController(s *userservices.UserService) *UsersController {
 	return &UsersController{s}
 }
 
+// ServeHTTP - parse url and call controller action
 func (uc *UsersController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := common.GetAuthUserDetails(r, uc.Service.RedisClient, uc.Service.Db)
 	if err != nil {
@@ -35,45 +37,62 @@ func (uc *UsersController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case http.MethodGet:
-
-		/*
-			     GET  "/v1/users/"
-				   GET  "/v1/users/{id}"
-		*/
-
-		if (len(pathParts) == 2) && (pathParts[1] == "users") {
-			limit := queryString.Get("limit")
-			cursor := queryString.Get("cursor")
-			uc.Index(w, r, limit, cursor, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "users") {
-			uc.Show(w, r, pathParts[2], user, requestID)
-		} else {
-			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
-			return
-		}
-
+		uc.processGet(w, r, user, requestID, pathParts, queryString)
 	case http.MethodPost:
+		uc.processPost(w, r, user, requestID, pathParts)
+	case http.MethodPut:
+	case http.MethodDelete:
+	default:
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
 
-		/*
-						     POST  "/v1/users/change_email"
-								 POST  "/v1/users/change_password/{id}"
-			           POST  "/v1/users/getuserbyemail"
-		*/
+// processGet - Parse URL for all the GET paths and call the controller action
+/*
+	GET  "/v1/users/"
+	GET  "/v1/users/{id}"
+*/
 
-		if (len(pathParts) == 3) && (pathParts[1] == "users") && (pathParts[2] == "change_email") {
+func (uc *UsersController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string, queryString url.Values) {
+
+	if (len(pathParts) == 2) && (pathParts[1] == "users") {
+		limit := queryString.Get("limit")
+		cursor := queryString.Get("cursor")
+		uc.Index(w, r, limit, cursor, user, requestID)
+	} else if (len(pathParts) == 3) && (pathParts[1] == "users") {
+		uc.Show(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
+
+// processPost - Parse URL for all the POST paths and call the controller action
+/*
+	POST  "/v1/users/change_email"
+	POST  "/v1/users/change_password/{id}"
+	POST  "/v1/users/getuserbyemail"
+*/
+
+func (uc *UsersController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+	if (len(pathParts) == 3) && (pathParts[1] == "users") {
+		if pathParts[2] == "change_email" {
 			uc.ChangeEmail(w, r, user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "users") && (pathParts[2] == "change_password") {
-			uc.ChangePassword(w, r, pathParts[3], user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "users") && (pathParts[2] == "getuserbyemail") {
+		} else if pathParts[2] == "getuserbyemail" {
 			uc.Getuserbyemail(w, r, user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
 		}
-
-	case http.MethodPut:
-	case http.MethodDelete:
-	default:
+	} else if (len(pathParts) == 4) && (pathParts[1] == "users") {
+		if pathParts[2] == "change_password" {
+			uc.ChangePassword(w, r, pathParts[3], user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
 	}

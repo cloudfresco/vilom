@@ -3,6 +3,7 @@ package usercontrollers
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	log "github.com/sirupsen/logrus"
 
@@ -22,6 +23,7 @@ func NewUbadgeController(s *userservices.UbadgeService) *UbadgeController {
 	return &UbadgeController{s}
 }
 
+// ServeHTTP - parse url and call controller action
 func (uc *UbadgeController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := common.GetAuthUserDetails(r, uc.Service.RedisClient, uc.Service.Db)
 	if err != nil {
@@ -36,47 +38,66 @@ func (uc *UbadgeController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		uc.processGet(w, r, user, requestID, pathParts, queryString)
+	case http.MethodPost:
+		uc.processPost(w, r, user, requestID, pathParts)
+	case http.MethodPut:
+	case http.MethodDelete:
+	default:
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
 
-		/*
-			     GET  "/v1/ubadges/"
-				   GET  "/v1/ubadges/{id}"
-		*/
+// processGet - Parse URL for all the GET paths and call the controller action
+/*
+ GET  "/v1/ubadges/"
+ GET  "/v1/ubadges/{id}"
+*/
 
-		if (len(pathParts) == 2) && (pathParts[1] == "ubadges") {
-			limit := queryString.Get("limit")
-			cursor := queryString.Get("cursor")
-			uc.Index(w, r, limit, cursor, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
-			uc.Show(w, r, pathParts[2], user, requestID)
+func (uc *UbadgeController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string, queryString url.Values) {
+
+	if (len(pathParts) == 2) && (pathParts[1] == "ubadges") {
+		limit := queryString.Get("limit")
+		cursor := queryString.Get("cursor")
+		uc.Index(w, r, limit, cursor, user, requestID)
+	} else if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
+		uc.Show(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
+
+// processPost - Parse URL for all the POST paths and call the controller action
+/*
+ POST  "/v1/ubadges/add"
+ POST  "/v1/ubadges/{id}/delete"
+ POST  "/v1/ubadges/{id}/adduser"
+ POST  "/v1/ubadges/{id}/deleteuser"
+*/
+
+func (uc *UbadgeController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
+		if pathParts[2] == "add" {
+			uc.Create(w, r, user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
 		}
-
-	case http.MethodPost:
-		/*
-			     POST  "/v1/ubadges/add"
-					 POST  "/v1/ubadges/{id}/delete"
-					 POST  "/v1/ubadges/{id}/adduser"
-				   POST  "/v1/ubadges/{id}/deleteuser"
-		*/
-
-		if (len(pathParts) == 3) && (pathParts[1] == "ubadges") && (pathParts[2] == "add") {
-			uc.Create(w, r, user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ubadges") && (pathParts[3] == "delete") {
+	} else if (len(pathParts) == 4) && (pathParts[1] == "ubadges") {
+		if pathParts[3] == "delete" {
 			uc.Delete(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ubadges") && (pathParts[3] == "adduser") {
+		} else if pathParts[3] == "adduser" {
 			uc.AddUserToGroup(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ubadges") && (pathParts[3] == "deleteuser") {
+		} else if pathParts[3] == "deleteuser" {
 			uc.DeleteUserFromGroup(w, r, pathParts[2], user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
 		}
-
-	case http.MethodPut:
-	case http.MethodDelete:
-	default:
+	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
 	}

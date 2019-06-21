@@ -3,6 +3,7 @@ package usercontrollers
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	log "github.com/sirupsen/logrus"
 
@@ -22,6 +23,7 @@ func NewUgroupController(s *userservices.UgroupService) *UgroupController {
 	return &UgroupController{s}
 }
 
+// ServeHTTP - parse url and call controller action
 func (uc *UgroupController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := common.GetAuthUserDetails(r, uc.Service.RedisClient, uc.Service.Db)
 	if err != nil {
@@ -36,62 +38,84 @@ func (uc *UgroupController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-
-		/*
-						     GET  "/v1/ugroups/"
-			           GET  "/v1/ugroups/topgroups"
-							   GET  "/v1/ugroups/{id}"
-			           GET  "/v1/ugroups/{id}/chdn"
-			           GET  "/v1/ugroups/{id}/getparent"
-		*/
-
-		if (len(pathParts) == 2) && (pathParts[1] == "ugroups") {
-			limit := queryString.Get("limit")
-			cursor := queryString.Get("cursor")
-			uc.Index(w, r, limit, cursor, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "ugroups") && (pathParts[2] == "topgroups") {
-			uc.TopLevelGroups(w, r, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
-			uc.Show(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") && (pathParts[3] == "chdn") {
-			uc.GetChdn(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") && (pathParts[3] == "getparent") {
-			uc.GetParent(w, r, pathParts[2], user, requestID)
-		} else {
-			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
-			return
-		}
-
+		uc.processGet(w, r, user, requestID, pathParts, queryString)
 	case http.MethodPost:
-		/*
-			     POST  "/v1/ugroups/create"
-			     POST  "/v1/ugroups/chdcreate"
-					 POST  "/v1/ugroups/{id}/delete"
-					 POST  "/v1/ugroups/{id}/adduser"
-				   POST  "/v1/ugroups/{id}/deleteuser"
-		*/
-
-		if (len(pathParts) == 3) && (pathParts[1] == "ugroups") && (pathParts[2] == "create") {
-			uc.Create(w, r, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "ugroups") && (pathParts[2] == "chdcreate") {
-			uc.CreateChild(w, r, user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") && (pathParts[3] == "delete") {
-			uc.Delete(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") && (pathParts[3] == "adduser") {
-			uc.AddUserToGroup(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") && (pathParts[3] == "deleteuser") {
-			uc.DeleteUserFromGroup(w, r, pathParts[2], user, requestID)
-		} else {
-			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
-			return
-		}
-
+		uc.processPost(w, r, user, requestID, pathParts)
 	case http.MethodPut:
 	case http.MethodDelete:
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
 	}
+}
+
+// processGet - Parse URL for all the GET paths and call the controller action
+/*
+ GET  "/v1/ugroups/"
+ GET  "/v1/ugroups/topgroups"
+ GET  "/v1/ugroups/{id}"
+ GET  "/v1/ugroups/{id}/chdn"
+ GET  "/v1/ugroups/{id}/getparent"
+*/
+
+func (uc *UgroupController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string, queryString url.Values) {
+	if (len(pathParts) == 2) && (pathParts[1] == "ugroups") {
+		limit := queryString.Get("limit")
+		cursor := queryString.Get("cursor")
+		uc.Index(w, r, limit, cursor, user, requestID)
+	} else if (len(pathParts) == 3) && (pathParts[1] == "ugroups") && (pathParts[2] == "topgroups") {
+		uc.TopLevelGroups(w, r, user, requestID)
+	} else if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
+		uc.Show(w, r, pathParts[2], user, requestID)
+	} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") {
+		if pathParts[3] == "chdn" {
+			uc.GetChdn(w, r, pathParts[2], user, requestID)
+		} else if pathParts[3] == "getparent" {
+			uc.GetParent(w, r, pathParts[2], user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
+
+// processPost - Parse URL for all the POST paths and call the controller action
+/*
+ POST  "/v1/ugroups/create"
+ POST  "/v1/ugroups/chdcreate"
+ POST  "/v1/ugroups/{id}/delete"
+ POST  "/v1/ugroups/{id}/adduser"
+ POST  "/v1/ugroups/{id}/deleteuser"
+*/
+func (uc *UgroupController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+	if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
+		if pathParts[2] == "create" {
+			uc.Create(w, r, user, requestID)
+		} else if pathParts[2] == "chdcreate" {
+			uc.CreateChild(w, r, user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") {
+		if pathParts[3] == "delete" {
+			uc.Delete(w, r, pathParts[2], user, requestID)
+		} else if pathParts[3] == "adduser" {
+			uc.AddUserToGroup(w, r, pathParts[2], user, requestID)
+		} else if pathParts[3] == "deleteuser" {
+			uc.DeleteUserFromGroup(w, r, pathParts[2], user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
 }
 
 // Index - Get Ugroups

@@ -22,6 +22,7 @@ func NewUController(s *userservices.UserService) *UController {
 	return &UController{s}
 }
 
+// ServeHTTP - parse url and call controller action
 func (uc *UController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := common.GetRequestID()
 	pathParts, _, err := common.ParseURL(r.URL.String())
@@ -32,44 +33,9 @@ func (uc *UController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-
-		/*
-					   GET /v1/u/confirmation/:token
-			       GET /v1/u/change_email/:token
-
-		*/
-
-		if (len(pathParts) == 4) && (pathParts[1] == "u") && (pathParts[2] == "confirmation") {
-			uc.ConfirmEmail(w, r, pathParts[3], requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "u") && (pathParts[2] == "change_email") {
-			uc.ConfirmChangeEmail(w, r, pathParts[3], requestID)
-		} else {
-			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
-			return
-		}
-
+		uc.processGet(w, r, requestID, pathParts)
 	case http.MethodPost:
-
-		/*
-			    POST /v1/u/login
-			    POST /v1/u/create
-				  POST /v1/u/forgot_password
-				  POST /v1/u/reset_password/:token
-		*/
-
-		if (len(pathParts) == 3) && (pathParts[1] == "u") && (pathParts[2] == "login") {
-			uc.Login(w, r, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "u") && (pathParts[2] == "create") {
-			uc.Create(w, r, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "u") && (pathParts[2] == "forgot_password") {
-			uc.ForgotPassword(w, r, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "u") && (pathParts[2] == "reset_password") {
-			uc.ConfirmForgotPassword(w, r, pathParts[3], requestID)
-		} else {
-			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
-			return
-		}
-
+		uc.processPost(w, r, requestID, pathParts)
 	case http.MethodPut:
 	case http.MethodDelete:
 	default:
@@ -77,6 +43,62 @@ func (uc *UController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+// processGet - Parse URL for all the GET paths and call the controller action
+/*
+ GET /v1/u/confirmation/:token
+ GET /v1/u/change_email/:token
+*/
+
+func (uc *UController) processGet(w http.ResponseWriter, r *http.Request, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 4) && (pathParts[1] == "u") {
+		if pathParts[2] == "confirmation" {
+			uc.ConfirmEmail(w, r, pathParts[3], requestID)
+		} else if pathParts[2] == "change_email" {
+			uc.ConfirmChangeEmail(w, r, pathParts[3], requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
+
+// processPost - Parse URL for all the POST paths and call the controller action
+/*
+	POST /v1/u/login
+	POST /v1/u/create
+	POST /v1/u/forgot_password
+	POST /v1/u/reset_password/:token
+*/
+
+func (uc *UController) processPost(w http.ResponseWriter, r *http.Request, requestID string, pathParts []string) {
+	if (len(pathParts) == 3) && (pathParts[1] == "u") {
+		if pathParts[2] == "login" {
+			uc.Login(w, r, requestID)
+		} else if pathParts[2] == "create" {
+			uc.Create(w, r, requestID)
+		} else if pathParts[2] == "forgot_password" {
+			uc.ForgotPassword(w, r, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else if (len(pathParts) == 4) && (pathParts[1] == "u") {
+		if pathParts[2] == "reset_password" {
+			uc.ConfirmForgotPassword(w, r, pathParts[3], requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
 }
 
 // Login - User logins

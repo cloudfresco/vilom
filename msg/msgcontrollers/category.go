@@ -3,6 +3,7 @@ package msgcontrollers
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	log "github.com/sirupsen/logrus"
 
@@ -22,6 +23,7 @@ func NewCategoryController(s *msgservices.CategoryService) *CategoryController {
 	return &CategoryController{s}
 }
 
+// ServeHTTP - parse url and call controller action
 func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := common.GetAuthUserDetails(r, cc.Service.RedisClient, cc.Service.Db)
 	if err != nil {
@@ -36,39 +38,9 @@ func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	switch r.Method {
 	case http.MethodGet:
-
-		/*
-						     GET  "/v1/categories/"
-							   GET  "/v1/categories/{id}"
-			           GET  "/v1/categories/topcats"
-			           GET  "/v1/categories/{id}/chdn"
-				         GET  "/v1/categories/{id}/getparent"
-		*/
-
-		if (len(pathParts) == 2) && (pathParts[1] == "categories") {
-			limit := queryString.Get("limit")
-			cursor := queryString.Get("cursor")
-			cc.Index(w, r, limit, cursor, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[2] == "topcats") {
-			cc.TopLevelCategories(w, r, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "categories") {
-			cc.Show(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "chdn") {
-			cc.GetChdn(w, r, pathParts[2], user, requestID)
-		} else if (len(pathParts) == 4) && (pathParts[1] == "categories") && (pathParts[3] == "getparent") {
-			cc.GetParent(w, r, pathParts[2], user, requestID)
-		}
-
+		cc.processGet(w, r, user, requestID, pathParts, queryString)
 	case http.MethodPost:
-		/*
-		   POST  "/v1/categories/create/"
-		   POST  "/v1/categories/chdcreate/"
-		*/
-		if (len(pathParts) == 3) && (pathParts[1] == "categories") && (pathParts[2] == "create") {
-			cc.Create(w, r, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "categories") && (pathParts[2] == "chdcreate") {
-			cc.CreateChild(w, r, user, requestID)
-		}
+		cc.processPost(w, r, user, requestID, pathParts)
 	case http.MethodPut:
 	case http.MethodDelete:
 	default:
@@ -76,6 +48,66 @@ func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+}
+
+// processGet - Parse URL for all the GET paths and call the controller action
+/*
+ GET  "/v1/categories/"
+ GET  "/v1/categories/{id}"
+ GET  "/v1/categories/topcats"
+ GET  "/v1/categories/{id}/chdn"
+ GET  "/v1/categories/{id}/getparent"
+*/
+
+func (cc *CategoryController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string, queryString url.Values) {
+
+	if (len(pathParts) == 2) && (pathParts[1] == "categories") {
+		limit := queryString.Get("limit")
+		cursor := queryString.Get("cursor")
+		cc.Index(w, r, limit, cursor, user, requestID)
+	} else if len(pathParts) == 3 {
+		if pathParts[2] == "topcats" {
+			cc.TopLevelCategories(w, r, user, requestID)
+		} else if pathParts[1] == "categories" {
+			cc.Show(w, r, pathParts[2], user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else if (len(pathParts) == 4) && (pathParts[1] == "categories") {
+		if pathParts[3] == "chdn" {
+			cc.GetChdn(w, r, pathParts[2], user, requestID)
+		} else if pathParts[3] == "getparent" {
+			cc.GetParent(w, r, pathParts[2], user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
+
+// processPost - Parse URL for all the POST paths and call the controller action
+/*
+ POST  "/v1/categories/create/"
+ POST  "/v1/categories/chdcreate/"
+*/
+func (cc *CategoryController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+	if (len(pathParts) == 3) && (pathParts[1] == "categories") {
+		if pathParts[2] == "create" {
+			cc.Create(w, r, user, requestID)
+		} else if pathParts[2] == "chdcreate" {
+			cc.CreateChild(w, r, user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
 }
 
 // Index - used to view all categories

@@ -22,6 +22,7 @@ func NewMessageController(s *msgservices.MessageService) *MessageController {
 	return &MessageController{s}
 }
 
+// ServeHTTP - parse url and call controller action
 func (mc *MessageController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := common.GetAuthUserDetails(r, mc.Service.RedisClient, mc.Service.Db)
 	if err != nil {
@@ -35,28 +36,50 @@ func (mc *MessageController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-
-		/*
-		   GET  "/v1/messages/{id}"
-		*/
-
-		if (len(pathParts) == 3) && (pathParts[1] == "messages") {
-			mc.Show(w, r, pathParts[2], user, requestID)
-		}
-
+		mc.processGet(w, r, user, requestID, pathParts)
 	case http.MethodPost:
-		/*
-		   POST  "/v1/messages/create/"
-		   POST  "/v1/messages/like/"
-		*/
-		if (len(pathParts) == 3) && (pathParts[1] == "messages") && (pathParts[2] == "create") {
-			mc.Create(w, r, user, requestID)
-		} else if (len(pathParts) == 3) && (pathParts[1] == "messages") && (pathParts[2] == "like") {
-			mc.UserLikeCreate(w, r, user, requestID)
-		}
+		mc.processPost(w, r, user, requestID, pathParts)
 	case http.MethodPut:
 	case http.MethodDelete:
 	default:
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+}
+
+// processGet - Parse URL for all the GET paths and call the controller action
+/*
+ GET  "/v1/messages/{id}"
+*/
+
+func (mc *MessageController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
+		mc.Show(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
+}
+
+// processPost - Parse URL for all the POST paths and call the controller action
+/*
+ POST  "/v1/messages/create/"
+ POST  "/v1/messages/like/"
+*/
+func (mc *MessageController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
+		if pathParts[2] == "create" {
+			mc.Create(w, r, user, requestID)
+		} else if pathParts[2] == "like" {
+			mc.UserLikeCreate(w, r, user, requestID)
+		} else {
+			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+			return
+		}
+	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
 	}
