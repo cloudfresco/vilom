@@ -406,14 +406,14 @@ func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 			}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"msgnum": 7021,
 			}).Error(err)
 			log.Println(err)
 		}
-		poh.IDS = uUID4Str
+		poh.IDS = uuid4Str
 		pohs = append(pohs, &poh)
 
 	}

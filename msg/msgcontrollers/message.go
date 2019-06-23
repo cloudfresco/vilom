@@ -122,7 +122,7 @@ func (mc *MessageController) Create(w http.ResponseWriter, r *http.Request, user
 			common.RenderErrorJSON(w, "6001", err.Error(), 402, requestID)
 			return
 		}
-		msg, err := mc.Service.Create(ctx, &form, user.UserID, user.Email, requestID)
+		msg, err := mc.Service.Create(ctx, &form, user.UserID, true, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6002}).Error(err)
 			common.RenderErrorJSON(w, "6002", err.Error(), 402, requestID)

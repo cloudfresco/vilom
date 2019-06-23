@@ -141,12 +141,12 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2302}).Error(err)
 				return nil, err
 			}
-			uUID4Str, err := common.UUIDBytesToStr(ug.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2303}).Error(err)
 				return nil, err
 			}
-			ug.IDS = uUID4Str
+			ug.IDS = uuid4Str
 			ugroups = append(ugroups, &ug)
 		}
 		err = rows.Close()
@@ -507,12 +507,12 @@ func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug Ugroup,
 			return nil, err
 		}
 		ug.ID = uint(uID)
-		uUID4Str, err := common.UUIDBytesToStr(ug.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2332}).Error(err)
 			return nil, err
 		}
-		ug.IDS = uUID4Str
+		ug.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2333}).Error(err)
@@ -597,7 +597,7 @@ func (u *UgroupService) Delete(ctx context.Context, ID string, userEmail string,
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2339}).Error(err)
 		return err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2340}).Error(err)
 			return err
@@ -616,7 +616,7 @@ func (u *UgroupService) Delete(ctx context.Context, ID string, userEmail string,
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx, uUID4byte)
+		_, err = stmt.ExecContext(ctx, uuid4byte)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2342}).Error(err)
 			err = stmt.Close()
@@ -654,7 +654,7 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string, userEmail stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2345}).Error(err)
 		return nil, err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2346}).Error(err)
 			return nil, err
@@ -717,7 +717,7 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string, userEmail stri
 		v.updated_day,
 		v.updated_week,
 		v.updated_month,
-		v.updated_year from ugroups ug inner join ugroups_users ugu on (ug.id = ugu.ugroup_id) inner join users v on (ugu.user_id = v.id) where ug.uuid4 = ?`, uUID4byte)
+		v.updated_year from ugroups ug inner join ugroups_users ugu on (ug.id = ugu.ugroup_id) inner join users v on (ugu.user_id = v.id) where ug.uuid4 = ?`, uuid4byte)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2347}).Error(err)
 			return nil, err
@@ -784,19 +784,19 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string, userEmail stri
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2348}).Error(err)
 			}
-			uUID4Str1, err := common.UUIDBytesToStr(poh.UUID4)
+			uuid4Str1, err := common.UUIDBytesToStr(poh.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2349}).Error(err)
 				return nil, err
 			}
-			poh.IDS = uUID4Str1
+			poh.IDS = uuid4Str1
 
-			uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2350}).Error(err)
 				return nil, err
 			}
-			user.IDS = uUID4Str
+			user.IDS = uuid4Str
 
 			poh.Users = append(poh.Users, &user)
 		}
@@ -825,7 +825,7 @@ func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string, userEmail 
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2353}).Error(err)
 		return nil, err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2354}).Error(err)
 			return nil, err
@@ -850,7 +850,7 @@ func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string, userEmail 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ugroups where uuid4 = ?;`, uUID4byte)
+		updated_year from ugroups where uuid4 = ?;`, uuid4byte)
 
 		err = row.Scan(
 			&ug.ID,
@@ -876,12 +876,12 @@ func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string, userEmail 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2355}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(ug.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2356}).Error(err)
 			return nil, err
 		}
-		ug.IDS = uUID4Str
+		ug.IDS = uuid4Str
 		return &ug, nil
 	}
 }
@@ -940,12 +940,12 @@ func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint, userEmai
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2358}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(ug.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2359}).Error(err)
 			return nil, err
 		}
-		ug.IDS = uUID4Str
+		ug.IDS = uuid4Str
 		return &ug, nil
 	}
 }
@@ -1065,12 +1065,12 @@ func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser
 			return nil, err
 		}
 		Uguser.ID = uint(uID)
-		uUID4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2370}).Error(err)
 			return nil, err
 		}
-		Uguser.IDS = uUID4Str
+		Uguser.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2371}).Error(err)
@@ -1143,12 +1143,12 @@ func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string, userEmai
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2375}).Error(err)
 				return nil, err
 			}
-			uUID4Str, err := common.UUIDBytesToStr(ug.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2376}).Error(err)
 				return nil, err
 			}
-			ug.IDS = uUID4Str
+			ug.IDS = uuid4Str
 			Ugroups = append(Ugroups, &ug)
 		}
 		err = rows.Close()
@@ -1225,12 +1225,12 @@ func (u *UgroupService) TopLevelUgroups(ctx context.Context, userEmail string, r
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2381}).Error(err)
 				return nil, err
 			}
-			uUID4Str, err := common.UUIDBytesToStr(ug.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2382}).Error(err)
 				return nil, err
 			}
-			ug.IDS = uUID4Str
+			ug.IDS = uuid4Str
 			Ugroups = append(Ugroups, &ug)
 		}
 		err = rows.Close()
@@ -1301,12 +1301,12 @@ func (u *UgroupService) GetParent(ctx context.Context, ID string, userEmail stri
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2386}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(ug.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2387}).Error(err)
 			return nil, err
 		}
-		ug.IDS = uUID4Str
+		ug.IDS = uuid4Str
 		return &ug, nil
 	}
 }

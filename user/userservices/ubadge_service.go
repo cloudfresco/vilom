@@ -123,12 +123,12 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 				return nil, err
 			}
 
-			uUID4Str, err := common.UUIDBytesToStr(ubadge.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(ubadge.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3303}).Error(err)
 				return nil, err
 			}
-			ubadge.IDS = uUID4Str
+			ubadge.IDS = uuid4Str
 			ubadges = append(ubadges, &ubadge)
 		}
 		err = rows.Close()
@@ -332,12 +332,12 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
 			return nil, err
 		}
 		Ubadge.ID = uint(uID)
-		uUID4Str, err := common.UUIDBytesToStr(Ubadge.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(Ubadge.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3321}).Error(err)
 			return nil, err
 		}
-		Ubadge.IDS = uUID4Str
+		Ubadge.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3322}).Error(err)
@@ -356,7 +356,7 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string, userEmail string,
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3323}).Error(err)
 		return err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3324}).Error(err)
 			return err
@@ -380,7 +380,7 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string, userEmail string,
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx, uUID4byte)
+		_, err = stmt.ExecContext(ctx, uuid4byte)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3354}).Error(err)
 			err = stmt.Close()
@@ -416,7 +416,7 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3329}).Error(err)
 		return nil, err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3330}).Error(err)
 			return nil, err
@@ -475,7 +475,7 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 		v.updated_day,
 		v.updated_week,
 		v.updated_month,
-		v.updated_year from ubadges p inner join ubadges_users ubu on (p.id = ubu.ubadge_id) inner join users v on (ubu.user_id = v.id) where p.uuid4 = ?`, uUID4byte)
+		v.updated_year from ubadges p inner join ubadges_users ubu on (p.id = ubu.ubadge_id) inner join users v on (ubu.user_id = v.id) where p.uuid4 = ?`, uuid4byte)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3331}).Error(err)
@@ -541,19 +541,19 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3332}).Error(err)
 				return nil, err
 			}
-			uUID4Str1, err := common.UUIDBytesToStr(poh.UUID4)
+			uuid4Str1, err := common.UUIDBytesToStr(poh.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3333}).Error(err)
 				return nil, err
 			}
-			poh.IDS = uUID4Str1
+			poh.IDS = uuid4Str1
 
-			uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3334}).Error(err)
 				return nil, err
 			}
-			user.IDS = uUID4Str
+			user.IDS = uuid4Str
 			poh.Users = append(poh.Users, &user)
 		}
 
@@ -580,7 +580,7 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3337}).Error(err)
 		return nil, err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3338}).Error(err)
 			return nil, err
@@ -602,7 +602,7 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ubadges where uuid4 = ?;`, uUID4byte)
+		updated_year from ubadges where uuid4 = ?;`, uuid4byte)
 
 		err = row.Scan(
 			&Ubadge.ID,
@@ -625,12 +625,12 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3339}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(Ubadge.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(Ubadge.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3340}).Error(err)
 			return nil, err
 		}
-		Ubadge.IDS = uUID4Str
+		Ubadge.IDS = uuid4Str
 		return &Ubadge, nil
 	}
 }
@@ -748,12 +748,12 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 			return nil, err
 		}
 		Uguser.ID = uint(uID)
-		uUID4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3351}).Error(err)
 			return nil, err
 		}
-		Uguser.IDS = uUID4Str
+		Uguser.IDS = uuid4Str
 
 		err = stmt.Close()
 		if err != nil {

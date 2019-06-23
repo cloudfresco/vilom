@@ -181,12 +181,12 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 				err = rows.Close()
 				return nil, err
 			}
-			uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1510}).Error(err)
 				return nil, err
 			}
-			user.IDS = uUID4Str
+			user.IDS = uuid4Str
 			users = append(users, &user)
 		}
 		err = rows.Close()
@@ -581,12 +581,12 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 			return nil, err
 		}
 		user.ID = uint(uID)
-		uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"reqid": requestID, "msgnum": 1532}).Error(err)
 			return nil, err
 		}
-		user.IDS = uUID4Str
+		user.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -1061,14 +1061,14 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 		}).Error(err)
 		return err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(form.ID)
+		uuid4byte, err := common.UUIDStrToBytes(form.ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1561}).Error(err)
 			return err
 		}
 		db := u.Db
 		user := User{}
-		row := db.QueryRowContext(ctx, `select id, password from users where uuid4 = ?;`, uUID4byte)
+		row := db.QueryRowContext(ctx, `select id, password from users where uuid4 = ?;`, uuid4byte)
 		err = row.Scan(
 			&user.ID,
 			&user.Password)
@@ -1475,12 +1475,12 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmai
 			}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1585}).Error(err)
 			return nil, err
 		}
-		user.IDS = uUID4Str
+		user.IDS = uuid4Str
 		return &user, nil
 	}
 }
@@ -1496,7 +1496,7 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 		}).Error(err)
 		return nil, err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1587}).Error(err)
 			return nil, err
@@ -1522,7 +1522,7 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from users where uuid4 = ?;`, uUID4byte)
+		updated_year from users where uuid4 = ?;`, uuid4byte)
 
 		err = row.Scan(
 			&user.ID,
@@ -1553,12 +1553,12 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 			}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(user.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1589}).Error(err)
 			return nil, err
 		}
-		user.IDS = uUID4Str
+		user.IDS = uuid4Str
 		return &user, nil
 	}
 }

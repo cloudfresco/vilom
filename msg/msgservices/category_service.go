@@ -144,12 +144,12 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4302}).Error(err)
 				return nil, err
 			}
-			uUID4Str, err := common.UUIDBytesToStr(cat.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4303}).Error(err)
 				return nil, err
 			}
-			cat.IDS = uUID4Str
+			cat.IDS = uuid4Str
 			cats = append(cats, &cat)
 		}
 		err = rows.Close()
@@ -184,7 +184,7 @@ func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail 
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4306}).Error(err)
 		return nil, err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4307}).Error(err)
 			return nil, err
@@ -212,7 +212,7 @@ func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail 
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where uuid4 = ?;`, uUID4byte)
+			updated_year from categories where uuid4 = ?;`, uuid4byte)
 
 		err = row.Scan(
 			&cat.ID,
@@ -242,12 +242,12 @@ func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4308}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4309}).Error(err)
 			return nil, err
 		}
-		cat.IDS = uUID4Str
+		cat.IDS = uuid4Str
 
 		return &cat, nil
 	}
@@ -315,12 +315,12 @@ func (c *CategoryService) GetCategoryByID(ctx context.Context, ID uint, userEmai
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4311}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4312}).Error(err)
 			return nil, err
 		}
-		cat.IDS = uUID4Str
+		cat.IDS = uuid4Str
 		return &cat, nil
 	}
 }
@@ -333,7 +333,7 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, form *Category, ID
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4313}).Error(err)
 		return err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4314}).Error(err)
 			return err
@@ -365,7 +365,7 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, form *Category, ID
 			UpdatedWeek,
 			UpdatedMonth,
 			UpdatedYear,
-			uUID4byte)
+			uuid4byte)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4316}).Error(err)
 			err = stmt.Close()
@@ -525,12 +525,12 @@ func (c *CategoryService) InsertCategory(ctx context.Context, tx *sql.Tx, cat Ca
 			return nil, err
 		}
 		cat.ID = uint(uID)
-		uUID4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4327}).Error(err)
 			return nil, err
 		}
-		cat.IDS = uUID4Str
+		cat.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
@@ -548,7 +548,7 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4329}).Error(err)
 		return nil, err
 	default:
-		uUID4byte, err := common.UUIDStrToBytes(ID)
+		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4330}).Error(err)
 			return nil, err
@@ -622,7 +622,7 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			v.updated_day,
 			v.updated_week,
 			v.updated_month,
-			v.updated_year from categories c inner join topics v on (c.id = v.category_id) where c.uuid4 = ?`, uUID4byte)
+			v.updated_year from categories c inner join topics v on (c.id = v.category_id) where c.uuid4 = ?`, uuid4byte)
 
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4333}).Error(err)
@@ -691,19 +691,19 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4334}).Error(err)
 					return nil, err
 				}
-				uUID4Str1, err := common.UUIDBytesToStr(cat.UUID4)
+				uuid4Str1, err := common.UUIDBytesToStr(cat.UUID4)
 				if err != nil {
 					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4335}).Error(err)
 					return nil, err
 				}
-				cat.IDS = uUID4Str1
+				cat.IDS = uuid4Str1
 
-				uUID4Str, err := common.UUIDBytesToStr(topc.UUID4)
+				uuid4Str, err := common.UUIDBytesToStr(topc.UUID4)
 				if err != nil {
 					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4336}).Error(err)
 					return nil, err
 				}
-				topc.IDS = uUID4Str
+				topc.IDS = uuid4Str
 				cat.Topics = append(cat.Topics, &topc)
 			}
 
@@ -815,11 +815,32 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			return nil, err
 		}
 
-		UpdatedDay := tnday
-		UpdatedWeek := tnweek
-		UpdatedMonth := tnmonth
-		UpdatedYear := tnyear
+		numchd := parent.NumChd + 1
+		err = c.UpdateParentCategory(ctx, tx, numchd, parent.ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4373}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
 
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4372}).Error(err)
+			return nil, err
+		}
+		return Cat, nil
+	}
+}
+
+// UpdateParentCategory - Update number of child in category
+func (c *CategoryService) UpdateParentCategory(ctx context.Context, tx *sql.Tx, numchd uint, parentID uint, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4375}).Error(err)
+		return err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		stmt, err := tx.PrepareContext(ctx, `update categories set 
 				  num_chd = ?,
 				  updated_at = ?, 
@@ -833,46 +854,88 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4370}).Error(err)
 				err = tx.Rollback()
-				return nil, err
+				return err
 			}
 			err = tx.Rollback()
-			return nil, err
+			return err
 		}
 
 		_, err = stmt.ExecContext(ctx,
-			parent.NumChd+1,
+			numchd,
 			tn,
-			UpdatedDay,
-			UpdatedWeek,
-			UpdatedMonth,
-			UpdatedYear,
-			parent.ID)
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			parentID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4346}).Error(err)
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4371}).Error(err)
 				err = tx.Rollback()
-				return nil, err
+				return err
 			}
 			err = tx.Rollback()
-			return nil, err
+			return err
 		}
+		return nil
+	}
+}
 
-		err = stmt.Close()
-
+// UpdateNumTopics - update number of topics in category
+func (c *CategoryService) UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4374}).Error(err)
+		return err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update categories set 
+    num_topics = ?,
+	  updated_at = ?, 
+		updated_day = ?, 
+		updated_week = ?, 
+		updated_month = ?, 
+		updated_year = ? where id = ?;`)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4347}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5327}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5376}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
 			err = tx.Rollback()
-			return nil, err
+			return err
 		}
-
-		err = tx.Commit()
+		_, err = stmt.ExecContext(ctx,
+			numTopics,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			ID)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4372}).Error(err)
-			return nil, err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5328}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5329}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
 		}
-		return Cat, nil
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5329}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
 	}
 }
 
@@ -1013,12 +1076,12 @@ func (c *CategoryService) GetTopLevelCategories(ctx context.Context, userEmail s
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4355}).Error(err)
 				return nil, err
 			}
-			uUID4Str, err := common.UUIDBytesToStr(cat.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4356}).Error(err)
 				return nil, err
 			}
-			cat.IDS = uUID4Str
+			cat.IDS = uuid4Str
 			cats = append(cats, &cat)
 		}
 		err = rows.Close()
@@ -1101,12 +1164,12 @@ func (c *CategoryService) GetChildCategories(ctx context.Context, ID string, use
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4361}).Error(err)
 				return nil, err
 			}
-			uUID4Str, err := common.UUIDBytesToStr(cat.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4362}).Error(err)
 				return nil, err
 			}
-			cat.IDS = uUID4Str
+			cat.IDS = uuid4Str
 
 			pohs = append(pohs, &cat)
 		}
@@ -1186,12 +1249,12 @@ func (c *CategoryService) GetParentCategory(ctx context.Context, ID string, user
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4366}).Error(err)
 			return nil, err
 		}
-		uUID4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4367}).Error(err)
 			return nil, err
 		}
-		cat.IDS = uUID4Str
+		cat.IDS = uuid4Str
 
 		return &cat, nil
 	}
