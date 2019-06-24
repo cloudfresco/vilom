@@ -192,7 +192,7 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge, userEmail stri
 		Ubadge.UpdatedMonth = tnmonth
 		Ubadge.UpdatedYear = tnyear
 
-		ugrp, err := u.InsertUbadge(ctx, tx, Ubadge, userEmail, requestID)
+		err = u.InsertUbadge(ctx, tx, &Ubadge, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3309}).Error(err)
@@ -207,7 +207,7 @@ func (u *UbadgeService) Create(ctx context.Context, form *Ubadge, userEmail stri
 			return nil, err
 		}
 
-		return ugrp, nil
+		return &Ubadge, nil
 	}
 }
 
@@ -255,7 +255,7 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 		Uguser.UpdatedMonth = tnmonth
 		Uguser.UpdatedYear = tnyear
 
-		_, err = u.InsertUbadgeUser(ctx, tx, Uguser, userEmail, requestID)
+		err = u.InsertUbadgeUser(ctx, tx, &Uguser, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3315}).Error(err)
@@ -274,12 +274,12 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 }
 
 // InsertUbadge - Insert Ubadge details into database
-func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Ubadge, userEmail string, requestID string) (*Ubadge, error) {
+func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge *Ubadge, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3317}).Error(err)
-		return nil, err
+		return err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ubadges
 	  (
@@ -302,7 +302,7 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3318}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		res, err := stmt.ExecContext(ctx,
 			Ubadge.UUID4,
@@ -323,28 +323,28 @@ func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge Uba
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3319}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3320}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		Ubadge.ID = uint(uID)
 		uuid4Str, err := common.UUIDBytesToStr(Ubadge.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3321}).Error(err)
-			return nil, err
+			return err
 		}
 		Ubadge.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3322}).Error(err)
-			return nil, err
+			return err
 		}
 
-		return &Ubadge, nil
+		return nil
 	}
 }
 
@@ -691,12 +691,12 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 }
 
 // InsertUbadgeUser - Insert Ubadge User details into database
-func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser UbadgeUser, userEmail string, requestID string) (*UbadgeUser, error) {
+func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser *UbadgeUser, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3347}).Error(err)
-		return nil, err
+		return err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into ubadges_users
 	  (
@@ -718,7 +718,7 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 					?,?,?,?);`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3348}).Error(err)
-			return nil, err
+			return err
 		}
 		res, err := stmt.ExecContext(ctx,
 			Uguser.UUID4,
@@ -739,28 +739,28 @@ func (u *UbadgeService) InsertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3349}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3350}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		Uguser.ID = uint(uID)
 		uuid4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3351}).Error(err)
-			return nil, err
+			return err
 		}
 		Uguser.IDS = uuid4Str
 
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3352}).Error(err)
-			return nil, err
+			return err
 		}
 
-		return &Uguser, nil
+		return nil
 	}
 }

@@ -423,7 +423,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 
 			return nil, err
 		}
-		usr, err := u.InsertUser(ctx, tx, user, hostURL, requestID)
+		err = u.InsertUser(ctx, tx, &user, hostURL, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -443,12 +443,12 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 
 			return nil, err
 		}
-		return usr, nil
+		return &user, nil
 	}
 }
 
 // InsertUser - Insert User details to database
-func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hostURL string, requestID string) (*User, error) {
+func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user *User, hostURL string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -457,7 +457,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 			"msgnum": 1528,
 		}).Error(err)
 
-		return nil, err
+		return err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into users
 	  (
@@ -515,7 +515,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 				"msgnum": 1529,
 			}).Error(err)
 
-			return nil, err
+			return err
 		}
 		res, err := stmt.ExecContext(ctx,
 			user.UUID4,
@@ -568,7 +568,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 			}).Error(err)
 
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
@@ -578,13 +578,13 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 			}).Error(err)
 
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		user.ID = uint(uID)
 		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"reqid": requestID, "msgnum": 1532}).Error(err)
-			return nil, err
+			return err
 		}
 		user.IDS = uuid4Str
 		err = stmt.Close()
@@ -594,7 +594,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 				"msgnum": 1533,
 			}).Error(err)
 
-			return nil, err
+			return err
 		}
 
 		pwd, _ := os.Getwd()
@@ -613,7 +613,7 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 				"msgnum": 1534,
 			}).Error(err)
 
-			return nil, err
+			return err
 		}
 
 		email := common.Email{
@@ -629,10 +629,9 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user User, hos
 				"msgnum": 1535,
 			}).Error(err)
 
-			return nil, err
+			return err
 		}
-
-		return &user, nil
+		return nil
 	}
 }
 

@@ -431,7 +431,7 @@ func (c *CategoryService) Create(ctx context.Context, form *Category, UserID str
 		cat.UpdatedMonth = tnmonth
 		cat.UpdatedYear = tnyear
 
-		Cat, err := c.InsertCategory(ctx, tx, cat, userEmail, requestID)
+		err = c.InsertCategory(ctx, tx, &cat, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4321}).Error(err)
@@ -445,17 +445,17 @@ func (c *CategoryService) Create(ctx context.Context, form *Category, UserID str
 			err = tx.Rollback()
 			return nil, err
 		}
-		return Cat, nil
+		return &cat, nil
 	}
 }
 
 // InsertCategory - Insert category details into database
-func (c *CategoryService) InsertCategory(ctx context.Context, tx *sql.Tx, cat Category, userEmail string, requestID string) (*Category, error) {
+func (c *CategoryService) InsertCategory(ctx context.Context, tx *sql.Tx, cat *Category, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4323}).Error(err)
-		return nil, err
+		return err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into categories
 	  ( 
@@ -486,7 +486,7 @@ func (c *CategoryService) InsertCategory(ctx context.Context, tx *sql.Tx, cat Ca
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4324}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		res, err := stmt.ExecContext(ctx,
 			cat.UUID4,
@@ -515,28 +515,28 @@ func (c *CategoryService) InsertCategory(ctx context.Context, tx *sql.Tx, cat Ca
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4325}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4326}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		cat.ID = uint(uID)
 		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4327}).Error(err)
-			return nil, err
+			return err
 		}
 		cat.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
-			return nil, err
+			return err
 		}
-		return &cat, nil
+		return nil
 	}
 }
 
@@ -777,7 +777,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		cat.UpdatedMonth = tnmonth
 		cat.UpdatedYear = tnyear
 
-		Cat, err := c.InsertCategory(ctx, tx, cat, userEmail, requestID)
+		err = c.InsertCategory(ctx, tx, &cat, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4342}).Error(err)
@@ -793,7 +793,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			return nil, err
 		}
 		catchd.CategoryID = parent.ID
-		catchd.CategoryChdID = Cat.ID
+		catchd.CategoryChdID = cat.ID
 		/*  StatusDates  */
 		catchd.Statusc = common.Active
 		catchd.CreatedAt = tn
@@ -807,7 +807,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		catchd.UpdatedMonth = tnmonth
 		catchd.UpdatedYear = tnyear
 
-		_, err = c.InsertChild(ctx, tx, catchd, userEmail, requestID)
+		err = c.InsertChild(ctx, tx, &catchd, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4344}).Error(err)
@@ -828,7 +828,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4372}).Error(err)
 			return nil, err
 		}
-		return Cat, nil
+		return &cat, nil
 	}
 }
 
@@ -940,12 +940,12 @@ func (c *CategoryService) UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTo
 }
 
 // InsertChild - Insert child category details into database
-func (c *CategoryService) InsertChild(ctx context.Context, tx *sql.Tx, catchd CategoryChd, userEmail string, requestID string) (*CategoryChd, error) {
+func (c *CategoryService) InsertChild(ctx context.Context, tx *sql.Tx, catchd *CategoryChd, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4348}).Error(err)
-		return nil, err
+		return err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into category_chds
 	  ( 
@@ -968,7 +968,7 @@ func (c *CategoryService) InsertChild(ctx context.Context, tx *sql.Tx, catchd Ca
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4349}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		res, err := stmt.ExecContext(ctx,
 			catchd.UUID4,
@@ -990,22 +990,22 @@ func (c *CategoryService) InsertChild(ctx context.Context, tx *sql.Tx, catchd Ca
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4350}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4351}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		catchd.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4352}).Error(err)
-			return nil, err
+			return err
 		}
-		return &catchd, nil
+		return nil
 	}
 }
 

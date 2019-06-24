@@ -45,8 +45,8 @@ type Topic struct {
 	Messages []*Message
 
 	//only for logic purpose to create message with topic
-	Mtext   string
-	Mattach string
+	Mtext   string `json:"-"`
+	Mattach string `json:"-"`
 }
 
 // TopicsUser - TopicsUser view representation
@@ -472,44 +472,44 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
-		topc := Topic{}
-		topc.UUID4, err = common.GetUUIDBytes()
+		topic := Topic{}
+		topic.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5324}).Error(err)
 			return nil, err
 		}
-		topc.TopicName = form.TopicName
-		topc.TopicDesc = form.TopicDesc
-		topc.NumTags = form.NumTags
-		topc.Tag1 = form.Tag1
-		topc.Tag2 = form.Tag2
-		topc.Tag3 = form.Tag3
-		topc.Tag4 = form.Tag4
-		topc.Tag5 = form.Tag5
-		topc.Tag6 = form.Tag6
-		topc.Tag7 = form.Tag7
-		topc.Tag8 = form.Tag8
-		topc.Tag9 = form.Tag9
-		topc.Tag10 = form.Tag10
-		topc.NumViews = uint(0)
-		topc.NumMessages = uint(0)
-		topc.CategoryID = form.CategoryID
-		topc.UserID = user.ID
-		topc.UgroupID = form.UgroupID
+		topic.TopicName = form.TopicName
+		topic.TopicDesc = form.TopicDesc
+		topic.NumTags = form.NumTags
+		topic.Tag1 = form.Tag1
+		topic.Tag2 = form.Tag2
+		topic.Tag3 = form.Tag3
+		topic.Tag4 = form.Tag4
+		topic.Tag5 = form.Tag5
+		topic.Tag6 = form.Tag6
+		topic.Tag7 = form.Tag7
+		topic.Tag8 = form.Tag8
+		topic.Tag9 = form.Tag9
+		topic.Tag10 = form.Tag10
+		topic.NumViews = uint(0)
+		topic.NumMessages = uint(0)
+		topic.CategoryID = form.CategoryID
+		topic.UserID = user.ID
+		topic.UgroupID = form.UgroupID
 		/*  StatusDates  */
-		topc.Statusc = common.Active
-		topc.CreatedAt = tn
-		topc.UpdatedAt = tn
-		topc.CreatedDay = tnday
-		topc.CreatedWeek = tnweek
-		topc.CreatedMonth = tnmonth
-		topc.CreatedYear = tnyear
-		topc.UpdatedDay = tnday
-		topc.UpdatedWeek = tnweek
-		topc.UpdatedMonth = tnmonth
-		topc.UpdatedYear = tnyear
+		topic.Statusc = common.Active
+		topic.CreatedAt = tn
+		topic.UpdatedAt = tn
+		topic.CreatedDay = tnday
+		topic.CreatedWeek = tnweek
+		topic.CreatedMonth = tnmonth
+		topic.CreatedYear = tnyear
+		topic.UpdatedDay = tnday
+		topic.UpdatedWeek = tnweek
+		topic.UpdatedMonth = tnmonth
+		topic.UpdatedYear = tnyear
 
-		topic, err := t.InsertTopic(ctx, tx, topc, userEmail, requestID)
+		err = t.InsertTopic(ctx, tx, &topic, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5325}).Error(err)
@@ -531,20 +531,21 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			err = tx.Rollback()
 			return nil, err
 		}
-		msgserv := &MessageService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
-		msgform := Message{}
-		msgform.CategoryID = category.ID
-		msgform.TopicID = topic.ID
-		msgform.UgroupID = form.UgroupID
-		msgform.Mtext = form.Mtext
-		msgform.Mattach = form.Mattach
-		_, err = msgserv.Create(ctx, &msgform, UserID, false, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5330}).Error(err)
-			err = tx.Rollback()
-			return nil, err
+		if form.Mtext != "" {
+			msgserv := &MessageService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
+			msgform := Message{}
+			msgform.CategoryID = category.ID
+			msgform.TopicID = topic.ID
+			msgform.UgroupID = form.UgroupID
+			msgform.Mtext = form.Mtext
+			msgform.Mattach = form.Mattach
+			_, err = msgserv.Create(ctx, &msgform, UserID, false, userEmail, requestID)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5330}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
 		}
-
 		//insert user_topics
 		ut := UserTopic{}
 		ut.UUID4, err = common.GetUUIDBytes()
@@ -569,7 +570,7 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 		ut.UpdatedMonth = tnmonth
 		ut.UpdatedYear = tnyear
 
-		_, err = t.InsertUserTopic(ctx, tx, ut, userEmail, requestID)
+		err = t.InsertUserTopic(ctx, tx, &ut, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5340}).Error(err)
@@ -583,7 +584,7 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			err = tx.Rollback()
 			return nil, err
 		}
-		return topic, nil
+		return &topic, nil
 	}
 }
 
@@ -643,12 +644,12 @@ func (t *TopicService) UpdateNumMessages(ctx context.Context, tx *sql.Tx, numMes
 }
 
 // InsertTopic - Insert topic details into database
-func (t *TopicService) InsertTopic(ctx context.Context, tx *sql.Tx, topc Topic, userEmail string, requestID string) (*Topic, error) {
+func (t *TopicService) InsertTopic(ctx context.Context, tx *sql.Tx, topc *Topic, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5342}).Error(err)
-		return nil, err
+		return err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into topics
 	  ( uuid4,
@@ -687,7 +688,7 @@ func (t *TopicService) InsertTopic(ctx context.Context, tx *sql.Tx, topc Topic, 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5343}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		res, err := stmt.ExecContext(ctx,
 			topc.UUID4,
@@ -725,27 +726,27 @@ func (t *TopicService) InsertTopic(ctx context.Context, tx *sql.Tx, topc Topic, 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5344}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5345}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		topc.ID = uint(uID)
 		uuid4Str, err := common.UUIDBytesToStr(topc.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5346}).Error(err)
-			return nil, err
+			return err
 		}
 		topc.IDS = uuid4Str
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5347}).Error(err)
-			return nil, err
+			return err
 		}
-		return &topc, nil
+		return nil
 	}
 }
 
@@ -1170,12 +1171,12 @@ func (t *TopicService) InsertTopicsUser(ctx context.Context, tx *sql.Tx, poh Top
 }
 
 // InsertUserTopic - Insert user topics details into database
-func (t *TopicService) InsertUserTopic(ctx context.Context, tx *sql.Tx, poh UserTopic, userEmail string, requestID string) (*UserTopic, error) {
+func (t *TopicService) InsertUserTopic(ctx context.Context, tx *sql.Tx, poh *UserTopic, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5367}).Error(err)
-		return nil, err
+		return err
 	default:
 		stmt, err := tx.PrepareContext(ctx, `insert into user_topics
 	  (
@@ -1199,7 +1200,7 @@ func (t *TopicService) InsertUserTopic(ctx context.Context, tx *sql.Tx, poh User
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5368}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		res, err := stmt.ExecContext(ctx,
 			poh.UUID4,
@@ -1221,21 +1222,21 @@ func (t *TopicService) InsertUserTopic(ctx context.Context, tx *sql.Tx, poh User
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5369}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5370}).Error(err)
 			err = stmt.Close()
-			return nil, err
+			return err
 		}
 		poh.ID = uint(uID)
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5371}).Error(err)
-			return nil, err
+			return err
 		}
 
-		return &poh, nil
+		return nil
 	}
 }
