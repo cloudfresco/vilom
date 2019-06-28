@@ -42,6 +42,7 @@ func (uc *UgroupController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		uc.processPost(w, r, user, requestID, pathParts)
 	case http.MethodPut:
+		uc.processPut(w, r, user, requestID, pathParts)
 	case http.MethodDelete:
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
@@ -111,6 +112,22 @@ func (uc *UgroupController) processPost(w http.ResponseWriter, r *http.Request, 
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
 		}
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
+}
+
+// processPut - Parse URL for all the put paths and call the controller action
+/*
+ PUT  "/v1/ugroups/{id}"
+*/
+
+func (uc *UgroupController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
+		uc.Update(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -402,5 +419,33 @@ func (uc *UgroupController) GetParent(w http.ResponseWriter, r *http.Request, id
 		}
 
 		common.RenderJSON(w, ugroups)
+	}
+}
+
+// Update - Update Ugroup
+func (uc *UgroupController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+	ctx := r.Context()
+
+	select {
+	case <-ctx.Done():
+		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
+		return
+	default:
+		form := userservices.Ugroup{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&form)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 2014}).Error(err)
+			common.RenderErrorJSON(w, "2014", err.Error(), 402, requestID)
+			return
+		}
+		err = uc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 2015}).Error(err)
+			common.RenderErrorJSON(w, "2015", err.Error(), 402, requestID)
+			return
+		}
+
+		common.RenderJSON(w, "Updated Successfully")
 	}
 }

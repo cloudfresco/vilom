@@ -447,6 +447,82 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 	}
 }
 
+//Update - Update User
+func (u *UserService) Update(ctx context.Context, ID string, form *User, UserID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1592}).Error(err)
+		return err
+	default:
+		user, err := u.GetUser(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1593}).Error(err)
+			return err
+		}
+
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1594}).Error(err)
+			return err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update users set 
+		  first_name = ?,
+      last_name = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where id = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1595}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1596}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		_, err = stmt.ExecContext(ctx,
+			form.FirstName,
+			form.LastName,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			user.ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1597}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1598}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1599}).Error(err)
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1600}).Error(err)
+			return err
+		}
+		return nil
+	}
+}
+
 // InsertUser - Insert User details to database
 func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user *User, hostURL string, requestID string) error {
 	select {

@@ -41,6 +41,7 @@ func (uc *UsersController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		uc.processPost(w, r, user, requestID, pathParts)
 	case http.MethodPut:
+		uc.processPut(w, r, user, requestID, pathParts)
 	case http.MethodDelete:
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
@@ -96,6 +97,22 @@ func (uc *UsersController) processPost(w http.ResponseWriter, r *http.Request, u
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
 	}
+}
+
+// processPut - Parse URL for all the put paths and call the controller action
+/*
+ PUT  "/v1/users/{id}"
+*/
+
+func (uc *UsersController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "users") {
+		uc.Update(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
 }
 
 // Index - Get Users
@@ -274,5 +291,33 @@ func (uc *UsersController) Getuserbyemail(w http.ResponseWriter, r *http.Request
 			return
 		}
 		common.RenderJSON(w, usr)
+	}
+}
+
+// Update - Update User
+func (uc *UsersController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+	ctx := r.Context()
+
+	select {
+	case <-ctx.Done():
+		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
+		return
+	default:
+		form := userservices.User{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&form)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 1310}).Error(err)
+			common.RenderErrorJSON(w, "1310", err.Error(), 402, requestID)
+			return
+		}
+		err = uc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 1311}).Error(err)
+			common.RenderErrorJSON(w, "1311", err.Error(), 402, requestID)
+			return
+		}
+
+		common.RenderJSON(w, "Updated Successfully")
 	}
 }

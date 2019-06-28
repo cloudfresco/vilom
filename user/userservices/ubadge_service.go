@@ -273,6 +273,82 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 	}
 }
 
+//Update - Update Ubadge
+func (u *UbadgeService) Update(ctx context.Context, ID string, form *Ubadge, UserID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3358}).Error(err)
+		return err
+	default:
+		ubadge, err := u.GetUbadge(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3359}).Error(err)
+			return err
+		}
+
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3360}).Error(err)
+			return err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update ubadges set 
+		  ubadge_name = ?,
+      ubadge_desc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where id = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3361}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3362}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		_, err = stmt.ExecContext(ctx,
+			form.UbadgeName,
+			form.UbadgeDesc,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			ubadge.ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3363}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3364}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3365}).Error(err)
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3366}).Error(err)
+			return err
+		}
+		return nil
+	}
+}
+
 // InsertUbadge - Insert Ubadge details into database
 func (u *UbadgeService) InsertUbadge(ctx context.Context, tx *sql.Tx, Ubadge *Ubadge, userEmail string, requestID string) error {
 	select {
