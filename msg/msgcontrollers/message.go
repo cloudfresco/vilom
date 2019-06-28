@@ -40,6 +40,7 @@ func (mc *MessageController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		mc.processPost(w, r, user, requestID, pathParts)
 	case http.MethodPut:
+		mc.processPut(w, r, user, requestID, pathParts)
 	case http.MethodDelete:
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
@@ -83,6 +84,22 @@ func (mc *MessageController) processPost(w http.ResponseWriter, r *http.Request,
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
 	}
+}
+
+// processPut - Parse URL for all the put paths and call the controller action
+/*
+ PUT  "/v1/messages/{id}"
+*/
+
+func (mc *MessageController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
+		mc.Update(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
 }
 
 // Show - used to view message
@@ -158,5 +175,33 @@ func (mc *MessageController) UserLikeCreate(w http.ResponseWriter, r *http.Reque
 		}
 
 		common.RenderJSON(w, msg)
+	}
+}
+
+// Update - Update Message
+func (mc *MessageController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+	ctx := r.Context()
+
+	select {
+	case <-ctx.Done():
+		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
+		return
+	default:
+		form := msgservices.Message{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&form)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6001}).Error(err)
+			common.RenderErrorJSON(w, "6005", err.Error(), 402, requestID)
+			return
+		}
+		err = mc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6002}).Error(err)
+			common.RenderErrorJSON(w, "6006", err.Error(), 402, requestID)
+			return
+		}
+
+		common.RenderJSON(w, "Updated Successfully")
 	}
 }
