@@ -42,6 +42,7 @@ func (mc *MessageController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		mc.processPut(w, r, user, requestID, pathParts)
 	case http.MethodDelete:
+		mc.processDelete(w, r, user, requestID, pathParts)
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -95,6 +96,22 @@ func (mc *MessageController) processPut(w http.ResponseWriter, r *http.Request, 
 
 	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
 		mc.Update(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
+}
+
+// processDelete - Parse URL for all the delete paths and call the controller action
+/*
+ DELETE  "/v1/messages/{id}"
+*/
+
+func (mc *MessageController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
+		mc.Delete(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -191,17 +208,37 @@ func (mc *MessageController) Update(w http.ResponseWriter, r *http.Request, id s
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
-			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6001}).Error(err)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6005}).Error(err)
 			common.RenderErrorJSON(w, "6005", err.Error(), 402, requestID)
 			return
 		}
 		err = mc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
-			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6002}).Error(err)
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6006}).Error(err)
 			common.RenderErrorJSON(w, "6006", err.Error(), 402, requestID)
 			return
 		}
 
 		common.RenderJSON(w, "Updated Successfully")
+	}
+}
+
+// Delete - delete message
+func (mc *MessageController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+	ctx := r.Context()
+
+	select {
+	case <-ctx.Done():
+		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
+		return
+	default:
+		err := mc.Service.Delete(ctx, id, user.Email, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6007}).Error(err)
+			common.RenderErrorJSON(w, "6007", err.Error(), 402, requestID)
+			return
+		}
+
+		common.RenderJSON(w, "Deleted Successfully")
 	}
 }

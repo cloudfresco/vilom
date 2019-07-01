@@ -1318,3 +1318,75 @@ func (t *MessageService) GetMessageAttachments(ctx context.Context, messageID ui
 	}
 	return messageAttachments, nil
 }
+
+// Delete - Delete message
+func (t *MessageService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6392}).Error(err)
+		return err
+	default:
+		uuid4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6393}).Error(err)
+			return err
+		}
+		db := t.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6394}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update messages set 
+		  statusc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where uuid4= ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6395}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			common.Inactive,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			uuid4byte)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6396}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6397}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6398}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6399}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
+	}
+}

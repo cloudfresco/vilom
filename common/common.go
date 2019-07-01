@@ -37,6 +37,9 @@ type StatusDates struct {
 // Active - value of status
 const Active = 1
 
+// Inactive - value of status
+const Inactive = 0
+
 // Error - used for
 type Error struct {
 	ErrorCode      string `json:"error_code"`

@@ -1316,3 +1316,75 @@ func (t *TopicService) InsertUserTopic(ctx context.Context, tx *sql.Tx, poh *Use
 		return nil
 	}
 }
+
+// Delete - Delete topic
+func (t *TopicService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5376}).Error(err)
+		return err
+	default:
+		uuid4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5377}).Error(err)
+			return err
+		}
+		db := t.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5378}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update topics set 
+		  statusc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where uuid4= ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			common.Inactive,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			uuid4byte)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5380}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5381}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5382}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5383}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
+	}
+}

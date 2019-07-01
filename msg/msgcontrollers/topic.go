@@ -42,6 +42,7 @@ func (tc *TopicController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		tc.processPut(w, r, user, requestID, pathParts)
 	case http.MethodDelete:
+		tc.processDelete(w, r, user, requestID, pathParts)
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -95,6 +96,22 @@ func (tc *TopicController) processPut(w http.ResponseWriter, r *http.Request, us
 
 	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
 		tc.Update(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
+}
+
+// processDelete - Parse URL for all the delete paths and call the controller action
+/*
+ DELETE  "/v1/topics/{id}"
+*/
+
+func (tc *TopicController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
+		tc.Delete(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -193,16 +210,36 @@ func (tc *TopicController) Update(w http.ResponseWriter, r *http.Request, id str
 		err := decoder.Decode(&form)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5005}).Error(err)
-			common.RenderErrorJSON(w, "6005", err.Error(), 402, requestID)
+			common.RenderErrorJSON(w, "5005", err.Error(), 402, requestID)
 			return
 		}
 		err = tc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5006}).Error(err)
-			common.RenderErrorJSON(w, "6006", err.Error(), 402, requestID)
+			common.RenderErrorJSON(w, "5006", err.Error(), 402, requestID)
 			return
 		}
 
 		common.RenderJSON(w, "Updated Successfully")
+	}
+}
+
+// Delete - delete topic
+func (tc *TopicController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+	ctx := r.Context()
+
+	select {
+	case <-ctx.Done():
+		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
+		return
+	default:
+		err := tc.Service.Delete(ctx, id, user.Email, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5007}).Error(err)
+			common.RenderErrorJSON(w, "5007", err.Error(), 402, requestID)
+			return
+		}
+
+		common.RenderJSON(w, "Deleted Successfully")
 	}
 }
