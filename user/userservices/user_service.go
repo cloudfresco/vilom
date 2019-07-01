@@ -1485,6 +1485,78 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 	}
 }
 
+// Delete - Delete user
+func (u *UserService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1601}).Error(err)
+		return err
+	default:
+		uuid4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1602}).Error(err)
+			return err
+		}
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1603}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update users set 
+		  statusc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where uuid4= ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1604}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			common.Inactive,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			uuid4byte)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1605}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1606}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1607}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1608}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
+	}
+}
+
 // GetUserByEmail - Get user details by email
 func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmail string, requestID string) (*User, error) {
 	select {

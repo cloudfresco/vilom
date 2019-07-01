@@ -685,14 +685,29 @@ func (u *UgroupService) Delete(ctx context.Context, ID string, userEmail string,
 			err = tx.Rollback()
 			return err
 		}
-		stmt, err := tx.PrepareContext(ctx, "delete from ugroups where uuid4= ?;")
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
+		  statusc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where uuid4= ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2341}).Error(err)
 			err = tx.Rollback()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx, uuid4byte)
+		_, err = stmt.ExecContext(ctx,
+			common.Inactive,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			uuid4byte)
+
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2342}).Error(err)
 			err = stmt.Close()

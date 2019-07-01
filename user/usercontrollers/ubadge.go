@@ -44,6 +44,7 @@ func (uc *UbadgeController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		uc.processPut(w, r, user, requestID, pathParts)
 	case http.MethodDelete:
+		uc.processDelete(w, r, user, requestID, pathParts)
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -73,7 +74,6 @@ func (uc *UbadgeController) processGet(w http.ResponseWriter, r *http.Request, u
 // processPost - Parse URL for all the POST paths and call the controller action
 /*
  POST  "/v1/ubadges/add"
- POST  "/v1/ubadges/{id}/delete"
  POST  "/v1/ubadges/{id}/adduser"
  POST  "/v1/ubadges/{id}/deleteuser"
 */
@@ -88,9 +88,7 @@ func (uc *UbadgeController) processPost(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 	} else if (len(pathParts) == 4) && (pathParts[1] == "ubadges") {
-		if pathParts[3] == "delete" {
-			uc.Delete(w, r, pathParts[2], user, requestID)
-		} else if pathParts[3] == "adduser" {
+		if pathParts[3] == "adduser" {
 			uc.AddUserToGroup(w, r, pathParts[2], user, requestID)
 		} else if pathParts[3] == "deleteuser" {
 			uc.DeleteUserFromGroup(w, r, pathParts[2], user, requestID)
@@ -113,6 +111,22 @@ func (uc *UbadgeController) processPut(w http.ResponseWriter, r *http.Request, u
 
 	if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
 		uc.Update(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
+}
+
+// processDelete - Parse URL for all the delete paths and call the controller action
+/*
+ DELETE  "/v1/ubadges/{id}"
+*/
+
+func (uc *UbadgeController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
+		uc.Delete(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return

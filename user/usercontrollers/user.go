@@ -43,6 +43,7 @@ func (uc *UsersController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		uc.processPut(w, r, user, requestID, pathParts)
 	case http.MethodDelete:
+		uc.processDelete(w, r, user, requestID, pathParts)
 	default:
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -108,6 +109,22 @@ func (uc *UsersController) processPut(w http.ResponseWriter, r *http.Request, us
 
 	if (len(pathParts) == 3) && (pathParts[1] == "users") {
 		uc.Update(w, r, pathParts[2], user, requestID)
+	} else {
+		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
+		return
+	}
+
+}
+
+// processDelete - Parse URL for all the delete paths and call the controller action
+/*
+ DELETE  "/v1/users/{id}"
+*/
+
+func (uc *UsersController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+
+	if (len(pathParts) == 3) && (pathParts[1] == "users") {
+		uc.Delete(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -319,5 +336,25 @@ func (uc *UsersController) Update(w http.ResponseWriter, r *http.Request, id str
 		}
 
 		common.RenderJSON(w, "Updated Successfully")
+	}
+}
+
+// Delete - delete user
+func (uc *UsersController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+	ctx := r.Context()
+
+	select {
+	case <-ctx.Done():
+		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
+		return
+	default:
+		err := uc.Service.Delete(ctx, id, user.Email, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 1312}).Error(err)
+			common.RenderErrorJSON(w, "1312", err.Error(), 402, requestID)
+			return
+		}
+
+		common.RenderJSON(w, "Deleted Successfully")
 	}
 }

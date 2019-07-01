@@ -443,7 +443,14 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string, userEmail string,
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3325}).Error(err)
 			return err
 		}
-		stmt, err := tx.PrepareContext(ctx, "delete from ubadges where uuid4= ?;")
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update ubadges set 
+		  statusc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where uuid4= ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3326}).Error(err)
 			err = stmt.Close()
@@ -456,7 +463,15 @@ func (u *UbadgeService) Delete(ctx context.Context, ID string, userEmail string,
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx, uuid4byte)
+		_, err = stmt.ExecContext(ctx,
+			common.Inactive,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			uuid4byte)
+
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3354}).Error(err)
 			err = stmt.Close()
