@@ -204,7 +204,7 @@ func (t *TopicService) UpdateTopicUsers(ctx context.Context, tx *sql.Tx, numMess
 					updated_day = ?, 
 					updated_week = ?, 
 					updated_month = ?, 
-					updated_year = ? where id = ?;`)
+					updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5304}).Error(err)
 			err = stmt.Close()
@@ -225,7 +225,8 @@ func (t *TopicService) UpdateTopicUsers(ctx context.Context, tx *sql.Tx, numMess
 			tnweek,
 			tnmonth,
 			tnyear,
-			topicsuserID)
+			topicsuserID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5305}).Error(err)
 			err = stmt.Close()
@@ -603,7 +604,7 @@ func (t *TopicService) UpdateNumMessages(ctx context.Context, tx *sql.Tx, numMes
 			updated_day = ?, 
 			updated_week = ?, 
 			updated_month = ?, 
-			updated_year = ? where id = ?;`)
+			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5334}).Error(err)
 			err = stmt.Close()
@@ -622,7 +623,8 @@ func (t *TopicService) UpdateNumMessages(ctx context.Context, tx *sql.Tx, numMes
 			tnweek,
 			tnmonth,
 			tnyear,
-			ID)
+			ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5335}).Error(err)
 			err = stmt.Close()
@@ -672,7 +674,7 @@ func (t *TopicService) Update(ctx context.Context, ID string, form *Topic, UserI
 			updated_day = ?, 
 			updated_week = ?, 
 			updated_month = ?, 
-			updated_year = ? where id = ?;`)
+			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5385}).Error(err)
 			err = stmt.Close()
@@ -692,7 +694,8 @@ func (t *TopicService) Update(ctx context.Context, ID string, form *Topic, UserI
 			tnweek,
 			tnmonth,
 			tnyear,
-			topic.ID)
+			topic.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5387}).Error(err)
 			err = stmt.Close()
@@ -866,7 +869,7 @@ func (t *TopicService) GetTopicByID(ctx context.Context, ID uint, userEmail stri
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics where id = ?`, ID)
+		updated_year from topics where id = ? and statusc = ?`, ID, common.Active)
 
 		err := row.Scan(
 			&poh.ID,
@@ -961,7 +964,7 @@ func (t *TopicService) GetTopic(ctx context.Context, ID string, userEmail string
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics where uuid4 = ?`, uuid4byte)
+		updated_year from topics where uuid4 = ? and statusc = ?`, uuid4byte, common.Active)
 
 		err = row.Scan(
 			&poh.ID,
@@ -1051,7 +1054,7 @@ func (t *TopicService) GetTopicByName(ctx context.Context, topicname string, use
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics where topic_name = ?`, topicname)
+		updated_year from topics where topic_name = ? and statusc = ?`, topicname, common.Active)
 
 		err := row.Scan(
 			&poh.ID,
@@ -1128,7 +1131,7 @@ func (t *TopicService) GetTopicsUser(ctx context.Context, ID uint, UserID uint, 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics_users where topic_id = ? and user_id = ?`, ID, UserID)
+		updated_year from topics_users where topic_id = ? and user_id = ? and statusc = ?`, ID, UserID, common.Active)
 
 		err := row.Scan(
 			&poh.ID,

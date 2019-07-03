@@ -85,12 +85,12 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 		if limit == "" {
 			limit = u.LimitDefault
 		}
-		query := ""
+		query := "(statusc = ?)"
 		if nextCursor == "" {
 			query = query + " order by id desc " + " limit " + limit + ";"
 		} else {
 			nextCursor = common.DecodeCursor(nextCursor)
-			query = query + "where " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
+			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 		}
 
 		ugroups := []*Ugroup{}
@@ -112,7 +112,7 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from ugroups `+query)
+			updated_year from ugroups where `+query, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2301}).Error(err)
 		}
@@ -324,7 +324,7 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 					updated_day = ?, 
 					updated_week = ?, 
 					updated_month = ?, 
-					updated_year = ? where id = ?;`)
+					updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2318}).Error(err)
 			err = stmt.Close()
@@ -344,7 +344,8 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 			UpdatedWeek,
 			UpdatedMonth,
 			UpdatedYear,
-			parent.ID)
+			parent.ID,
+			common.Active)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2319}).Error(err)
@@ -473,7 +474,7 @@ func (u *UgroupService) Update(ctx context.Context, ID string, form *Ugroup, Use
 			updated_day = ?, 
 			updated_week = ?, 
 			updated_month = ?, 
-			updated_year = ? where id = ?;`)
+			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2397}).Error(err)
 			err = stmt.Close()
@@ -493,7 +494,8 @@ func (u *UgroupService) Update(ctx context.Context, ID string, form *Ugroup, Use
 			tnweek,
 			tnmonth,
 			tnyear,
-			ugroup.ID)
+			ugroup.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2399}).Error(err)
 			err = stmt.Close()
@@ -941,7 +943,7 @@ func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string, userEmail 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ugroups where uuid4 = ?;`, uuid4byte)
+		updated_year from ugroups where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
 
 		err = row.Scan(
 			&ug.ID,
@@ -1005,7 +1007,7 @@ func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint, userEmai
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ugroups where id = ?;`, ID)
+		updated_year from ugroups where id = ? and statusc = ?;`, ID, common.Active)
 
 		err := row.Scan(
 			&ug.ID,
@@ -1285,7 +1287,7 @@ func (u *UgroupService) TopLevelUgroups(ctx context.Context, userEmail string, r
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ugroups where ((levelc = 0) and (statusc = 1))`)
+		updated_year from ugroups where where levelc = ? and statusc = ?;`, 0, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2380}).Error(err)
 			return nil, err
@@ -1366,7 +1368,7 @@ func (u *UgroupService) GetParent(ctx context.Context, ID string, userEmail stri
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ugroups where id = ?;`, ugroup.ParentID)
+		updated_year from ugroups where id = ? and statusc = ?;`, ugroup.ParentID, common.Active)
 
 		err = row.Scan(
 			&ug.ID,

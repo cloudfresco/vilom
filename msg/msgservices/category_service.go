@@ -77,7 +77,7 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 		if limit == "" {
 			limit = c.LimitDefault
 		}
-		query := "(levelc = ?)"
+		query := "(levelc = ? and statusc = ?)"
 		if nextCursor == "" {
 			query = query + " order by id desc " + " limit " + limit + ";"
 		} else {
@@ -108,7 +108,7 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where `+query, 0)
+			updated_year from categories where `+query, 0, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4301}).Error(err)
 			return nil, err
@@ -212,7 +212,7 @@ func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail 
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where uuid4 = ?;`, uuid4byte)
+			updated_year from categories where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
 
 		err = row.Scan(
 			&cat.ID,
@@ -284,7 +284,7 @@ func (c *CategoryService) GetCategoryByID(ctx context.Context, ID uint, userEmai
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where id = ?;`, ID)
+			updated_year from categories where id = ? and statusc = ?;`, ID, common.Active)
 
 		err := row.Scan(
 			&cat.ID,
@@ -351,7 +351,7 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, form *Category, ID
 					updated_day = ?, 
 					updated_week = ?, 
 					updated_month = ?, 
-					updated_year = ? where uuid4 = ?;`)
+					updated_year = ? where uuid4 = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4315}).Error(err)
 			err = stmt.Close()
@@ -365,7 +365,8 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, form *Category, ID
 			UpdatedWeek,
 			UpdatedMonth,
 			UpdatedYear,
-			uuid4byte)
+			uuid4byte,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4316}).Error(err)
 			err = stmt.Close()
@@ -478,7 +479,7 @@ func (c *CategoryService) Update(ctx context.Context, ID string, form *Category,
 			updated_day = ?, 
 			updated_week = ?, 
 			updated_month = ?, 
-			updated_year = ? where id = ?;`)
+			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4379}).Error(err)
 			err = stmt.Close()
@@ -498,7 +499,8 @@ func (c *CategoryService) Update(ctx context.Context, ID string, form *Category,
 			tnweek,
 			tnmonth,
 			tnyear,
-			category.ID)
+			category.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4381}).Error(err)
 			err = stmt.Close()
@@ -923,7 +925,7 @@ func (c *CategoryService) UpdateParentCategory(ctx context.Context, tx *sql.Tx, 
 					updated_day = ?, 
 					updated_week = ?, 
 					updated_month = ?, 
-					updated_year = ? where id = ?;`)
+					updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4345}).Error(err)
 			err = stmt.Close()
@@ -943,7 +945,8 @@ func (c *CategoryService) UpdateParentCategory(ctx context.Context, tx *sql.Tx, 
 			tnweek,
 			tnmonth,
 			tnyear,
-			parentID)
+			parentID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4346}).Error(err)
 			err = stmt.Close()
@@ -974,7 +977,7 @@ func (c *CategoryService) UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTo
 		updated_day = ?, 
 		updated_week = ?, 
 		updated_month = ?, 
-		updated_year = ? where id = ?;`)
+		updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5327}).Error(err)
 			err = stmt.Close()
@@ -993,7 +996,8 @@ func (c *CategoryService) UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTo
 			tnweek,
 			tnmonth,
 			tnyear,
-			ID)
+			ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5328}).Error(err)
 			err = stmt.Close()
@@ -1116,7 +1120,7 @@ func (c *CategoryService) GetTopLevelCategories(ctx context.Context, userEmail s
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where levelc = ? and statusc = ?;`, 0, 1)
+			updated_year from categories where levelc = ? and statusc = ?;`, 0, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4354}).Error(err)
 			return nil, err
@@ -1294,7 +1298,7 @@ func (c *CategoryService) GetParentCategory(ctx context.Context, ID string, user
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where id = ?;`, category.ParentID)
+			updated_year from categories where id = ? and statusc = ?;`, category.ParentID, common.Active)
 
 		err = row.Scan(
 			&cat.ID,

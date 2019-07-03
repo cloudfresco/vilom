@@ -71,12 +71,12 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 		if limit == "" {
 			limit = u.LimitDefault
 		}
-		query := ""
+		query := "(statusc = ?)"
 		if nextCursor == "" {
 			query = query + " order by id desc " + " limit " + limit + ";"
 		} else {
 			nextCursor = common.DecodeCursor(nextCursor)
-			query = query + "where " + "id <= " + nextCursor + " order by id desc " + "limit " + limit + ";"
+			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 		}
 
 		ubadges := []*Ubadge{}
@@ -95,7 +95,7 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from ubadges `+query)
+			updated_year from ubadges where `+query, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3301}).Error(err)
 			return nil, err
@@ -302,7 +302,7 @@ func (u *UbadgeService) Update(ctx context.Context, ID string, form *Ubadge, Use
 			updated_day = ?, 
 			updated_week = ?, 
 			updated_month = ?, 
-			updated_year = ? where id = ?;`)
+			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3361}).Error(err)
 			err = stmt.Close()
@@ -322,7 +322,8 @@ func (u *UbadgeService) Update(ctx context.Context, ID string, form *Ubadge, Use
 			tnweek,
 			tnmonth,
 			tnyear,
-			ubadge.ID)
+			ubadge.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3363}).Error(err)
 			err = stmt.Close()
@@ -693,7 +694,7 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ubadges where uuid4 = ?;`, uuid4byte)
+		updated_year from ubadges where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
 
 		err = row.Scan(
 			&Ubadge.ID,

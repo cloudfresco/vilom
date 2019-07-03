@@ -525,7 +525,7 @@ func (t *MessageService) Update(ctx context.Context, ID string, form *Message, U
 			updated_day = ?, 
 			updated_week = ?, 
 			updated_month = ?, 
-			updated_year = ? where message_id = ?;`)
+			updated_year = ? where message_id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6386}).Error(err)
 			err = stmt.Close()
@@ -544,7 +544,8 @@ func (t *MessageService) Update(ctx context.Context, ID string, form *Message, U
 			tnweek,
 			tnmonth,
 			tnyear,
-			msg.ID)
+			msg.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6388}).Error(err)
 			err = stmt.Close()
@@ -1065,7 +1066,7 @@ func (t *MessageService) GetMessage(ctx context.Context, ID string, userEmail st
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from messages where uuid4 = ?;`, uuid4byte)
+			updated_year from messages where uuid4 = ? and statusc = ? ;`, uuid4byte, common.Active)
 
 		err = row.Scan(
 			&msg.ID,
@@ -1207,7 +1208,7 @@ func (t *MessageService) GetMessagesTexts(ctx context.Context, messageID uint, u
 				updated_day,
 				updated_week,
 				updated_month,
-				updated_year from message_texts where message_id = ?`, messageID)
+				updated_year from message_texts where message_id = ? and statusc = ?`, messageID, common.Active)
 
 	if err != nil {
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6372}).Error(err)
@@ -1275,7 +1276,7 @@ func (t *MessageService) GetMessageAttachments(ctx context.Context, messageID ui
 				updated_day,
 				updated_week,
 				updated_month,
-				updated_year from message_attachments where message_id = ?`, messageID)
+				updated_year from message_attachments where message_id = ? and statusc = ?`, messageID, common.Active)
 
 	if err != nil {
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6375}).Error(err)

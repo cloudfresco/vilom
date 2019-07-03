@@ -151,15 +151,15 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 		if limit == "" {
 			limit = u.LimitDefault
 		}
-		query := ""
+		query := "(statusc = ?)"
 		if nextCursor == "" {
 			query = query + " order by id desc " + " limit " + limit + ";"
 		} else {
 			nextCursor = common.DecodeCursor(nextCursor)
-			query = query + "where " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
+			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 		}
 		users := []*User{}
-		rows, err := u.Db.QueryContext(ctx, `select id, uuid4, auth_token, first_name, last_name, email, role from users `+query)
+		rows, err := u.Db.QueryContext(ctx, `select id, uuid4, auth_token, first_name, last_name, email, role from users where `+query, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -235,7 +235,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 	default:
 		db := u.Db
 		user := User{}
-		row := db.QueryRowContext(ctx, `select id, email, password from users where email = ?;`, form.Email)
+		row := db.QueryRowContext(ctx, `select id, email, password from users where email = ? and statusc = ?;`, form.Email, common.Active)
 		err := row.Scan(
 			&user.ID,
 			&user.Email,
@@ -476,7 +476,7 @@ func (u *UserService) Update(ctx context.Context, ID string, form *User, UserID 
 			updated_day = ?, 
 			updated_week = ?, 
 			updated_month = ?, 
-			updated_year = ? where id = ?;`)
+			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1595}).Error(err)
 			err = stmt.Close()
@@ -496,7 +496,8 @@ func (u *UserService) Update(ctx context.Context, ID string, form *User, UserID 
 			tnweek,
 			tnmonth,
 			tnyear,
-			user.ID)
+			user.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1597}).Error(err)
 			err = stmt.Close()
@@ -734,7 +735,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 			return err
 		}
 		user := User{}
-		row := db.QueryRowContext(ctx, `select id, email_selector, email_verifier, email_token_expiry from users where email_selector = ?;`, selector)
+		row := db.QueryRowContext(ctx, `select id, email_selector, email_verifier, email_token_expiry from users where email_selector = ? and statusc = ?;`, selector, common.Active)
 
 		err = row.Scan(
 			&user.ID,
@@ -879,7 +880,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 				updated_day = ?, 
 				updated_week = ?, 
 				updated_month = ?, 
-				updated_year = ? where id= ?;`)
+				updated_year = ? where id= ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -901,7 +902,8 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 			UpdatedWeek,
 			UpdatedMonth,
 			UpdatedYear,
-			user.ID)
+			user.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1143,7 +1145,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 		}
 		db := u.Db
 		user := User{}
-		row := db.QueryRowContext(ctx, `select id, password from users where uuid4 = ?;`, uuid4byte)
+		row := db.QueryRowContext(ctx, `select id, password from users where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
 		err = row.Scan(
 			&user.ID,
 			&user.Password)
@@ -1284,7 +1286,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 				updated_day = ?, 
 				updated_week = ?, 
 				updated_month = ?, 
-				updated_year = ? where id= ?;`)
+				updated_year = ? where id= ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -1307,7 +1309,8 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			UpdatedWeek,
 			UpdatedMonth,
 			UpdatedYear,
-			user.ID)
+			user.ID,
+			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -1393,7 +1396,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 			return err
 		}
 		user := User{}
-		row := db.QueryRowContext(ctx, `select id, email, new_email, new_email_selector, new_email_verifier, new_email_token_expiry from users where new_email_selector = ?;`, selector)
+		row := db.QueryRowContext(ctx, `select id, email, new_email, new_email_selector, new_email_verifier, new_email_token_expiry from users where new_email_selector = ? and statusc = ?;`, selector, common.Active)
 
 		err = row.Scan(
 			&user.ID,
@@ -1590,7 +1593,7 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmai
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from users where email = ?;`, Email)
+		updated_year from users where email = ? and statusc = ?;`, Email, common.Active)
 
 		err := row.Scan(
 			&user.ID,
@@ -1669,7 +1672,7 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from users where uuid4 = ?;`, uuid4byte)
+		updated_year from users where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
 
 		err = row.Scan(
 			&user.ID,
