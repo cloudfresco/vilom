@@ -4,16 +4,13 @@ import (
 	"crypto/rand"
 	"crypto/sha512"
 	"crypto/subtle"
-	"database/sql"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -61,79 +58,6 @@ func GetAuthBearerToken(r *http.Request) (string, error) {
 		return "", errors.New("APIkey Not Found ")
 	}
 	return APIkey, nil
-}
-
-// GetAuthUserDetails - used for fetching redis details
-// In AuthMiddleware, we are setting the Email and Auth Token in the
-// request context
-// These are extracted from the  request context here, into ContextStruct
-// Then we check if this auth token has been stored in Redis
-// (the Redis key is the auth token)
-// If the auth token has not been stored in Redis, we run a query
-// to get the details of the user from the db, and store then in Redis
-// for future requests to use
-func GetAuthUserDetails(r *http.Request, redisClient *redis.Client, db *sql.DB) (*ContextData, string, error) {
-	data := r.Context().Value(KeyEmailToken).(ContextStruct)
-	resp, err := redisClient.Get(data.TokenString).Result()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 268,
-		}).Error(err)
-	}
-	v := ContextData{}
-	if resp == "" {
-		user := User{}
-		row := db.QueryRow(`select id, uuid4, email, role from users where email = ?;`, data.Email)
-		err = row.Scan(&user.ID, &user.UUID4, &user.Email, &user.Role)
-		if user.ID == 0 {
-			log.WithFields(log.Fields{
-				"msgnum": 261,
-			}).Error("User not found")
-			return nil, "", errors.New("User not found")
-		}
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 262,
-			}).Error(err)
-			return nil, "", errors.New("User not found")
-		}
-		IDS, err := UUIDBytesToStr(user.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 263,
-			}).Error(err)
-			return nil, "", errors.New("User not found")
-		}
-		v.Email = user.Email
-		v.UserID = IDS
-		roles := []string{}
-		if user.Role != "" {
-			roles = append(roles, user.Role)
-		}
-		v.Roles = roles
-		usr, err := json.Marshal(v)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 264,
-			}).Error(err)
-			return nil, "", errors.New("User not found")
-		}
-		err = redisClient.Set(data.TokenString, usr, 0).Err()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 265,
-			}).Error(err)
-			return nil, "", errors.New("User not found")
-		}
-	} else {
-		err = json.Unmarshal([]byte(resp), &v)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 266,
-			}).Error(err)
-		}
-	}
-	return &v, GetRequestID(), nil
 }
 
 // HashPassword - Generate hash password

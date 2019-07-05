@@ -8,22 +8,27 @@ import (
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/search/searchservices"
+	"github.com/cloudfresco/vilom/user/userservices"
 )
 
 /* error message range: 7000-7299 */
 
 // SearchController - Create Search Controller
 type SearchController struct {
-	Service *searchservices.SearchService
+	Service  searchservices.SearchServiceIntf
+	Serviceu userservices.UserServiceIntf
 }
 
 // NewSearchController - Create Search Handler
-func NewSearchController(s *searchservices.SearchService) *SearchController {
-	return &SearchController{s}
+func NewSearchController(s searchservices.SearchServiceIntf, su userservices.UserServiceIntf) *SearchController {
+	return &SearchController{
+		Service:  s,
+		Serviceu: su,
+	}
 }
 
 func (sc *SearchController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, requestID, err := common.GetAuthUserDetails(r, sc.Service.RedisClient, sc.Service.Db)
+	user, requestID, err := sc.Serviceu.GetAuthUserDetails(r)
 	if err != nil {
 		common.RenderErrorJSON(w, "1001", err.Error(), 401, requestID)
 		return

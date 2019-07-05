@@ -15,17 +15,21 @@ import (
 
 // UgroupController - Create Ugroup Controller
 type UgroupController struct {
-	Service *userservices.UgroupService
+	Service  userservices.UgroupServiceIntf
+	Serviceu userservices.UserServiceIntf
 }
 
 // NewUgroupController - Create Ugroup Handler
-func NewUgroupController(s *userservices.UgroupService) *UgroupController {
-	return &UgroupController{s}
+func NewUgroupController(s userservices.UgroupServiceIntf, su userservices.UserServiceIntf) *UgroupController {
+	return &UgroupController{
+		Service:  s,
+		Serviceu: su,
+	}
 }
 
 // ServeHTTP - parse url and call controller action
 func (uc *UgroupController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, requestID, err := common.GetAuthUserDetails(r, uc.Service.RedisClient, uc.Service.Db)
+	user, requestID, err := uc.Serviceu.GetAuthUserDetails(r)
 	if err != nil {
 		common.RenderErrorJSON(w, "1001", err.Error(), 401, requestID)
 		return

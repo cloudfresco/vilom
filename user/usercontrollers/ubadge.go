@@ -15,17 +15,21 @@ import (
 
 // UbadgeController - Create Ubadge Controller
 type UbadgeController struct {
-	Service *userservices.UbadgeService
+	Service  userservices.UbadgeServiceIntf
+	Serviceu userservices.UserServiceIntf
 }
 
 // NewUbadgeController - Create Ubadge Handler
-func NewUbadgeController(s *userservices.UbadgeService) *UbadgeController {
-	return &UbadgeController{s}
+func NewUbadgeController(s userservices.UbadgeServiceIntf, su userservices.UserServiceIntf) *UbadgeController {
+	return &UbadgeController{
+		Service:  s,
+		Serviceu: su,
+	}
 }
 
 // ServeHTTP - parse url and call controller action
 func (uc *UbadgeController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, requestID, err := common.GetAuthUserDetails(r, uc.Service.RedisClient, uc.Service.Db)
+	user, requestID, err := uc.Serviceu.GetAuthUserDetails(r)
 	if err != nil {
 		common.RenderErrorJSON(w, "1001", err.Error(), 401, requestID)
 		return

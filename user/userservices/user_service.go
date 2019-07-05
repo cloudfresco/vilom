@@ -3,7 +3,9 @@ package userservices
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -114,6 +116,7 @@ type UserServiceIntf interface {
 	ChangePassword(ctx context.Context, form *PasswordForm, userEmail string, requestID string) error
 	ChangeEmail(ctx context.Context, form *ChangeEmailForm, hostURL string, userEmail string, requestID string) error
 	ConfirmChangeEmail(ctx context.Context, token string, requestID string) error
+	GetAuthUserDetails(r *http.Request) (*common.ContextData, string, error)
 }
 
 // UserService - For accessing user services
@@ -1730,4 +1733,77 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 
 		return nil
 	}
+}
+
+// GetAuthUserDetails - used for fetching redis details
+// In AuthMiddleware, we are setting the Email and Auth Token in the
+// request context
+// These are extracted from the  request context here, into ContextStruct
+// Then we check if this auth token has been stored in Redis
+// (the Redis key is the auth token)
+// If the auth token has not been stored in Redis, we run a query
+// to get the details of the user from the db, and store then in Redis
+// for future requests to use
+func (u *UserService) GetAuthUserDetails(r *http.Request) (*common.ContextData, string, error) {
+	data := r.Context().Value(common.KeyEmailToken).(common.ContextStruct)
+	resp, err := u.RedisClient.Get(data.TokenString).Result()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 268,
+		}).Error(err)
+	}
+	v := common.ContextData{}
+	if resp == "" {
+		user := User{}
+		row := u.Db.QueryRow(`select id, uuid4, email, role from users where email = ?;`, data.Email)
+		err = row.Scan(&user.ID, &user.UUID4, &user.Email, &user.Role)
+		if user.ID == 0 {
+			log.WithFields(log.Fields{
+				"msgnum": 261,
+			}).Error("User not found")
+			return nil, "", errors.New("User not found")
+		}
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 262,
+			}).Error(err)
+			return nil, "", errors.New("User not found")
+		}
+		IDS, err := common.UUIDBytesToStr(user.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 263,
+			}).Error(err)
+			return nil, "", errors.New("User not found")
+		}
+		v.Email = user.Email
+		v.UserID = IDS
+		roles := []string{}
+		if user.Role != "" {
+			roles = append(roles, user.Role)
+		}
+		v.Roles = roles
+		usr, err := json.Marshal(v)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 264,
+			}).Error(err)
+			return nil, "", errors.New("User not found")
+		}
+		err = u.RedisClient.Set(data.TokenString, usr, 0).Err()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 265,
+			}).Error(err)
+			return nil, "", errors.New("User not found")
+		}
+	} else {
+		err = json.Unmarshal([]byte(resp), &v)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 266,
+			}).Error(err)
+		}
+	}
+	return &v, common.GetRequestID(), nil
 }

@@ -32,12 +32,7 @@ type BleveForm struct {
 
 // SearchServiceIntf - interface for Search Service
 type SearchServiceIntf interface {
-	InitSearch(p string, db *sql.DB) bleve.Index
-	BuildIndexMapping() (mapping.IndexMapping, error)
-	IndexTopics(db *sql.DB, index bleve.Index) error
 	Search(form *BleveForm, userEmail string, requestID string) (*bleve.SearchResult, error)
-	GetMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, error)
-	GetTopics(db *sql.DB) ([]*msgservices.Topic, error)
 }
 
 // SearchService -  For accessing  search service
@@ -68,7 +63,7 @@ func InitSearch(p string, db *sql.DB) bleve.Index {
 	})
 
 	if err == bleve.ErrorIndexPathDoesNotExist {
-		productMapping, err := BuildIndexMapping()
+		productMapping, err := buildIndexMapping()
 		if err != nil {
 			log.WithFields(log.Fields{
 				"msgnum": 7002,
@@ -98,8 +93,8 @@ func InitSearch(p string, db *sql.DB) bleve.Index {
 	return bSearchIndex
 }
 
-// BuildIndexMapping - used for
-func BuildIndexMapping() (mapping.IndexMapping, error) {
+// buildIndexMapping - used for
+func buildIndexMapping() (mapping.IndexMapping, error) {
 
 	edgeNgram325FieldMapping := bleve.NewTextFieldMapping()
 	edgeNgram325FieldMapping.Analyzer = "enWithEdgeNgram325"
@@ -169,7 +164,7 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 	batch := index.NewBatch()
 	var topicMsgMap map[string]string
 	docID := ""
-	topics, err := GetTopics(db)
+	topics, err := getTopics(db)
 
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -178,7 +173,7 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 		return err
 	}
 	for _, topic := range topics {
-		messages, err := GetMessagesByTopicID(topic.ID, db)
+		messages, err := getMessagesByTopicID(topic.ID, db)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"msgnum": 7009,
@@ -264,8 +259,8 @@ func (t *SearchService) Search(form *BleveForm, userEmail string, requestID stri
 	return searchResults, nil
 }
 
-// GetMessagesByTopicID - Get messages by topic id
-func GetMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, error) {
+// getMessagesByTopicID - Get messages by topic id
+func getMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, error) {
 	msgs := []*msgservices.MessageText{}
 	rows, err := db.Query(`select 
     id,
@@ -334,8 +329,8 @@ func GetMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, erro
 	return msgs, nil
 }
 
-// GetTopics - Get topics
-func GetTopics(db *sql.DB) ([]*msgservices.Topic, error) {
+// getTopics - Get topics
+func getTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 
 	pohs := []*msgservices.Topic{}
 	rows, err := db.Query(`select 

@@ -108,8 +108,8 @@ type UserVote struct {
 type MessageServiceIntf interface {
 	CreateMessage(ctx context.Context, form *Message, UserID string, rplymsg bool, userEmail string, requestID string) (*Message, error)
 	CreateUserReply(ctx context.Context, tx *sql.Tx, topicID uint, messageID uint, userID uint, ugroupID uint, userEmail string, requestID string) error
-	UserLikeCreate(ctx context.Context, form *UserLike, UserID string, userEmail string, requestID string)
-	UserVoteCreate(ctx context.Context, form *UserVote, UserID string, userEmail string, requestID string)
+	CreateUserLike(ctx context.Context, form *UserLike, UserID string, userEmail string, requestID string) (*UserLike, error)
+	CreateUserVote(ctx context.Context, form *UserVote, UserID string, userEmail string, requestID string) (*UserVote, error)
 	GetMessage(ctx context.Context, ID string, userEmail string, requestID string) (*Message, error)
 	GetMessagesWithTextAttach(ctx context.Context, messages []*Message, userEmail string, requestID string) ([]*Message, error)
 	GetMessagesTexts(ctx context.Context, messageID uint, userEmail string, requestID string) ([]*MessageText, error)

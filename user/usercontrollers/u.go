@@ -14,11 +14,11 @@ import (
 
 // UController - create u controller
 type UController struct {
-	Service *userservices.UserService
+	Service userservices.UserServiceIntf
 }
 
 // NewUController - create u handler
-func NewUController(s *userservices.UserService) *UController {
+func NewUController(s userservices.UserServiceIntf) *UController {
 	return &UController{s}
 }
 

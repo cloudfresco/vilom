@@ -9,23 +9,28 @@ import (
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
+	"github.com/cloudfresco/vilom/user/userservices"
 )
 
 /* error message range: 4000-4299 */
 
 // CategoryController - Create Category Controller
 type CategoryController struct {
-	Service *msgservices.CategoryService
+	Service  msgservices.CategoryServiceIntf
+	Serviceu userservices.UserServiceIntf
 }
 
 // NewCategoryController - Create Category Handler
-func NewCategoryController(s *msgservices.CategoryService) *CategoryController {
-	return &CategoryController{s}
+func NewCategoryController(s msgservices.CategoryServiceIntf, su userservices.UserServiceIntf) *CategoryController {
+	return &CategoryController{
+		Service:  s,
+		Serviceu: su,
+	}
 }
 
 // ServeHTTP - parse url and call controller action
 func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, requestID, err := common.GetAuthUserDetails(r, cc.Service.RedisClient, cc.Service.Db)
+	user, requestID, err := cc.Serviceu.GetAuthUserDetails(r)
 	if err != nil {
 		common.RenderErrorJSON(w, "1001", err.Error(), 401, requestID)
 		return

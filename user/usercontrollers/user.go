@@ -15,17 +15,19 @@ import (
 
 // UsersController - used for
 type UsersController struct {
-	Service *userservices.UserService
+	Service userservices.UserServiceIntf
 }
 
 // NewUsersController - Used to create a users handler
-func NewUsersController(s *userservices.UserService) *UsersController {
-	return &UsersController{s}
+func NewUsersController(s userservices.UserServiceIntf) *UsersController {
+	return &UsersController{
+		Service: s,
+	}
 }
 
 // ServeHTTP - parse url and call controller action
 func (uc *UsersController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, requestID, err := common.GetAuthUserDetails(r, uc.Service.RedisClient, uc.Service.Db)
+	user, requestID, err := uc.Service.GetAuthUserDetails(r)
 	if err != nil {
 		common.RenderErrorJSON(w, "1001", err.Error(), 401, requestID)
 		return
