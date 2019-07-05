@@ -156,7 +156,7 @@ func (mc *MessageController) Create(w http.ResponseWriter, r *http.Request, user
 			common.RenderErrorJSON(w, "6001", err.Error(), 402, requestID)
 			return
 		}
-		msg, err := mc.Service.Create(ctx, &form, user.UserID, true, user.Email, requestID)
+		msg, err := mc.Service.CreateMessage(ctx, &form, user.UserID, true, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6002}).Error(err)
 			common.RenderErrorJSON(w, "6002", err.Error(), 402, requestID)
@@ -184,7 +184,7 @@ func (mc *MessageController) UserLikeCreate(w http.ResponseWriter, r *http.Reque
 			common.RenderErrorJSON(w, "6003", err.Error(), 402, requestID)
 			return
 		}
-		msg, err := mc.Service.UserLikeCreate(ctx, &form, user.UserID, user.Email, requestID)
+		msg, err := mc.Service.CreateUserLike(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6004}).Error(err)
 			common.RenderErrorJSON(w, "6004", err.Error(), 402, requestID)
@@ -212,7 +212,7 @@ func (mc *MessageController) Update(w http.ResponseWriter, r *http.Request, id s
 			common.RenderErrorJSON(w, "6005", err.Error(), 402, requestID)
 			return
 		}
-		err = mc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = mc.Service.UpdateMessage(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6006}).Error(err)
 			common.RenderErrorJSON(w, "6006", err.Error(), 402, requestID)
@@ -232,7 +232,7 @@ func (mc *MessageController) Delete(w http.ResponseWriter, r *http.Request, id s
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := mc.Service.Delete(ctx, id, user.Email, requestID)
+		err := mc.Service.DeleteMessage(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6007}).Error(err)
 			common.RenderErrorJSON(w, "6007", err.Error(), 402, requestID)

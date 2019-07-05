@@ -241,7 +241,7 @@ func (uc *UgroupController) Create(w http.ResponseWriter, r *http.Request, user 
 			common.RenderErrorJSON(w, "2003", err.Error(), 402, requestID)
 			return
 		}
-		ugroup, err := uc.Service.Create(ctx, &form, user.Email, requestID)
+		ugroup, err := uc.Service.CreateUgroup(ctx, &form, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   user.Email,
@@ -301,7 +301,7 @@ func (uc *UgroupController) Delete(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.Delete(ctx, id, user.Email, requestID)
+		err := uc.Service.DeleteUgroup(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   user.Email,
@@ -453,7 +453,7 @@ func (uc *UgroupController) Update(w http.ResponseWriter, r *http.Request, id st
 			common.RenderErrorJSON(w, "2014", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = uc.Service.UpdateUgroup(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 2015}).Error(err)
 			common.RenderErrorJSON(w, "2015", err.Error(), 402, requestID)

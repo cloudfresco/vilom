@@ -204,7 +204,7 @@ func (uc *UbadgeController) Create(w http.ResponseWriter, r *http.Request, user 
 			common.RenderErrorJSON(w, "3002", err.Error(), 402, requestID)
 			return
 		}
-		ubadge, err := uc.Service.Create(ctx, &form, user.Email, requestID)
+		ubadge, err := uc.Service.CreateUbadge(ctx, &form, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   user.Email,
@@ -229,7 +229,7 @@ func (uc *UbadgeController) Delete(w http.ResponseWriter, r *http.Request, id st
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.Delete(ctx, id, user.Email, requestID)
+		err := uc.Service.DeleteUbadge(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   user.Email,
@@ -337,7 +337,7 @@ func (uc *UbadgeController) Update(w http.ResponseWriter, r *http.Request, id st
 			common.RenderErrorJSON(w, "3009", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = uc.Service.UpdateUbadge(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 3010}).Error(err)
 			common.RenderErrorJSON(w, "3010", err.Error(), 402, requestID)

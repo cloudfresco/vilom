@@ -201,7 +201,7 @@ func (cc *CategoryController) Create(w http.ResponseWriter, r *http.Request, use
 			common.RenderErrorJSON(w, "4002", err.Error(), 402, requestID)
 			return
 		}
-		cat, err := cc.Service.Create(ctx, &form, user.UserID, user.Email, requestID)
+		cat, err := cc.Service.CreateCategory(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4003}).Error(err)
 			common.RenderErrorJSON(w, "4003", err.Error(), 402, requestID)
@@ -317,7 +317,7 @@ func (cc *CategoryController) Update(w http.ResponseWriter, r *http.Request, id 
 			common.RenderErrorJSON(w, "4009", err.Error(), 402, requestID)
 			return
 		}
-		err = cc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = cc.Service.UpdateCategory(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4010}).Error(err)
 			common.RenderErrorJSON(w, "4010", err.Error(), 402, requestID)
@@ -337,7 +337,7 @@ func (cc *CategoryController) Delete(w http.ResponseWriter, r *http.Request, id 
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := cc.Service.Delete(ctx, id, user.Email, requestID)
+		err := cc.Service.DeleteCategory(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4011}).Error(err)
 			common.RenderErrorJSON(w, "4011", err.Error(), 402, requestID)

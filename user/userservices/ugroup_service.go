@@ -52,6 +52,23 @@ type UgroupUser struct {
 	common.StatusDates
 }
 
+// UgroupServiceIntf - interface for Ugroup Service
+type UgroupServiceIntf interface {
+	CreateUgroup(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error)
+	CreateChild(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error)
+	AddUserToGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error
+	GetUgroups(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*UgroupCursor, error)
+	TopLevelUgroups(ctx context.Context, userEmail string, requestID string) ([]*Ugroup, error)
+	GetParent(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error)
+	GetUgroup(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error)
+	GetUgroupByID(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error)
+	GetUgroupByIDuint(ctx context.Context, ID uint, userEmail string, requestID string) (*Ugroup, error)
+	GetChildUgroups(ctx context.Context, ID string, userEmail string, requestID string) ([]*Ugroup, error)
+	UpdateUgroup(ctx context.Context, ID string, form *Ugroup, UserID string, userEmail string, requestID string) error
+	DeleteUgroup(ctx context.Context, ID string, userEmail string, requestID string) error
+	DeleteUserFromGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error
+}
+
 // UgroupService - For accessing Ugroup services
 type UgroupService struct {
 	Config       *common.RedisOptions
@@ -61,17 +78,510 @@ type UgroupService struct {
 }
 
 // NewUgroupService - Create Ugroup Service
-func NewUgroupService(config *common.RedisOptions,
-	db *sql.DB,
-	redisClient *redis.Client,
-	limitDefault string) *UgroupService {
-	return &UgroupService{config, db, redisClient, limitDefault}
+func NewUgroupService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *UgroupService {
+	return &UgroupService{
+		Config:       config,
+		Db:           db,
+		RedisClient:  redisClient,
+		LimitDefault: limitDefault,
+	}
 }
 
 // UgroupCursor - used to get groups
 type UgroupCursor struct {
 	Ugroups    []*Ugroup
 	NextCursor string `json:"next_cursor,omitempty"`
+}
+
+// CreateUgroup - Create ugroup
+func (u *UgroupService) CreateUgroup(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2306}).Error(err)
+		return nil, err
+	default:
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2307}).Error(err)
+			return nil, err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		ug := Ugroup{}
+		ug.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2308}).Error(err)
+			return nil, err
+		}
+		ug.UgroupName = form.UgroupName
+		ug.UgroupDesc = form.UgroupDesc
+		ug.Levelc = 0
+		ug.ParentID = uint(0)
+		ug.NumChd = 0
+		ug.Statusc = common.Active
+		ug.CreatedAt = tn
+		ug.UpdatedAt = tn
+		ug.CreatedDay = tnday
+		ug.CreatedWeek = tnweek
+		ug.CreatedMonth = tnmonth
+		ug.CreatedYear = tnyear
+		ug.UpdatedDay = tnday
+		ug.UpdatedWeek = tnweek
+		ug.UpdatedMonth = tnmonth
+		ug.UpdatedYear = tnyear
+
+		err = u.insertUgroup(ctx, tx, &ug, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2309}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2310}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		return &ug, nil
+	}
+}
+
+// insertUgroup - Insert Ugroup details into database
+func (u *UgroupService) insertUgroup(ctx context.Context, tx *sql.Tx, ug *Ugroup, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2328}).Error(err)
+		return err
+	default:
+		stmt, err := tx.PrepareContext(ctx, `insert into ugroups
+	  (
+		uuid4,
+		ugroup_name,
+		ugroup_desc,
+		levelc,
+		parent_id,
+		num_chd,
+		statusc,
+		created_at,
+		updated_at,
+		created_day,
+		created_week,
+		created_month,
+		created_year,
+		updated_day,
+		updated_week,
+		updated_month,
+		updated_year)
+  values (?,?,?,?,?,?,?,?,?,?,
+					?,?,?,?,?,?,?);`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2329}).Error(err)
+			return err
+		}
+		res, err := stmt.ExecContext(ctx,
+			ug.UUID4,
+			ug.UgroupName,
+			ug.UgroupDesc,
+			ug.Levelc,
+			ug.ParentID,
+			ug.NumChd,
+			ug.Statusc,
+			ug.CreatedAt,
+			ug.UpdatedAt,
+			ug.CreatedDay,
+			ug.CreatedWeek,
+			ug.CreatedMonth,
+			ug.CreatedYear,
+			ug.UpdatedDay,
+			ug.UpdatedWeek,
+			ug.UpdatedMonth,
+			ug.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2330}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		uID, err := res.LastInsertId()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2331}).Error(err)
+			return err
+		}
+		ug.ID = uint(uID)
+		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2332}).Error(err)
+			return err
+		}
+		ug.IDS = uuid4Str
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2333}).Error(err)
+			return err
+		}
+		return nil
+	}
+}
+
+// CreateChild - Create child of ugroup
+func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2311}).Error(err)
+		return nil, err
+	default:
+		parent, err := u.GetUgroupByIDuint(ctx, form.ParentID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2312}).Error(err)
+			return nil, err
+		}
+
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2313}).Error(err)
+			return nil, err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		ug := Ugroup{}
+		ug.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2314}).Error(err)
+			return nil, err
+		}
+		ug.UgroupName = form.UgroupName
+		ug.UgroupDesc = form.UgroupDesc
+		ug.Levelc = parent.Levelc + 1
+		ug.ParentID = parent.ID
+		ug.NumChd = 0
+		ug.Statusc = common.Active
+		ug.CreatedAt = tn
+		ug.UpdatedAt = tn
+		ug.CreatedDay = tnday
+		ug.CreatedWeek = tnweek
+		ug.CreatedMonth = tnmonth
+		ug.CreatedYear = tnyear
+		ug.UpdatedDay = tnday
+		ug.UpdatedWeek = tnweek
+		ug.UpdatedMonth = tnmonth
+		ug.UpdatedYear = tnyear
+
+		err = u.insertUgroup(ctx, tx, &ug, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2315}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		Ugroupchd := UgroupChd{}
+		Ugroupchd.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2316}).Error(err)
+			return nil, err
+		}
+		Ugroupchd.UgroupID = parent.ID
+		Ugroupchd.UgroupChdID = ug.ID
+		Ugroupchd.Statusc = common.Active
+		Ugroupchd.CreatedAt = tn
+		Ugroupchd.UpdatedAt = tn
+		Ugroupchd.CreatedDay = tnday
+		Ugroupchd.CreatedWeek = tnweek
+		Ugroupchd.CreatedMonth = tnmonth
+		Ugroupchd.CreatedYear = tnyear
+		Ugroupchd.UpdatedDay = tnday
+		Ugroupchd.UpdatedWeek = tnweek
+		Ugroupchd.UpdatedMonth = tnmonth
+		Ugroupchd.UpdatedYear = tnyear
+
+		err = u.insertChild(ctx, tx, &Ugroupchd, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2317}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
+
+		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
+				  num_chd = ?,
+				  updated_at = ?, 
+					updated_day = ?, 
+					updated_week = ?, 
+					updated_month = ?, 
+					updated_year = ? where id = ? and statusc = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2318}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2388}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			parent.NumChd+1,
+			tn,
+			UpdatedDay,
+			UpdatedWeek,
+			UpdatedMonth,
+			UpdatedYear,
+			parent.ID,
+			common.Active)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2319}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2389}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		err = stmt.Close()
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2320}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2321}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		return &ug, nil
+	}
+}
+
+// insertChild - Insert Child Ugroup details into database
+func (u *UgroupService) insertChild(ctx context.Context, tx *sql.Tx, ugroupchd *UgroupChd, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2334}).Error(err)
+		return err
+	default:
+		stmt, err := tx.PrepareContext(ctx, `insert into ugroup_chds
+	  (
+    uuid4, 
+		ugroup_id,
+		ugroup_chd_id,
+		statusc,
+		created_at,
+		updated_at,
+		created_day,
+		created_week,
+		created_month,
+		created_year,
+		updated_day,
+		updated_week,
+		updated_month,
+		updated_year)
+  values (?,?,?,?,?,?,?,?,?,?,
+					?,?,?,?);`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2335}).Error(err)
+			return err
+		}
+		res, err := stmt.ExecContext(ctx,
+			ugroupchd.UUID4,
+			ugroupchd.UgroupID,
+			ugroupchd.UgroupChdID,
+			ugroupchd.Statusc,
+			ugroupchd.CreatedAt,
+			ugroupchd.UpdatedAt,
+			ugroupchd.CreatedDay,
+			ugroupchd.CreatedWeek,
+			ugroupchd.CreatedMonth,
+			ugroupchd.CreatedYear,
+			ugroupchd.UpdatedDay,
+			ugroupchd.UpdatedWeek,
+			ugroupchd.UpdatedMonth,
+			ugroupchd.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2336}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		uID, err := res.LastInsertId()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2337}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		ugroupchd.ID = uint(uID)
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2338}).Error(err)
+			return err
+		}
+		return nil
+	}
+}
+
+// AddUserToGroup - Add user to ugroup
+func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2322}).Error(err)
+		return err
+	default:
+		db := u.Db
+		ug, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2323}).Error(err)
+			return err
+		}
+
+		if ug.NumChd > 0 {
+			err = errors.New("Cannot add user to group")
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2324}).Error(err)
+			return err
+		}
+
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2390}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		Uguser := UgroupUser{}
+		Uguser.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2325}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		Uguser.UgroupID = ug.ID
+		Uguser.UserID = form.UserID
+		Uguser.Statusc = common.Active
+		Uguser.CreatedAt = tn
+		Uguser.UpdatedAt = tn
+		Uguser.CreatedDay = tnday
+		Uguser.CreatedWeek = tnweek
+		Uguser.CreatedMonth = tnmonth
+		Uguser.CreatedYear = tnyear
+		Uguser.UpdatedDay = tnday
+		Uguser.UpdatedWeek = tnweek
+		Uguser.UpdatedMonth = tnmonth
+		Uguser.UpdatedYear = tnyear
+
+		err = u.insertUgroupUser(ctx, tx, &Uguser, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2326}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2327}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
+	}
+}
+
+// insertUgroupUser - Insert Ugroup User details into database
+func (u *UgroupService) insertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser *UgroupUser, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2366}).Error(err)
+		return err
+	default:
+		stmt, err := tx.PrepareContext(ctx, `insert into ugroups_users
+	  (
+		uuid4,
+		ugroup_id,
+		user_id,
+		statusc,
+		created_at,
+		updated_at,
+		created_day,
+		created_week,
+		created_month,
+		created_year,
+		updated_day,
+		updated_week,
+		updated_month,
+		updated_year)
+  values (?,?,?,?,?,?,?,?,?,?,
+					?,?,?,?);`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2367}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		res, err := stmt.ExecContext(ctx,
+			Uguser.UUID4,
+			Uguser.UgroupID,
+			Uguser.UserID,
+			Uguser.Statusc,
+			Uguser.CreatedAt,
+			Uguser.UpdatedAt,
+			Uguser.CreatedDay,
+			Uguser.CreatedWeek,
+			Uguser.CreatedMonth,
+			Uguser.CreatedYear,
+			Uguser.UpdatedDay,
+			Uguser.UpdatedWeek,
+			Uguser.UpdatedMonth,
+			Uguser.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2368}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		uID, err := res.LastInsertId()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2369}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		Uguser.ID = uint(uID)
+		uuid4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2370}).Error(err)
+			return err
+		}
+		Uguser.IDS = uuid4Str
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2371}).Error(err)
+			return err
+		}
+		return nil
+	}
 }
 
 // GetUgroups - Get Groups
@@ -173,365 +683,17 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 	}
 }
 
-// Create - Create ugroup
-func (u *UgroupService) Create(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error) {
+// TopLevelUgroups - Get top level ugroups
+func (u *UgroupService) TopLevelUgroups(ctx context.Context, userEmail string, requestID string) ([]*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2306}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2379}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2307}).Error(err)
-			return nil, err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		ug := Ugroup{}
-		ug.UUID4, err = common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2308}).Error(err)
-			return nil, err
-		}
-		ug.UgroupName = form.UgroupName
-		ug.UgroupDesc = form.UgroupDesc
-		ug.Levelc = 0
-		ug.ParentID = uint(0)
-		ug.NumChd = 0
-		ug.Statusc = common.Active
-		ug.CreatedAt = tn
-		ug.UpdatedAt = tn
-		ug.CreatedDay = tnday
-		ug.CreatedWeek = tnweek
-		ug.CreatedMonth = tnmonth
-		ug.CreatedYear = tnyear
-		ug.UpdatedDay = tnday
-		ug.UpdatedWeek = tnweek
-		ug.UpdatedMonth = tnmonth
-		ug.UpdatedYear = tnyear
-
-		err = u.InsertUgroup(ctx, tx, &ug, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2309}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2310}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		return &ug, nil
-	}
-}
-
-// CreateChild - Create child of ugroup
-func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail string, requestID string) (*Ugroup, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2311}).Error(err)
-		return nil, err
-	default:
-		parent, err := u.GetUgroupByIDuint(ctx, form.ParentID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2312}).Error(err)
-			return nil, err
-		}
-
-		db := u.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2313}).Error(err)
-			return nil, err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		ug := Ugroup{}
-		ug.UUID4, err = common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2314}).Error(err)
-			return nil, err
-		}
-		ug.UgroupName = form.UgroupName
-		ug.UgroupDesc = form.UgroupDesc
-		ug.Levelc = parent.Levelc + 1
-		ug.ParentID = parent.ID
-		ug.NumChd = 0
-		ug.Statusc = common.Active
-		ug.CreatedAt = tn
-		ug.UpdatedAt = tn
-		ug.CreatedDay = tnday
-		ug.CreatedWeek = tnweek
-		ug.CreatedMonth = tnmonth
-		ug.CreatedYear = tnyear
-		ug.UpdatedDay = tnday
-		ug.UpdatedWeek = tnweek
-		ug.UpdatedMonth = tnmonth
-		ug.UpdatedYear = tnyear
-
-		err = u.InsertUgroup(ctx, tx, &ug, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2315}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		Ugroupchd := UgroupChd{}
-		Ugroupchd.UUID4, err = common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2316}).Error(err)
-			return nil, err
-		}
-		Ugroupchd.UgroupID = parent.ID
-		Ugroupchd.UgroupChdID = ug.ID
-		Ugroupchd.Statusc = common.Active
-		Ugroupchd.CreatedAt = tn
-		Ugroupchd.UpdatedAt = tn
-		Ugroupchd.CreatedDay = tnday
-		Ugroupchd.CreatedWeek = tnweek
-		Ugroupchd.CreatedMonth = tnmonth
-		Ugroupchd.CreatedYear = tnyear
-		Ugroupchd.UpdatedDay = tnday
-		Ugroupchd.UpdatedWeek = tnweek
-		Ugroupchd.UpdatedMonth = tnmonth
-		Ugroupchd.UpdatedYear = tnyear
-
-		err = u.InsertChild(ctx, tx, &Ugroupchd, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2317}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		UpdatedDay := tnday
-		UpdatedWeek := tnweek
-		UpdatedMonth := tnmonth
-		UpdatedYear := tnyear
-
-		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
-				  num_chd = ?,
-				  updated_at = ?, 
-					updated_day = ?, 
-					updated_week = ?, 
-					updated_month = ?, 
-					updated_year = ? where id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2318}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2388}).Error(err)
-				err = tx.Rollback()
-				return nil, err
-			}
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		_, err = stmt.ExecContext(ctx,
-			parent.NumChd+1,
-			tn,
-			UpdatedDay,
-			UpdatedWeek,
-			UpdatedMonth,
-			UpdatedYear,
-			parent.ID,
-			common.Active)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2319}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2389}).Error(err)
-				err = tx.Rollback()
-				return nil, err
-			}
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		err = stmt.Close()
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2320}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2321}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		return &ug, nil
-	}
-}
-
-// AddUserToGroup - Add user to ugroup
-func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2322}).Error(err)
-		return err
-	default:
-		db := u.Db
-		ug, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2323}).Error(err)
-			return err
-		}
-
-		if ug.NumChd > 0 {
-			err = errors.New("Cannot add user to group")
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2324}).Error(err)
-			return err
-		}
-
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2390}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		Uguser := UgroupUser{}
-		Uguser.UUID4, err = common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2325}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		Uguser.UgroupID = ug.ID
-		Uguser.UserID = form.UserID
-		Uguser.Statusc = common.Active
-		Uguser.CreatedAt = tn
-		Uguser.UpdatedAt = tn
-		Uguser.CreatedDay = tnday
-		Uguser.CreatedWeek = tnweek
-		Uguser.CreatedMonth = tnmonth
-		Uguser.CreatedYear = tnyear
-		Uguser.UpdatedDay = tnday
-		Uguser.UpdatedWeek = tnweek
-		Uguser.UpdatedMonth = tnmonth
-		Uguser.UpdatedYear = tnyear
-
-		err = u.InsertUgroupUser(ctx, tx, &Uguser, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2326}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2327}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		return nil
-	}
-}
-
-//Update - Update Ugroup
-func (u *UgroupService) Update(ctx context.Context, ID string, form *Ugroup, UserID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2394}).Error(err)
-		return err
-	default:
-		ugroup, err := u.GetUgroup(ctx, ID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2395}).Error(err)
-			return err
-		}
-
-		db := u.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2396}).Error(err)
-			return err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
-		  ugroup_name = ?,
-      ugroup_desc = ?,
-			updated_at = ?, 
-			updated_day = ?, 
-			updated_week = ?, 
-			updated_month = ?, 
-			updated_year = ? where id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2397}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2398}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		_, err = stmt.ExecContext(ctx,
-			form.UgroupName,
-			form.UgroupDesc,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			ugroup.ID,
-			common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2399}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2400}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2401}).Error(err)
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2402}).Error(err)
-			return err
-		}
-		return nil
-	}
-}
-
-// InsertUgroup - Insert Ugroup details into database
-func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug *Ugroup, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2328}).Error(err)
-		return err
-	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into ugroups
-	  (
+		Ugroups := []*Ugroup{}
+		rows, err := u.Db.QueryContext(ctx, `select 
+    id,
 		uuid4,
 		ugroup_name,
 		ugroup_desc,
@@ -548,71 +710,77 @@ func (u *UgroupService) InsertUgroup(ctx context.Context, tx *sql.Tx, ug *Ugroup
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year)
-  values (?,?,?,?,?,?,?,?,?,?,
-					?,?,?,?,?,?,?);`)
+		updated_year from ugroups where where levelc = ? and statusc = ?;`, 0, common.Active)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2329}).Error(err)
-			return err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2380}).Error(err)
+			return nil, err
 		}
-		res, err := stmt.ExecContext(ctx,
-			ug.UUID4,
-			ug.UgroupName,
-			ug.UgroupDesc,
-			ug.Levelc,
-			ug.ParentID,
-			ug.NumChd,
-			ug.Statusc,
-			ug.CreatedAt,
-			ug.UpdatedAt,
-			ug.CreatedDay,
-			ug.CreatedWeek,
-			ug.CreatedMonth,
-			ug.CreatedYear,
-			ug.UpdatedDay,
-			ug.UpdatedWeek,
-			ug.UpdatedMonth,
-			ug.UpdatedYear)
 
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2330}).Error(err)
-			err = stmt.Close()
-			return err
+		for rows.Next() {
+			ug := Ugroup{}
+			err = rows.Scan(
+				&ug.ID,
+				&ug.UUID4,
+				&ug.UgroupName,
+				&ug.UgroupDesc,
+				&ug.Levelc,
+				&ug.ParentID,
+				&ug.NumChd,
+				&ug.Statusc,
+				&ug.CreatedAt,
+				&ug.UpdatedAt,
+				&ug.CreatedDay,
+				&ug.CreatedWeek,
+				&ug.CreatedMonth,
+				&ug.CreatedYear,
+				&ug.UpdatedDay,
+				&ug.UpdatedWeek,
+				&ug.UpdatedMonth,
+				&ug.UpdatedYear)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2381}).Error(err)
+				return nil, err
+			}
+			uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2382}).Error(err)
+				return nil, err
+			}
+			ug.IDS = uuid4Str
+			Ugroups = append(Ugroups, &ug)
 		}
-		uID, err := res.LastInsertId()
+		err = rows.Close()
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2331}).Error(err)
-			return err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2383}).Error(err)
+			return nil, err
 		}
-		ug.ID = uint(uID)
-		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2332}).Error(err)
-			return err
-		}
-		ug.IDS = uuid4Str
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2333}).Error(err)
-			return err
-		}
-		return nil
+		return Ugroups, nil
 	}
 }
 
-// InsertChild - Insert Child Ugroup details into database
-func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd *UgroupChd, userEmail string, requestID string) error {
+// GetParent - Get parent ugroup
+func (u *UgroupService) GetParent(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2334}).Error(err)
-		return err
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2384}).Error(err)
+		return nil, err
 	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into ugroup_chds
-	  (
-    uuid4, 
-		ugroup_id,
-		ugroup_chd_id,
+		db := u.Db
+		ugroup, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2385}).Error(err)
+			return nil, err
+		}
+		ug := Ugroup{}
+		row := db.QueryRowContext(ctx, `select
+    id,
+		uuid4,
+		ugroup_name,
+		ugroup_desc,
+		levelc,
+		parent_id,
+		num_chd,
 		statusc,
 		created_at,
 		updated_at,
@@ -623,119 +791,39 @@ func (u *UgroupService) InsertChild(ctx context.Context, tx *sql.Tx, ugroupchd *
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year)
-  values (?,?,?,?,?,?,?,?,?,?,
-					?,?,?,?);`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2335}).Error(err)
-			return err
-		}
-		res, err := stmt.ExecContext(ctx,
-			ugroupchd.UUID4,
-			ugroupchd.UgroupID,
-			ugroupchd.UgroupChdID,
-			ugroupchd.Statusc,
-			ugroupchd.CreatedAt,
-			ugroupchd.UpdatedAt,
-			ugroupchd.CreatedDay,
-			ugroupchd.CreatedWeek,
-			ugroupchd.CreatedMonth,
-			ugroupchd.CreatedYear,
-			ugroupchd.UpdatedDay,
-			ugroupchd.UpdatedWeek,
-			ugroupchd.UpdatedMonth,
-			ugroupchd.UpdatedYear)
+		updated_year from ugroups where id = ? and statusc = ?;`, ugroup.ParentID, common.Active)
+
+		err = row.Scan(
+			&ug.ID,
+			&ug.UUID4,
+			&ug.UgroupName,
+			&ug.UgroupDesc,
+			&ug.Levelc,
+			&ug.ParentID,
+			&ug.NumChd,
+			&ug.Statusc,
+			&ug.CreatedAt,
+			&ug.UpdatedAt,
+			&ug.CreatedDay,
+			&ug.CreatedWeek,
+			&ug.CreatedMonth,
+			&ug.CreatedYear,
+			&ug.UpdatedDay,
+			&ug.UpdatedWeek,
+			&ug.UpdatedMonth,
+			&ug.UpdatedYear)
 
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2336}).Error(err)
-			err = stmt.Close()
-			return err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2386}).Error(err)
+			return nil, err
 		}
-		uID, err := res.LastInsertId()
+		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2337}).Error(err)
-			err = stmt.Close()
-			return err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2387}).Error(err)
+			return nil, err
 		}
-		ugroupchd.ID = uint(uID)
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2338}).Error(err)
-			return err
-		}
-		return nil
-	}
-}
-
-// Delete - Delete ugroup
-func (u *UgroupService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2339}).Error(err)
-		return err
-	default:
-		uuid4byte, err := common.UUIDStrToBytes(ID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2340}).Error(err)
-			return err
-		}
-		db := u.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2391}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
-		  statusc = ?,
-			updated_at = ?, 
-			updated_day = ?, 
-			updated_week = ?, 
-			updated_month = ?, 
-			updated_year = ? where uuid4= ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2341}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-
-		_, err = stmt.ExecContext(ctx,
-			common.Inactive,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			uuid4byte)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2342}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2392}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2343}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2344}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		return nil
+		ug.IDS = uuid4Str
+		return &ug, nil
 	}
 }
 
@@ -1043,136 +1131,6 @@ func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint, userEmai
 	}
 }
 
-// DeleteUserFromGroup - Delete user from group
-func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2360}).Error(err)
-		return err
-	default:
-		db := u.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2361}).Error(err)
-			return err
-		}
-		stmt, err := tx.PrepareContext(ctx, `delete from ugroups_users where user_id= ? and ugroup_id = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2362}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2392}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-
-		_, err = stmt.ExecContext(ctx, form.UserID, ID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2363}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2393}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2364}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2365}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		return nil
-	}
-}
-
-// InsertUgroupUser - Insert Ugroup User details into database
-func (u *UgroupService) InsertUgroupUser(ctx context.Context, tx *sql.Tx, Uguser *UgroupUser, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2366}).Error(err)
-		return err
-	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into ugroups_users
-	  (
-		uuid4,
-		ugroup_id,
-		user_id,
-		statusc,
-		created_at,
-		updated_at,
-		created_day,
-		created_week,
-		created_month,
-		created_year,
-		updated_day,
-		updated_week,
-		updated_month,
-		updated_year)
-  values (?,?,?,?,?,?,?,?,?,?,
-					?,?,?,?);`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2367}).Error(err)
-			err = stmt.Close()
-			return err
-		}
-		res, err := stmt.ExecContext(ctx,
-			Uguser.UUID4,
-			Uguser.UgroupID,
-			Uguser.UserID,
-			Uguser.Statusc,
-			Uguser.CreatedAt,
-			Uguser.UpdatedAt,
-			Uguser.CreatedDay,
-			Uguser.CreatedWeek,
-			Uguser.CreatedMonth,
-			Uguser.CreatedYear,
-			Uguser.UpdatedDay,
-			Uguser.UpdatedWeek,
-			Uguser.UpdatedMonth,
-			Uguser.UpdatedYear)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2368}).Error(err)
-			err = stmt.Close()
-			return err
-		}
-		uID, err := res.LastInsertId()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2369}).Error(err)
-			err = stmt.Close()
-			return err
-		}
-		Uguser.ID = uint(uID)
-		uuid4Str, err := common.UUIDBytesToStr(Uguser.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2370}).Error(err)
-			return err
-		}
-		Uguser.IDS = uuid4Str
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2371}).Error(err)
-			return err
-		}
-		return nil
-	}
-}
-
 // GetChildUgroups - Get child ugroups
 func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string, userEmail string, requestID string) ([]*Ugroup, error) {
 	select {
@@ -1260,146 +1218,207 @@ func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string, userEmai
 
 }
 
-// TopLevelUgroups - Get top level ugroups
-func (u *UgroupService) TopLevelUgroups(ctx context.Context, userEmail string, requestID string) ([]*Ugroup, error) {
+//UpdateUgroup - Update Ugroup
+func (u *UgroupService) UpdateUgroup(ctx context.Context, ID string, form *Ugroup, UserID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2379}).Error(err)
-		return nil, err
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2394}).Error(err)
+		return err
 	default:
-		Ugroups := []*Ugroup{}
-		rows, err := u.Db.QueryContext(ctx, `select 
-    id,
-		uuid4,
-		ugroup_name,
-		ugroup_desc,
-		levelc,
-		parent_id,
-		num_chd,
-		statusc,
-		created_at,
-		updated_at,
-		created_day,
-		created_week,
-		created_month,
-		created_year,
-		updated_day,
-		updated_week,
-		updated_month,
-		updated_year from ugroups where where levelc = ? and statusc = ?;`, 0, common.Active)
+		ugroup, err := u.GetUgroup(ctx, ID, userEmail, requestID)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2380}).Error(err)
-			return nil, err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2395}).Error(err)
+			return err
 		}
 
-		for rows.Next() {
-			ug := Ugroup{}
-			err = rows.Scan(
-				&ug.ID,
-				&ug.UUID4,
-				&ug.UgroupName,
-				&ug.UgroupDesc,
-				&ug.Levelc,
-				&ug.ParentID,
-				&ug.NumChd,
-				&ug.Statusc,
-				&ug.CreatedAt,
-				&ug.UpdatedAt,
-				&ug.CreatedDay,
-				&ug.CreatedWeek,
-				&ug.CreatedMonth,
-				&ug.CreatedYear,
-				&ug.UpdatedDay,
-				&ug.UpdatedWeek,
-				&ug.UpdatedMonth,
-				&ug.UpdatedYear)
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2381}).Error(err)
-				return nil, err
-			}
-			uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2382}).Error(err)
-				return nil, err
-			}
-			ug.IDS = uuid4Str
-			Ugroups = append(Ugroups, &ug)
-		}
-		err = rows.Close()
+		db := u.Db
+		tx, err := db.Begin()
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2383}).Error(err)
-			return nil, err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2396}).Error(err)
+			return err
 		}
-		return Ugroups, nil
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
+		  ugroup_name = ?,
+      ugroup_desc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where id = ? and statusc = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2397}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2398}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		_, err = stmt.ExecContext(ctx,
+			form.UgroupName,
+			form.UgroupDesc,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			ugroup.ID,
+			common.Active)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2399}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2400}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2401}).Error(err)
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2402}).Error(err)
+			return err
+		}
+		return nil
 	}
 }
 
-// GetParent - Get parent ugroup
-func (u *UgroupService) GetParent(ctx context.Context, ID string, userEmail string, requestID string) (*Ugroup, error) {
+// DeleteUgroup - Delete ugroup
+func (u *UgroupService) DeleteUgroup(ctx context.Context, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2384}).Error(err)
-		return nil, err
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2339}).Error(err)
+		return err
+	default:
+		uuid4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2340}).Error(err)
+			return err
+		}
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2391}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update ugroups set 
+		  statusc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where uuid4= ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2341}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			common.Inactive,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			uuid4byte)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2342}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2392}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2343}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2344}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
+	}
+}
+
+// DeleteUserFromGroup - Delete user from group
+func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUser, ID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2360}).Error(err)
+		return err
 	default:
 		db := u.Db
-		ugroup, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
+		tx, err := db.Begin()
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2385}).Error(err)
-			return nil, err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2361}).Error(err)
+			return err
 		}
-		ug := Ugroup{}
-		row := db.QueryRowContext(ctx, `select
-    id,
-		uuid4,
-		ugroup_name,
-		ugroup_desc,
-		levelc,
-		parent_id,
-		num_chd,
-		statusc,
-		created_at,
-		updated_at,
-		created_day,
-		created_week,
-		created_month,
-		created_year,
-		updated_day,
-		updated_week,
-		updated_month,
-		updated_year from ugroups where id = ? and statusc = ?;`, ugroup.ParentID, common.Active)
+		stmt, err := tx.PrepareContext(ctx, `delete from ugroups_users where user_id= ? and ugroup_id = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2362}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2392}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
 
-		err = row.Scan(
-			&ug.ID,
-			&ug.UUID4,
-			&ug.UgroupName,
-			&ug.UgroupDesc,
-			&ug.Levelc,
-			&ug.ParentID,
-			&ug.NumChd,
-			&ug.Statusc,
-			&ug.CreatedAt,
-			&ug.UpdatedAt,
-			&ug.CreatedDay,
-			&ug.CreatedWeek,
-			&ug.CreatedMonth,
-			&ug.CreatedYear,
-			&ug.UpdatedDay,
-			&ug.UpdatedWeek,
-			&ug.UpdatedMonth,
-			&ug.UpdatedYear)
+		_, err = stmt.ExecContext(ctx, form.UserID, ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2363}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2393}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2364}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
 
+		err = tx.Commit()
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2386}).Error(err)
-			return nil, err
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2365}).Error(err)
+			err = tx.Rollback()
+			return err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(ug.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2387}).Error(err)
-			return nil, err
-		}
-		ug.IDS = uuid4Str
-		return &ug, nil
+		return nil
 	}
 }

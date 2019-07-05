@@ -30,6 +30,16 @@ type BleveForm struct {
 	SearchText string
 }
 
+// SearchServiceIntf - interface for Search Service
+type SearchServiceIntf interface {
+	InitSearch(p string, db *sql.DB) bleve.Index
+	BuildIndexMapping() (mapping.IndexMapping, error)
+	IndexTopics(db *sql.DB, index bleve.Index) error
+	Search(form *BleveForm, userEmail string, requestID string) (*bleve.SearchResult, error)
+	GetMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, error)
+	GetTopics(db *sql.DB) ([]*msgservices.Topic, error)
+}
+
 // SearchService -  For accessing  search service
 type SearchService struct {
 	Config      *common.RedisOptions

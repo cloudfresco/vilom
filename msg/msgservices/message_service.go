@@ -104,6 +104,20 @@ type UserVote struct {
 	common.StatusDates
 }
 
+// MessageServiceIntf - interface for Message Service
+type MessageServiceIntf interface {
+	CreateMessage(ctx context.Context, form *Message, UserID string, rplymsg bool, userEmail string, requestID string) (*Message, error)
+	CreateUserReply(ctx context.Context, tx *sql.Tx, topicID uint, messageID uint, userID uint, ugroupID uint, userEmail string, requestID string) error
+	UserLikeCreate(ctx context.Context, form *UserLike, UserID string, userEmail string, requestID string)
+	UserVoteCreate(ctx context.Context, form *UserVote, UserID string, userEmail string, requestID string)
+	GetMessage(ctx context.Context, ID string, userEmail string, requestID string) (*Message, error)
+	GetMessagesWithTextAttach(ctx context.Context, messages []*Message, userEmail string, requestID string) ([]*Message, error)
+	GetMessagesTexts(ctx context.Context, messageID uint, userEmail string, requestID string) ([]*MessageText, error)
+	GetMessageAttachments(ctx context.Context, messageID uint, userEmail string, requestID string) ([]*MessageAttachment, error)
+	UpdateMessage(ctx context.Context, ID string, form *Message, UserID string, userEmail string, requestID string) error
+	DeleteMessage(ctx context.Context, ID string, userEmail string, requestID string) error
+}
+
 // MessageService - For accessing message services
 type MessageService struct {
 	Config       *common.RedisOptions
@@ -113,15 +127,17 @@ type MessageService struct {
 }
 
 // NewMessageService - Create message service
-func NewMessageService(config *common.RedisOptions,
-	db *sql.DB,
-	redisClient *redis.Client,
-	limitDefault string) *MessageService {
-	return &MessageService{config, db, redisClient, limitDefault}
+func NewMessageService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *MessageService {
+	return &MessageService{
+		Config:       config,
+		Db:           db,
+		RedisClient:  redisClient,
+		LimitDefault: limitDefault,
+	}
 }
 
-//Create - Create message
-func (t *MessageService) Create(ctx context.Context, form *Message, UserID string, rplymsg bool, userEmail string, requestID string) (*Message, error) {
+//CreateMessage - Create message
+func (t *MessageService) CreateMessage(ctx context.Context, form *Message, UserID string, rplymsg bool, userEmail string, requestID string) (*Message, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -167,7 +183,7 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 		msg.UpdatedMonth = tnmonth
 		msg.UpdatedYear = tnyear
 
-		err = t.InsertMessage(ctx, tx, &msg, userEmail, requestID)
+		err = t.insertMessage(ctx, tx, &msg, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6304}).Error(err)
@@ -175,7 +191,7 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 			return nil, err
 		}
 
-		msgtext, err := t.CreateMessageText(ctx, tx, form, msg.ID, user.ID, userEmail, requestID)
+		msgtext, err := t.createMessageText(ctx, tx, form, msg.ID, user.ID, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6305}).Error(err)
@@ -184,7 +200,7 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 		}
 		msg.MessageTexts = append(msg.MessageTexts, msgtext)
 		if form.Mattach != "" {
-			msgattach, err := t.CreateMessageAttachment(ctx, tx, form, msg.ID, user.ID, userEmail, requestID)
+			msgattach, err := t.createMessageAttachment(ctx, tx, form, msg.ID, user.ID, userEmail, requestID)
 
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6306}).Error(err)
@@ -229,351 +245,8 @@ func (t *MessageService) Create(ctx context.Context, form *Message, UserID strin
 
 }
 
-//CreateMessageText - Create message Text
-func (t *MessageService) CreateMessageText(ctx context.Context, tx *sql.Tx, form *Message, messageID uint, userID uint, userEmail string, requestID string) (*MessageText, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
-		return nil, err
-	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		uuid4, err := common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6312}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		msgtxt := MessageText{}
-		msgtxt.UUID4 = uuid4
-		msgtxt.Mtext = form.Mtext
-		msgtxt.CategoryID = form.CategoryID
-		msgtxt.TopicID = form.TopicID
-		msgtxt.MessageID = messageID
-		msgtxt.UserID = userID
-		msgtxt.UgroupID = form.UgroupID
-		msgtxt.Statusc = common.Active
-		msgtxt.CreatedAt = tn
-		msgtxt.UpdatedAt = tn
-		msgtxt.CreatedDay = tnday
-		msgtxt.CreatedWeek = tnweek
-		msgtxt.CreatedMonth = tnmonth
-		msgtxt.CreatedYear = tnyear
-		msgtxt.UpdatedDay = tnday
-		msgtxt.UpdatedWeek = tnweek
-		msgtxt.UpdatedMonth = tnmonth
-		msgtxt.UpdatedYear = tnyear
-		err = t.InsertMessageText(ctx, tx, &msgtxt, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6313}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		return &msgtxt, nil
-	}
-}
-
-//CreateMessageAttachment - Create message Attachment
-func (t *MessageService) CreateMessageAttachment(ctx context.Context, tx *sql.Tx, form *Message, messageID uint, userID uint, userEmail string, requestID string) (*MessageAttachment, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6314}).Error(err)
-		return nil, err
-	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		msgath := MessageAttachment{}
-		uuid4, err := common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6315}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		msgath.UUID4 = uuid4
-		msgath.Mattach = form.Mattach
-		msgath.CategoryID = form.CategoryID
-		msgath.TopicID = form.TopicID
-		msgath.MessageID = messageID
-		msgath.UserID = userID
-		msgath.UgroupID = form.UgroupID
-		/*  StatusDates  */
-		msgath.Statusc = common.Active
-		msgath.CreatedAt = tn
-		msgath.UpdatedAt = tn
-		msgath.CreatedDay = tnday
-		msgath.CreatedWeek = tnweek
-		msgath.CreatedMonth = tnmonth
-		msgath.CreatedYear = tnyear
-		msgath.UpdatedDay = tnday
-		msgath.UpdatedWeek = tnweek
-		msgath.UpdatedMonth = tnmonth
-		msgath.UpdatedYear = tnyear
-
-		err = t.InsertMessageAttachment(ctx, tx, &msgath, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6316}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		return &msgath, nil
-	}
-}
-
-// CreateUserReply - create user reply
-func (t *MessageService) CreateUserReply(ctx context.Context, tx *sql.Tx, topicID uint, messageID uint, userID uint, ugroupID uint, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6317}).Error(err)
-		return err
-	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		ur := UserReply{}
-		uuid4, err := common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6318}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		ur.UUID4 = uuid4
-		ur.TopicID = topicID
-		ur.MessageID = messageID
-		ur.UserID = userID
-		ur.UgroupID = ugroupID
-		/*  StatusDates  */
-		ur.Statusc = common.Active
-		ur.CreatedAt = tn
-		ur.UpdatedAt = tn
-		ur.CreatedDay = tnday
-		ur.CreatedWeek = tnweek
-		ur.CreatedMonth = tnmonth
-		ur.CreatedYear = tnyear
-		ur.UpdatedDay = tnday
-		ur.UpdatedWeek = tnweek
-		ur.UpdatedMonth = tnmonth
-		ur.UpdatedYear = tnyear
-
-		err = t.InsertUserReply(ctx, tx, &ur, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6319}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		return nil
-	}
-}
-
-// UserLikeCreate - Create user likes messages
-func (t *MessageService) UserLikeCreate(ctx context.Context, form *UserLike, UserID string, userEmail string, requestID string) (*UserLike, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6320}).Error(err)
-		return nil, err
-	default:
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6321}).Error(err)
-			return nil, err
-		}
-		db := t.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6322}).Error(err)
-			return nil, err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		ul := UserLike{}
-		ul.UUID4, err = common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6323}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		ul.TopicID = form.TopicID
-		ul.MessageID = form.MessageID
-		ul.UgroupID = form.UgroupID
-		ul.UserID = user.ID
-		/*  StatusDates  */
-		ul.Statusc = common.Active
-		ul.CreatedAt = tn
-		ul.UpdatedAt = tn
-		ul.CreatedDay = tnday
-		ul.CreatedWeek = tnweek
-		ul.CreatedMonth = tnmonth
-		ul.CreatedYear = tnyear
-		ul.UpdatedDay = tnday
-		ul.UpdatedWeek = tnweek
-		ul.UpdatedMonth = tnmonth
-		ul.UpdatedYear = tnyear
-
-		err = t.InsertUserLike(ctx, tx, &ul, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6324}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6325}).Error(err)
-			return nil, err
-		}
-		return &ul, nil
-	}
-}
-
-// UserVoteCreate - Create User Vote
-func (t *MessageService) UserVoteCreate(ctx context.Context, form *UserVote, UserID string, userEmail string, requestID string) (*UserVote, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6326}).Error(err)
-		return nil, err
-	default:
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6327}).Error(err)
-			return nil, err
-		}
-		db := t.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6328}).Error(err)
-			return nil, err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		ul := UserVote{}
-		ul.UUID4, err = common.GetUUIDBytes()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6329}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		ul.TopicID = form.TopicID
-		ul.MessageID = form.MessageID
-		ul.UgroupID = form.UgroupID
-		ul.UserID = user.ID
-		ul.Vote = form.Vote
-		/*  StatusDates  */
-		ul.Statusc = common.Active
-		ul.CreatedAt = tn
-		ul.UpdatedAt = tn
-		ul.CreatedDay = tnday
-		ul.CreatedWeek = tnweek
-		ul.CreatedMonth = tnmonth
-		ul.CreatedYear = tnyear
-		ul.UpdatedDay = tnday
-		ul.UpdatedWeek = tnweek
-		ul.UpdatedMonth = tnmonth
-		ul.UpdatedYear = tnyear
-
-		err = t.InsertUserVote(ctx, tx, &ul, userEmail, requestID)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6330}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6331}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		return &ul, nil
-	}
-}
-
-//Update - Update message
-func (t *MessageService) Update(ctx context.Context, ID string, form *Message, UserID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6382}).Error(err)
-		return err
-	default:
-		msg, err := t.GetMessage(ctx, ID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6384}).Error(err)
-			return err
-		}
-
-		db := t.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6385}).Error(err)
-			return err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update message_texts set 
-		  mtext = ?,
-			updated_at = ?, 
-			updated_day = ?, 
-			updated_week = ?, 
-			updated_month = ?, 
-			updated_year = ? where message_id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6386}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6387}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		_, err = stmt.ExecContext(ctx,
-			form.Mtext,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			msg.ID,
-			common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6388}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6389}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6390}).Error(err)
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6391}).Error(err)
-			return err
-		}
-		return nil
-	}
-}
-
-// InsertMessage - Insert message details into database
-func (t *MessageService) InsertMessage(ctx context.Context, tx *sql.Tx, msg *Message, userEmail string, requestID string) error {
+// insertMessage - Insert message details into database
+func (t *MessageService) insertMessage(ctx context.Context, tx *sql.Tx, msg *Message, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -658,8 +331,54 @@ func (t *MessageService) InsertMessage(ctx context.Context, tx *sql.Tx, msg *Mes
 	}
 }
 
-// InsertMessageText - Insert message text details in database
-func (t *MessageService) InsertMessageText(ctx context.Context, tx *sql.Tx, msgtxt *MessageText, userEmail string, requestID string) error {
+//CreateMessageText - Create message Text
+func (t *MessageService) createMessageText(ctx context.Context, tx *sql.Tx, form *Message, messageID uint, userID uint, userEmail string, requestID string) (*MessageText, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
+		return nil, err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		uuid4, err := common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6312}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		msgtxt := MessageText{}
+		msgtxt.UUID4 = uuid4
+		msgtxt.Mtext = form.Mtext
+		msgtxt.CategoryID = form.CategoryID
+		msgtxt.TopicID = form.TopicID
+		msgtxt.MessageID = messageID
+		msgtxt.UserID = userID
+		msgtxt.UgroupID = form.UgroupID
+		msgtxt.Statusc = common.Active
+		msgtxt.CreatedAt = tn
+		msgtxt.UpdatedAt = tn
+		msgtxt.CreatedDay = tnday
+		msgtxt.CreatedWeek = tnweek
+		msgtxt.CreatedMonth = tnmonth
+		msgtxt.CreatedYear = tnyear
+		msgtxt.UpdatedDay = tnday
+		msgtxt.UpdatedWeek = tnweek
+		msgtxt.UpdatedMonth = tnmonth
+		msgtxt.UpdatedYear = tnyear
+		err = t.insertMessageText(ctx, tx, &msgtxt, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6313}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		return &msgtxt, nil
+	}
+}
+
+// insertMessageText - Insert message text details in database
+func (t *MessageService) insertMessageText(ctx context.Context, tx *sql.Tx, msgtxt *MessageText, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -735,8 +454,55 @@ func (t *MessageService) InsertMessageText(ctx context.Context, tx *sql.Tx, msgt
 	}
 }
 
-// InsertMessageAttachment - Insert message attachment details in database
-func (t *MessageService) InsertMessageAttachment(ctx context.Context, tx *sql.Tx, msgath *MessageAttachment, userEmail string, requestID string) error {
+//CreateMessageAttachment - Create message Attachment
+func (t *MessageService) createMessageAttachment(ctx context.Context, tx *sql.Tx, form *Message, messageID uint, userID uint, userEmail string, requestID string) (*MessageAttachment, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6314}).Error(err)
+		return nil, err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		msgath := MessageAttachment{}
+		uuid4, err := common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6315}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		msgath.UUID4 = uuid4
+		msgath.Mattach = form.Mattach
+		msgath.CategoryID = form.CategoryID
+		msgath.TopicID = form.TopicID
+		msgath.MessageID = messageID
+		msgath.UserID = userID
+		msgath.UgroupID = form.UgroupID
+		/*  StatusDates  */
+		msgath.Statusc = common.Active
+		msgath.CreatedAt = tn
+		msgath.UpdatedAt = tn
+		msgath.CreatedDay = tnday
+		msgath.CreatedWeek = tnweek
+		msgath.CreatedMonth = tnmonth
+		msgath.CreatedYear = tnyear
+		msgath.UpdatedDay = tnday
+		msgath.UpdatedWeek = tnweek
+		msgath.UpdatedMonth = tnmonth
+		msgath.UpdatedYear = tnyear
+
+		err = t.insertMessageAttachment(ctx, tx, &msgath, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6316}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		return &msgath, nil
+	}
+}
+
+// insertMessageAttachment - Insert message attachment details in database
+func (t *MessageService) insertMessageAttachment(ctx context.Context, tx *sql.Tx, msgath *MessageAttachment, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -811,8 +577,53 @@ func (t *MessageService) InsertMessageAttachment(ctx context.Context, tx *sql.Tx
 	}
 }
 
-// InsertUserReply - Insert user reply details into database
-func (t *MessageService) InsertUserReply(ctx context.Context, tx *sql.Tx, ur *UserReply, userEmail string, requestID string) error {
+// CreateUserReply - create user reply
+func (t *MessageService) CreateUserReply(ctx context.Context, tx *sql.Tx, topicID uint, messageID uint, userID uint, ugroupID uint, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6317}).Error(err)
+		return err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		ur := UserReply{}
+		uuid4, err := common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6318}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		ur.UUID4 = uuid4
+		ur.TopicID = topicID
+		ur.MessageID = messageID
+		ur.UserID = userID
+		ur.UgroupID = ugroupID
+		/*  StatusDates  */
+		ur.Statusc = common.Active
+		ur.CreatedAt = tn
+		ur.UpdatedAt = tn
+		ur.CreatedDay = tnday
+		ur.CreatedWeek = tnweek
+		ur.CreatedMonth = tnmonth
+		ur.CreatedYear = tnyear
+		ur.UpdatedDay = tnday
+		ur.UpdatedWeek = tnweek
+		ur.UpdatedMonth = tnmonth
+		ur.UpdatedYear = tnyear
+
+		err = t.insertUserReply(ctx, tx, &ur, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6319}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
+	}
+}
+
+// insertUserReply - Insert user reply details into database
+func (t *MessageService) insertUserReply(ctx context.Context, tx *sql.Tx, ur *UserReply, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -884,8 +695,72 @@ func (t *MessageService) InsertUserReply(ctx context.Context, tx *sql.Tx, ur *Us
 	}
 }
 
-// InsertUserLike - Insert User like details in database
-func (t *MessageService) InsertUserLike(ctx context.Context, tx *sql.Tx, ur *UserLike, userEmail string, requestID string) error {
+// CreateUserLike - Create user likes messages
+func (t *MessageService) CreateUserLike(ctx context.Context, form *UserLike, UserID string, userEmail string, requestID string) (*UserLike, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6320}).Error(err)
+		return nil, err
+	default:
+		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6321}).Error(err)
+			return nil, err
+		}
+		db := t.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6322}).Error(err)
+			return nil, err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		ul := UserLike{}
+		ul.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6323}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		ul.TopicID = form.TopicID
+		ul.MessageID = form.MessageID
+		ul.UgroupID = form.UgroupID
+		ul.UserID = user.ID
+		/*  StatusDates  */
+		ul.Statusc = common.Active
+		ul.CreatedAt = tn
+		ul.UpdatedAt = tn
+		ul.CreatedDay = tnday
+		ul.CreatedWeek = tnweek
+		ul.CreatedMonth = tnmonth
+		ul.CreatedYear = tnyear
+		ul.UpdatedDay = tnday
+		ul.UpdatedWeek = tnweek
+		ul.UpdatedMonth = tnmonth
+		ul.UpdatedYear = tnyear
+
+		err = t.insertUserLike(ctx, tx, &ul, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6324}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6325}).Error(err)
+			return nil, err
+		}
+		return &ul, nil
+	}
+}
+
+// insertUserLike - Insert User like details in database
+func (t *MessageService) insertUserLike(ctx context.Context, tx *sql.Tx, ur *UserLike, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -957,8 +832,74 @@ func (t *MessageService) InsertUserLike(ctx context.Context, tx *sql.Tx, ur *Use
 	}
 }
 
-// InsertUserVote - Insert User vote details into database
-func (t *MessageService) InsertUserVote(ctx context.Context, tx *sql.Tx, ur *UserVote, userEmail string, requestID string) error {
+// CreateUserVote - Create User Vote
+func (t *MessageService) CreateUserVote(ctx context.Context, form *UserVote, UserID string, userEmail string, requestID string) (*UserVote, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6326}).Error(err)
+		return nil, err
+	default:
+		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6327}).Error(err)
+			return nil, err
+		}
+		db := t.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6328}).Error(err)
+			return nil, err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		ul := UserVote{}
+		ul.UUID4, err = common.GetUUIDBytes()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6329}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		ul.TopicID = form.TopicID
+		ul.MessageID = form.MessageID
+		ul.UgroupID = form.UgroupID
+		ul.UserID = user.ID
+		ul.Vote = form.Vote
+		/*  StatusDates  */
+		ul.Statusc = common.Active
+		ul.CreatedAt = tn
+		ul.UpdatedAt = tn
+		ul.CreatedDay = tnday
+		ul.CreatedWeek = tnweek
+		ul.CreatedMonth = tnmonth
+		ul.CreatedYear = tnyear
+		ul.UpdatedDay = tnday
+		ul.UpdatedWeek = tnweek
+		ul.UpdatedMonth = tnmonth
+		ul.UpdatedYear = tnyear
+
+		err = t.insertUserVote(ctx, tx, &ul, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6330}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6331}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		return &ul, nil
+	}
+}
+
+// insertUserVote - Insert User vote details into database
+func (t *MessageService) insertUserVote(ctx context.Context, tx *sql.Tx, ur *UserVote, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -1320,8 +1261,83 @@ func (t *MessageService) GetMessageAttachments(ctx context.Context, messageID ui
 	return messageAttachments, nil
 }
 
-// Delete - Delete message
-func (t *MessageService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
+//UpdateMessage - Update message
+func (t *MessageService) UpdateMessage(ctx context.Context, ID string, form *Message, UserID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6382}).Error(err)
+		return err
+	default:
+		msg, err := t.GetMessage(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6384}).Error(err)
+			return err
+		}
+
+		db := t.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6385}).Error(err)
+			return err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update message_texts set 
+		  mtext = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where message_id = ? and statusc = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6386}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6387}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		_, err = stmt.ExecContext(ctx,
+			form.Mtext,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			msg.ID,
+			common.Active)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6388}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6389}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6390}).Error(err)
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6391}).Error(err)
+			return err
+		}
+		return nil
+	}
+}
+
+// DeleteMessage - Delete message
+func (t *MessageService) DeleteMessage(ctx context.Context, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")

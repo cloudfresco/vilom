@@ -99,6 +99,23 @@ type ForgotPasswordForm struct {
 	Email string
 }
 
+// UserServiceIntf - interface for User Service
+type UserServiceIntf interface {
+	Login(ctx context.Context, form *LoginForm, requestID string) (*User, error)
+	CreateUser(ctx context.Context, form *User, hostURL string, requestID string) (*User, error)
+	GetUsers(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*UserCursor, error)
+	GetUserByEmail(ctx context.Context, Email string, userEmail string, requestID string) (*User, error)
+	GetUser(ctx context.Context, ID string, userEmail string, requestID string) (*User, error)
+	UpdateUser(ctx context.Context, ID string, form *User, UserID string, userEmail string, requestID string) error
+	DeleteUser(ctx context.Context, ID string, userEmail string, requestID string) error
+	ConfirmEmail(ctx context.Context, token string, requestID string) error
+	ForgotPassword(ctx context.Context, form *ForgotPasswordForm, hostURL string, requestID string) error
+	ConfirmForgotPassword(ctx context.Context, form *PasswordForm, token string, requestID string) error
+	ChangePassword(ctx context.Context, form *PasswordForm, userEmail string, requestID string) error
+	ChangeEmail(ctx context.Context, form *ChangeEmailForm, hostURL string, userEmail string, requestID string) error
+	ConfirmChangeEmail(ctx context.Context, token string, requestID string) error
+}
+
 // UserService - For accessing user services
 type UserService struct {
 	Config       *common.RedisOptions
@@ -111,14 +128,16 @@ type UserService struct {
 }
 
 // NewUserService - Create User Service
-func NewUserService(config *common.RedisOptions,
-	db *sql.DB,
-	redisClient *redis.Client,
-	mailer *gomail.Dialer,
-	jwtOptions *common.JWTOptions,
-	limitDefault string,
-	userOptions *common.UserOptions) *UserService {
-	return &UserService{config, db, redisClient, mailer, jwtOptions, limitDefault, userOptions}
+func NewUserService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, mailer *gomail.Dialer, jwtOptions *common.JWTOptions, limitDefault string, userOptions *common.UserOptions) *UserService {
+	return &UserService{
+		Config:       config,
+		Db:           db,
+		RedisClient:  redisClient,
+		Mailer:       mailer,
+		JWTOptions:   jwtOptions,
+		LimitDefault: limitDefault,
+		UserOptions:  userOptions,
+	}
 }
 
 // Roles - Used for roles
@@ -134,92 +153,6 @@ type CustomClaims struct {
 type UserCursor struct {
 	Users      []*User
 	NextCursor string `json:"next_cursor,omitempty"`
-}
-
-// GetUsers - Get all users
-func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*UserCursor, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 1507,
-		}).Error(err)
-		return nil, err
-	default:
-		if limit == "" {
-			limit = u.LimitDefault
-		}
-		query := "(statusc = ?)"
-		if nextCursor == "" {
-			query = query + " order by id desc " + " limit " + limit + ";"
-		} else {
-			nextCursor = common.DecodeCursor(nextCursor)
-			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
-		}
-		users := []*User{}
-		rows, err := u.Db.QueryContext(ctx, `select id, uuid4, auth_token, first_name, last_name, email, role from users where `+query, common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 1508,
-			}).Error(err)
-			return nil, err
-		}
-
-		for rows.Next() {
-			user := User{}
-			err = rows.Scan(&user.ID, &user.UUID4, &user.AuthToken, &user.FirstName, &user.LastName, &user.Email, &user.Role)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"user":   userEmail,
-					"reqid":  requestID,
-					"msgnum": 1509,
-				}).Error(err)
-				err = rows.Close()
-				return nil, err
-			}
-			uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1510}).Error(err)
-				return nil, err
-			}
-			user.IDS = uuid4Str
-			users = append(users, &user)
-		}
-		err = rows.Close()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 1511,
-			}).Error(err)
-			return nil, err
-		}
-
-		err = rows.Err()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 1512,
-			}).Error(err)
-			return nil, err
-		}
-		x := UserCursor{}
-		if len(users) != 0 {
-			next := users[len(users)-1].ID
-			next = next - 1
-			nextc := common.EncodeCursor(next)
-			x = UserCursor{users, nextc}
-		} else {
-			x = UserCursor{users, "0"}
-		}
-		return &x, nil
-	}
-
 }
 
 // Login - used for Login user
@@ -258,7 +191,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 			return nil, err
 		}
 		tokenDuration := time.Duration(u.JWTOptions.JWTDuration)
-		tokenStr, err := u.CreateJWT(form.Email, tokenDuration, requestID)
+		tokenStr, err := u.createJWT(form.Email, tokenDuration, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -278,34 +211,8 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 	}
 }
 
-// CreateJWT - Create jwt token
-func (u *UserService) CreateJWT(emailAddr string, tokenDuration time.Duration, requestID string) (string, error) {
-	tn, _, _, _, _ := common.GetTimeDetails()
-	claims := CustomClaims{
-		EmailAddr: emailAddr,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: tn.Add(time.Hour * tokenDuration).Unix(),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign token with key
-	tokenString, err := token.SignedString(u.JWTOptions.JWTKey)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1518,
-		}).Error("Failed to sign token")
-		return "", errors.New("Failed to sign token")
-	}
-
-	return tokenString, nil
-
-}
-
-// Create - Create User
-func (u *UserService) Create(ctx context.Context, form *User, hostURL string, requestID string) (*User, error) {
+// CreateUser - Create User
+func (u *UserService) CreateUser(ctx context.Context, form *User, hostURL string, requestID string) (*User, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -423,7 +330,7 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 
 			return nil, err
 		}
-		err = u.InsertUser(ctx, tx, &user, hostURL, requestID)
+		err = u.insertUser(ctx, tx, &user, hostURL, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -447,85 +354,34 @@ func (u *UserService) Create(ctx context.Context, form *User, hostURL string, re
 	}
 }
 
-//Update - Update User
-func (u *UserService) Update(ctx context.Context, ID string, form *User, UserID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1592}).Error(err)
-		return err
-	default:
-		user, err := u.GetUser(ctx, ID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1593}).Error(err)
-			return err
-		}
-
-		db := u.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1594}).Error(err)
-			return err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update users set 
-		  first_name = ?,
-      last_name = ?,
-			updated_at = ?, 
-			updated_day = ?, 
-			updated_week = ?, 
-			updated_month = ?, 
-			updated_year = ? where id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1595}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1596}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		_, err = stmt.ExecContext(ctx,
-			form.FirstName,
-			form.LastName,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			user.ID,
-			common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1597}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1598}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1599}).Error(err)
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1600}).Error(err)
-			return err
-		}
-		return nil
+// createJWT - Create jwt token
+func (u *UserService) createJWT(emailAddr string, tokenDuration time.Duration, requestID string) (string, error) {
+	tn, _, _, _, _ := common.GetTimeDetails()
+	claims := CustomClaims{
+		EmailAddr: emailAddr,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: tn.Add(time.Hour * tokenDuration).Unix(),
+		},
 	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign token with key
+	tokenString, err := token.SignedString(u.JWTOptions.JWTKey)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1518,
+		}).Error("Failed to sign token")
+		return "", errors.New("Failed to sign token")
+	}
+
+	return tokenString, nil
+
 }
 
-// InsertUser - Insert User details to database
-func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user *User, hostURL string, requestID string) error {
+// insertUser - Insert User details to database
+func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, hostURL string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -706,6 +562,394 @@ func (u *UserService) InsertUser(ctx context.Context, tx *sql.Tx, user *User, ho
 				"msgnum": 1535,
 			}).Error(err)
 
+			return err
+		}
+		return nil
+	}
+}
+
+// GetUsers - Get all users
+func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*UserCursor, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 1507,
+		}).Error(err)
+		return nil, err
+	default:
+		if limit == "" {
+			limit = u.LimitDefault
+		}
+		query := "(statusc = ?)"
+		if nextCursor == "" {
+			query = query + " order by id desc " + " limit " + limit + ";"
+		} else {
+			nextCursor = common.DecodeCursor(nextCursor)
+			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
+		}
+		users := []*User{}
+		rows, err := u.Db.QueryContext(ctx, `select id, uuid4, auth_token, first_name, last_name, email, role from users where `+query, common.Active)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1508,
+			}).Error(err)
+			return nil, err
+		}
+
+		for rows.Next() {
+			user := User{}
+			err = rows.Scan(&user.ID, &user.UUID4, &user.AuthToken, &user.FirstName, &user.LastName, &user.Email, &user.Role)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"user":   userEmail,
+					"reqid":  requestID,
+					"msgnum": 1509,
+				}).Error(err)
+				err = rows.Close()
+				return nil, err
+			}
+			uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1510}).Error(err)
+				return nil, err
+			}
+			user.IDS = uuid4Str
+			users = append(users, &user)
+		}
+		err = rows.Close()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1511,
+			}).Error(err)
+			return nil, err
+		}
+
+		err = rows.Err()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1512,
+			}).Error(err)
+			return nil, err
+		}
+		x := UserCursor{}
+		if len(users) != 0 {
+			next := users[len(users)-1].ID
+			next = next - 1
+			nextc := common.EncodeCursor(next)
+			x = UserCursor{users, nextc}
+		} else {
+			x = UserCursor{users, "0"}
+		}
+		return &x, nil
+	}
+
+}
+
+// GetUserByEmail - Get user details by email
+func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmail string, requestID string) (*User, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"user":   userEmail,
+			"reqid":  requestID,
+			"msgnum": 1583,
+		}).Error(err)
+		return nil, err
+	default:
+		db := u.Db
+		user := User{}
+		row := db.QueryRowContext(ctx, `select
+    id,
+		uuid4,
+		email,
+    username,
+		first_name,
+		last_name,
+		role,
+		active,
+		statusc,
+		created_at,
+		updated_at,
+		created_day,
+		created_week,
+		created_month,
+		created_year,
+		updated_day,
+		updated_week,
+		updated_month,
+		updated_year from users where email = ? and statusc = ?;`, Email, common.Active)
+
+		err := row.Scan(
+			&user.ID,
+			&user.UUID4,
+			&user.Email,
+			&user.Username,
+			&user.FirstName,
+			&user.LastName,
+			&user.Role,
+			&user.Active,
+			/*  StatusDates  */
+			&user.Statusc,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.CreatedDay,
+			&user.CreatedWeek,
+			&user.CreatedMonth,
+			&user.CreatedYear,
+			&user.UpdatedDay,
+			&user.UpdatedWeek,
+			&user.UpdatedMonth,
+			&user.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{
+				"user":   userEmail,
+				"reqid":  requestID,
+				"msgnum": 1584,
+			}).Error(err)
+			return nil, err
+		}
+		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1585}).Error(err)
+			return nil, err
+		}
+		user.IDS = uuid4Str
+		return &user, nil
+	}
+}
+
+// GetUser - Get user details by ID
+func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, requestID string) (*User, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1586,
+		}).Error(err)
+		return nil, err
+	default:
+		uuid4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1587}).Error(err)
+			return nil, err
+		}
+		db := u.Db
+		user := User{}
+		row := db.QueryRowContext(ctx, `select
+    id,
+		uuid4,
+		email,
+    username,
+		first_name,
+		last_name,
+		role,
+		active,
+		statusc,
+		created_at,
+		updated_at,
+		created_day,
+		created_week,
+		created_month,
+		created_year,
+		updated_day,
+		updated_week,
+		updated_month,
+		updated_year from users where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
+
+		err = row.Scan(
+			&user.ID,
+			&user.UUID4,
+			&user.Email,
+			&user.Username,
+			&user.FirstName,
+			&user.LastName,
+			&user.Role,
+			&user.Active,
+			/*  StatusDates  */
+			&user.Statusc,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.CreatedDay,
+			&user.CreatedWeek,
+			&user.CreatedMonth,
+			&user.CreatedYear,
+			&user.UpdatedDay,
+			&user.UpdatedWeek,
+			&user.UpdatedMonth,
+			&user.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1588,
+			}).Error(err)
+			return nil, err
+		}
+		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1589}).Error(err)
+			return nil, err
+		}
+		user.IDS = uuid4Str
+		return &user, nil
+	}
+}
+
+//UpdateUser - Update User
+func (u *UserService) UpdateUser(ctx context.Context, ID string, form *User, UserID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1592}).Error(err)
+		return err
+	default:
+		user, err := u.GetUser(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1593}).Error(err)
+			return err
+		}
+
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1594}).Error(err)
+			return err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update users set 
+		  first_name = ?,
+      last_name = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where id = ? and statusc = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1595}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1596}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		_, err = stmt.ExecContext(ctx,
+			form.FirstName,
+			form.LastName,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			user.ID,
+			common.Active)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1597}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1598}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1599}).Error(err)
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1600}).Error(err)
+			return err
+		}
+		return nil
+	}
+}
+
+// DeleteUser - Delete user
+func (u *UserService) DeleteUser(ctx context.Context, ID string, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1601}).Error(err)
+		return err
+	default:
+		uuid4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1602}).Error(err)
+			return err
+		}
+		db := u.Db
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1603}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update users set 
+		  statusc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where uuid4= ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1604}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			common.Inactive,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			uuid4byte)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1605}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1606}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1607}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1608}).Error(err)
+			err = tx.Rollback()
 			return err
 		}
 		return nil
@@ -1485,230 +1729,5 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		}
 
 		return nil
-	}
-}
-
-// Delete - Delete user
-func (u *UserService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1601}).Error(err)
-		return err
-	default:
-		uuid4byte, err := common.UUIDStrToBytes(ID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1602}).Error(err)
-			return err
-		}
-		db := u.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1603}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update users set 
-		  statusc = ?,
-			updated_at = ?, 
-			updated_day = ?, 
-			updated_week = ?, 
-			updated_month = ?, 
-			updated_year = ? where uuid4= ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1604}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-
-		_, err = stmt.ExecContext(ctx,
-			common.Inactive,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			uuid4byte)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1605}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1606}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1607}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1608}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		return nil
-	}
-}
-
-// GetUserByEmail - Get user details by email
-func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmail string, requestID string) (*User, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"user":   userEmail,
-			"reqid":  requestID,
-			"msgnum": 1583,
-		}).Error(err)
-		return nil, err
-	default:
-		db := u.Db
-		user := User{}
-		row := db.QueryRowContext(ctx, `select
-    id,
-		uuid4,
-		email,
-    username,
-		first_name,
-		last_name,
-		role,
-		active,
-		statusc,
-		created_at,
-		updated_at,
-		created_day,
-		created_week,
-		created_month,
-		created_year,
-		updated_day,
-		updated_week,
-		updated_month,
-		updated_year from users where email = ? and statusc = ?;`, Email, common.Active)
-
-		err := row.Scan(
-			&user.ID,
-			&user.UUID4,
-			&user.Email,
-			&user.Username,
-			&user.FirstName,
-			&user.LastName,
-			&user.Role,
-			&user.Active,
-			/*  StatusDates  */
-			&user.Statusc,
-			&user.CreatedAt,
-			&user.UpdatedAt,
-			&user.CreatedDay,
-			&user.CreatedWeek,
-			&user.CreatedMonth,
-			&user.CreatedYear,
-			&user.UpdatedDay,
-			&user.UpdatedWeek,
-			&user.UpdatedMonth,
-			&user.UpdatedYear)
-
-		if err != nil {
-			log.WithFields(log.Fields{
-				"user":   userEmail,
-				"reqid":  requestID,
-				"msgnum": 1584,
-			}).Error(err)
-			return nil, err
-		}
-		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1585}).Error(err)
-			return nil, err
-		}
-		user.IDS = uuid4Str
-		return &user, nil
-	}
-}
-
-// GetUser - Get user details by ID
-func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, requestID string) (*User, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{
-			"reqid":  requestID,
-			"msgnum": 1586,
-		}).Error(err)
-		return nil, err
-	default:
-		uuid4byte, err := common.UUIDStrToBytes(ID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1587}).Error(err)
-			return nil, err
-		}
-		db := u.Db
-		user := User{}
-		row := db.QueryRowContext(ctx, `select
-    id,
-		uuid4,
-		email,
-    username,
-		first_name,
-		last_name,
-		role,
-		active,
-		statusc,
-		created_at,
-		updated_at,
-		created_day,
-		created_week,
-		created_month,
-		created_year,
-		updated_day,
-		updated_week,
-		updated_month,
-		updated_year from users where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
-
-		err = row.Scan(
-			&user.ID,
-			&user.UUID4,
-			&user.Email,
-			&user.Username,
-			&user.FirstName,
-			&user.LastName,
-			&user.Role,
-			&user.Active,
-			/*  StatusDates  */
-			&user.Statusc,
-			&user.CreatedAt,
-			&user.UpdatedAt,
-			&user.CreatedDay,
-			&user.CreatedWeek,
-			&user.CreatedMonth,
-			&user.CreatedYear,
-			&user.UpdatedDay,
-			&user.UpdatedWeek,
-			&user.UpdatedMonth,
-			&user.UpdatedYear)
-
-		if err != nil {
-			log.WithFields(log.Fields{
-				"reqid":  requestID,
-				"msgnum": 1588,
-			}).Error(err)
-			return nil, err
-		}
-		uuid4Str, err := common.UUIDBytesToStr(user.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1589}).Error(err)
-			return nil, err
-		}
-		user.IDS = uuid4Str
-		return &user, nil
 	}
 }

@@ -129,7 +129,7 @@ func (tc *TopicController) Show(w http.ResponseWriter, r *http.Request, id strin
 		return
 	default:
 
-		topic, err := tc.Service.Show(ctx, id, user.UserID, user.Email, requestID)
+		topic, err := tc.Service.ShowTopic(ctx, id, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5000}).Error(err)
 			common.RenderErrorJSON(w, "5000", err.Error(), 402, requestID)
@@ -157,7 +157,7 @@ func (tc *TopicController) Create(w http.ResponseWriter, r *http.Request, user *
 			common.RenderErrorJSON(w, "5001", err.Error(), 402, requestID)
 			return
 		}
-		topic, err := tc.Service.Create(ctx, &form, user.UserID, user.Email, requestID)
+		topic, err := tc.Service.CreateTopic(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5002}).Error(err)
 			common.RenderErrorJSON(w, "5002", err.Error(), 402, requestID)
@@ -213,7 +213,7 @@ func (tc *TopicController) Update(w http.ResponseWriter, r *http.Request, id str
 			common.RenderErrorJSON(w, "5005", err.Error(), 402, requestID)
 			return
 		}
-		err = tc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = tc.Service.UpdateTopic(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5006}).Error(err)
 			common.RenderErrorJSON(w, "5006", err.Error(), 402, requestID)
@@ -233,7 +233,7 @@ func (tc *TopicController) Delete(w http.ResponseWriter, r *http.Request, id str
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := tc.Service.Delete(ctx, id, user.Email, requestID)
+		err := tc.Service.DeleteTopic(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5007}).Error(err)
 			common.RenderErrorJSON(w, "5007", err.Error(), 402, requestID)

@@ -177,7 +177,7 @@ func (uc *UController) Create(w http.ResponseWriter, r *http.Request, requestID 
 			common.RenderErrorJSON(w, "1103", err.Error(), 402, requestID)
 			return
 		}
-		user, err := uc.Service.Create(ctx, &form, r.Host, requestID)
+		user, err := uc.Service.CreateUser(ctx, &form, r.Host, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,

@@ -328,7 +328,7 @@ func (uc *UsersController) Update(w http.ResponseWriter, r *http.Request, id str
 			common.RenderErrorJSON(w, "1310", err.Error(), 402, requestID)
 			return
 		}
-		err = uc.Service.Update(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = uc.Service.UpdateUser(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 1311}).Error(err)
 			common.RenderErrorJSON(w, "1311", err.Error(), 402, requestID)
@@ -348,7 +348,7 @@ func (uc *UsersController) Delete(w http.ResponseWriter, r *http.Request, id str
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := uc.Service.Delete(ctx, id, user.Email, requestID)
+		err := uc.Service.DeleteUser(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 1312}).Error(err)
 			common.RenderErrorJSON(w, "1312", err.Error(), 402, requestID)

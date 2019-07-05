@@ -74,6 +74,21 @@ type UserTopic struct {
 	common.StatusDates
 }
 
+// TopicServiceIntf - interface for Topic Service
+type TopicServiceIntf interface {
+	CreateTopic(ctx context.Context, form *Topic, UserID string, userEmail string, requestID string) (*Topic, error)
+	ShowTopic(ctx context.Context, ID string, UserID string, userEmail string, requestID string) (*Topic, error)
+	GetTopicByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Topic, error)
+	GetTopic(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error)
+	GetTopicByName(ctx context.Context, topicname string, userEmail string, requestID string) (*Topic, error)
+	GetTopicWithMessages(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error)
+	GetTopicMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Topic, error)
+	GetTopicsUser(ctx context.Context, ID uint, UserID uint, userEmail string, requestID string) (*TopicsUser, error)
+	UpdateTopic(ctx context.Context, ID string, form *Topic, UserID string, userEmail string, requestID string) error
+	UpdateNumMessages(ctx context.Context, tx *sql.Tx, numMessages uint, ID uint, userEmail string, requestID string) error
+	DeleteTopic(ctx context.Context, ID string, userEmail string, requestID string) error
+}
+
 // TopicService - For accessing topic services
 type TopicService struct {
 	Config       *common.RedisOptions
@@ -83,375 +98,17 @@ type TopicService struct {
 }
 
 // NewTopicService - Create topic service
-func NewTopicService(config *common.RedisOptions,
-	db *sql.DB,
-	redisClient *redis.Client,
-	limitDefault string) *TopicService {
-	return &TopicService{config, db, redisClient, limitDefault}
-}
-
-// Show - Get topic details
-func (t *TopicService) Show(ctx context.Context, ID string, UserID string, userEmail string, requestID string) (*Topic, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5300}).Error(err)
-		return nil, err
-	default:
-		db := t.Db
-		topic, err := t.GetTopicWithMessages(ctx, ID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5301}).Error(err)
-			return nil, err
-		}
-		//update topic_users table
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
-		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5302}).Error(err)
-			return nil, err
-		}
-		var isPresent bool
-		row := db.QueryRowContext(ctx, `select exists (select 1 from topics_users where topic_id = ? and user_id = ?);`, topic.ID, user.ID)
-		err = row.Scan(&isPresent)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5303}).Error(err)
-			return nil, err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5372}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
-		if isPresent {
-			//update
-			topicsuser, err := t.GetTopicsUser(ctx, topic.ID, user.ID, userEmail, requestID)
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5373}).Error(err)
-				err = tx.Rollback()
-				return nil, err
-			}
-
-			numViews := topicsuser.NumViews + 1
-			err = t.UpdateTopicUsers(ctx, tx, topic.NumMessages, numViews, topicsuser.ID, userEmail, requestID)
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
-				err = tx.Rollback()
-				return nil, err
-			}
-		} else {
-			//create
-			tu := TopicsUser{}
-			tu.UUID4, err = common.GetUUIDBytes()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5307}).Error(err)
-				err = tx.Rollback()
-				return nil, err
-			}
-			tu.TopicID = topic.ID
-			tu.NumMessages = topic.NumMessages
-			tu.NumViews = 1
-			tu.UserID = user.ID
-			tu.UgroupID = uint(0)
-			tu.Statusc = common.Active
-			tu.CreatedAt = tn
-			tu.UpdatedAt = tn
-			tu.CreatedDay = tnday
-			tu.CreatedWeek = tnweek
-			tu.CreatedMonth = tnmonth
-			tu.CreatedYear = tnyear
-			tu.UpdatedDay = tnday
-			tu.UpdatedWeek = tnweek
-			tu.UpdatedMonth = tnmonth
-			tu.UpdatedYear = tnyear
-
-			_, err := t.InsertTopicsUser(ctx, tx, tu, userEmail, requestID)
-
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5308}).Error(err)
-				err = tx.Rollback()
-				return nil, err
-			}
-
-		}
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5309}).Error(err)
-			return nil, err
-		}
-		return topic, nil
+func NewTopicService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *TopicService {
+	return &TopicService{
+		Config:       config,
+		Db:           db,
+		RedisClient:  redisClient,
+		LimitDefault: limitDefault,
 	}
 }
 
-// UpdateTopicUsers - update topic users
-func (t *TopicService) UpdateTopicUsers(ctx context.Context, tx *sql.Tx, numMessages uint, numViews uint, topicsuserID uint, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5332}).Error(err)
-		return err
-	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		stmt, err := tx.PrepareContext(ctx, `update topics_users set 
-					num_messages = ?,
-          num_views = ?,
-					updated_at = ?, 
-					updated_day = ?, 
-					updated_week = ?, 
-					updated_month = ?, 
-					updated_year = ? where id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5304}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5374}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-
-		_, err = stmt.ExecContext(ctx,
-			numMessages,
-			numViews,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			topicsuserID,
-			common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5305}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5375}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5306}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		return nil
-	}
-}
-
-// GetTopicWithMessages - Get topic with messages
-func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5310}).Error(err)
-		return nil, err
-	default:
-		uuid4byte, err := common.UUIDStrToBytes(ID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5311}).Error(err)
-			return nil, err
-		}
-		db := t.Db
-		poh := &Topic{}
-		tpc, err := t.GetTopic(ctx, ID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5312}).Error(err)
-			return nil, err
-		}
-		var isPresent bool
-		row := db.QueryRowContext(ctx, `select exists (select 1 from messages where topic_id = ?);`, tpc.ID)
-		err = row.Scan(&isPresent)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5313}).Error(err)
-			return nil, err
-		}
-		if isPresent {
-			poh, err = t.GetTopicMessages(ctx, uuid4byte, userEmail, requestID)
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5380}).Error(err)
-				return nil, err
-			}
-		} else {
-			poh = tpc
-		}
-
-		if len(poh.Messages) > 0 {
-			msgserv := &MessageService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
-			Messages, err := msgserv.GetMessagesWithTextAttach(ctx, poh.Messages, userEmail, requestID)
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5320}).Error(err)
-			}
-			poh.Messages = Messages
-		}
-		return poh, nil
-	}
-}
-
-// GetTopicMessages - get topic with messages
-func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Topic, error) {
-	db := t.Db
-	poh := Topic{}
-	rows, err := db.QueryContext(ctx, `select 
-      p.id,
-			p.uuid4,
-			p.topic_name,
-			p.topic_desc,
-			p.num_tags,
-			p.tag1,
-			p.tag2,
-			p.tag3,
-			p.tag4,
-			p.tag5,
-			p.tag6,
-			p.tag7,
-			p.tag8,
-			p.tag9,
-			p.tag10,
-			p.num_views,
-			p.num_messages,
-			p.category_id,
-			p.ugroup_id,
-			p.user_id,
-			p.statusc,
-			p.created_at,
-			p.updated_at,
-			p.created_day,
-			p.created_week,
-			p.created_month,
-			p.created_year,
-			p.updated_day,
-			p.updated_week,
-			p.updated_month,
-			p.updated_year,
-		  m.id,
-			m.uuid4,
-			m.num_likes,
-			m.num_upvotes,
-			m.num_downvotes,
-			m.category_id,
-			m.topic_id,
-			m.ugroup_id,
-			m.user_id,
-			m.statusc,
-			m.created_at,
-			m.updated_at,
-			m.created_day,
-			m.created_week,
-			m.created_month,
-			m.created_year,
-			m.updated_day,
-			m.updated_week,
-			m.updated_month,
-			m.updated_year from topics p inner join messages m on (p.id = m.topic_id) where p.uuid4 = ?`, uuid4byte)
-
-	if err != nil {
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5314}).Error(err)
-		return nil, err
-	}
-	for rows.Next() {
-		msg := Message{}
-		err = rows.Scan(
-			&poh.ID,
-			&poh.UUID4,
-			&poh.TopicName,
-			&poh.TopicDesc,
-			&poh.NumTags,
-			&poh.Tag1,
-			&poh.Tag2,
-			&poh.Tag3,
-			&poh.Tag4,
-			&poh.Tag5,
-			&poh.Tag6,
-			&poh.Tag7,
-			&poh.Tag8,
-			&poh.Tag9,
-			&poh.Tag10,
-			&poh.NumViews,
-			&poh.NumMessages,
-			&poh.CategoryID,
-			&poh.UgroupID,
-			&poh.UserID,
-			/*  StatusDates  */
-			&poh.Statusc,
-			&poh.CreatedAt,
-			&poh.UpdatedAt,
-			&poh.CreatedDay,
-			&poh.CreatedWeek,
-			&poh.CreatedMonth,
-			&poh.CreatedYear,
-			&poh.UpdatedDay,
-			&poh.UpdatedWeek,
-			&poh.UpdatedMonth,
-			&poh.UpdatedYear,
-			&msg.ID,
-			&msg.UUID4,
-			&msg.NumLikes,
-			&msg.NumUpvotes,
-			&msg.NumDownvotes,
-			&msg.CategoryID,
-			&msg.TopicID,
-			&msg.UgroupID,
-			&msg.UserID,
-			/*  StatusDates  */
-			&msg.Statusc,
-			&msg.CreatedAt,
-			&msg.UpdatedAt,
-			&msg.CreatedDay,
-			&msg.CreatedWeek,
-			&msg.CreatedMonth,
-			&msg.CreatedYear,
-			&msg.UpdatedDay,
-			&msg.UpdatedWeek,
-			&msg.UpdatedMonth,
-			&msg.UpdatedYear)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5315}).Error(err)
-			return nil, err
-		}
-		uuid4Str1, err := common.UUIDBytesToStr(poh.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5316}).Error(err)
-			return nil, err
-		}
-		poh.IDS = uuid4Str1
-
-		uuid4Str, err := common.UUIDBytesToStr(msg.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5317}).Error(err)
-			return nil, err
-		}
-		msg.IDS = uuid4Str
-		poh.Messages = append(poh.Messages, &msg)
-	}
-
-	err = rows.Close()
-	if err != nil {
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5318}).Error(err)
-		return nil, err
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5319}).Error(err)
-		return nil, err
-	}
-	return &poh, nil
-}
-
-// Create - Create topic
-func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, userEmail string, requestID string) (*Topic, error) {
+// CreateTopic - Create topic
+func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID string, userEmail string, requestID string) (*Topic, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -510,7 +167,7 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 		topic.UpdatedMonth = tnmonth
 		topic.UpdatedYear = tnyear
 
-		err = t.InsertTopic(ctx, tx, &topic, userEmail, requestID)
+		err = t.insertTopic(ctx, tx, &topic, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5325}).Error(err)
@@ -540,7 +197,7 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 			msgform.UgroupID = form.UgroupID
 			msgform.Mtext = form.Mtext
 			msgform.Mattach = form.Mattach
-			_, err = msgserv.Create(ctx, &msgform, UserID, false, userEmail, requestID)
+			_, err = msgserv.CreateMessage(ctx, &msgform, UserID, false, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5330}).Error(err)
 				err = tx.Rollback()
@@ -571,7 +228,7 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 		ut.UpdatedMonth = tnmonth
 		ut.UpdatedYear = tnyear
 
-		err = t.InsertUserTopic(ctx, tx, &ut, userEmail, requestID)
+		err = t.insertUserTopic(ctx, tx, &ut, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5340}).Error(err)
@@ -589,141 +246,8 @@ func (t *TopicService) Create(ctx context.Context, form *Topic, UserID string, u
 	}
 }
 
-// UpdateNumMessages - update number of messages in topics
-func (t *TopicService) UpdateNumMessages(ctx context.Context, tx *sql.Tx, numMessages uint, ID uint, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5331}).Error(err)
-		return err
-	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update topics set 
-		  num_messages = ?,
-			updated_at = ?, 
-			updated_day = ?, 
-			updated_week = ?, 
-			updated_month = ?, 
-			updated_year = ? where id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5334}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5377}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		_, err = stmt.ExecContext(ctx,
-			numMessages,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			ID,
-			common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5335}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5378}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5336}).Error(err)
-			return err
-		}
-		return nil
-	}
-}
-
-//Update - Update topic
-func (t *TopicService) Update(ctx context.Context, ID string, form *Topic, UserID string, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5382}).Error(err)
-		return err
-	default:
-		topic, err := t.GetTopic(ctx, ID, userEmail, requestID)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5383}).Error(err)
-			return err
-		}
-
-		db := t.Db
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5384}).Error(err)
-			return err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update topics set 
-		  topic_name = ?,
-      topic_desc = ?,
-			updated_at = ?, 
-			updated_day = ?, 
-			updated_week = ?, 
-			updated_month = ?, 
-			updated_year = ? where id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5385}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5386}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		_, err = stmt.ExecContext(ctx,
-			form.TopicName,
-			form.TopicDesc,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			topic.ID,
-			common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5387}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5388}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5389}).Error(err)
-			return err
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5390}).Error(err)
-			return err
-		}
-		return nil
-	}
-}
-
-// InsertTopic - Insert topic details into database
-func (t *TopicService) InsertTopic(ctx context.Context, tx *sql.Tx, topc *Topic, userEmail string, requestID string) error {
+// insertTopic - Insert topic details into database
+func (t *TopicService) insertTopic(ctx context.Context, tx *sql.Tx, topc *Topic, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -826,6 +350,317 @@ func (t *TopicService) InsertTopic(ctx context.Context, tx *sql.Tx, topc *Topic,
 			return err
 		}
 		return nil
+	}
+}
+
+// insertUserTopic - Insert user topics details into database
+func (t *TopicService) insertUserTopic(ctx context.Context, tx *sql.Tx, poh *UserTopic, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5367}).Error(err)
+		return err
+	default:
+		stmt, err := tx.PrepareContext(ctx, `insert into user_topics
+	  (
+    uuid4,
+		topic_id,
+		user_id,
+		ugroup_id,
+		statusc,
+		created_at,
+		updated_at,
+		created_day,
+		created_week,
+		created_month,
+		created_year,
+		updated_day,
+		updated_week,
+		updated_month,
+		updated_year)
+  values (?,?,?,?,?,?,?,?,?,?,
+					?,?,?,?,?);`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5368}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		res, err := stmt.ExecContext(ctx,
+			poh.UUID4,
+			poh.TopicID,
+			poh.UserID,
+			poh.UgroupID,
+			poh.Statusc,
+			poh.CreatedAt,
+			poh.UpdatedAt,
+			poh.CreatedDay,
+			poh.CreatedWeek,
+			poh.CreatedMonth,
+			poh.CreatedYear,
+			poh.UpdatedDay,
+			poh.UpdatedWeek,
+			poh.UpdatedMonth,
+			poh.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5369}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		uID, err := res.LastInsertId()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5370}).Error(err)
+			err = stmt.Close()
+			return err
+		}
+		poh.ID = uint(uID)
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5371}).Error(err)
+			return err
+		}
+
+		return nil
+	}
+}
+
+// ShowTopic - Get topic details
+func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, userEmail string, requestID string) (*Topic, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5300}).Error(err)
+		return nil, err
+	default:
+		db := t.Db
+		topic, err := t.GetTopicWithMessages(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5301}).Error(err)
+			return nil, err
+		}
+		//update topic_users table
+		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5302}).Error(err)
+			return nil, err
+		}
+		var isPresent bool
+		row := db.QueryRowContext(ctx, `select exists (select 1 from topics_users where topic_id = ? and user_id = ?);`, topic.ID, user.ID)
+		err = row.Scan(&isPresent)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5303}).Error(err)
+			return nil, err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		tx, err := db.Begin()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5372}).Error(err)
+			err = tx.Rollback()
+			return nil, err
+		}
+		if isPresent {
+			//update
+			topicsuser, err := t.GetTopicsUser(ctx, topic.ID, user.ID, userEmail, requestID)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5373}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
+
+			numViews := topicsuser.NumViews + 1
+			err = t.updateTopicUsers(ctx, tx, topic.NumMessages, numViews, topicsuser.ID, userEmail, requestID)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
+		} else {
+			//create
+			tu := TopicsUser{}
+			tu.UUID4, err = common.GetUUIDBytes()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5307}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
+			tu.TopicID = topic.ID
+			tu.NumMessages = topic.NumMessages
+			tu.NumViews = 1
+			tu.UserID = user.ID
+			tu.UgroupID = uint(0)
+			tu.Statusc = common.Active
+			tu.CreatedAt = tn
+			tu.UpdatedAt = tn
+			tu.CreatedDay = tnday
+			tu.CreatedWeek = tnweek
+			tu.CreatedMonth = tnmonth
+			tu.CreatedYear = tnyear
+			tu.UpdatedDay = tnday
+			tu.UpdatedWeek = tnweek
+			tu.UpdatedMonth = tnmonth
+			tu.UpdatedYear = tnyear
+
+			_, err := t.insertTopicsUser(ctx, tx, tu, userEmail, requestID)
+
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5308}).Error(err)
+				err = tx.Rollback()
+				return nil, err
+			}
+
+		}
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5309}).Error(err)
+			return nil, err
+		}
+		return topic, nil
+	}
+}
+
+// updateTopicUsers - update topic users
+func (t *TopicService) updateTopicUsers(ctx context.Context, tx *sql.Tx, numMessages uint, numViews uint, topicsuserID uint, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5332}).Error(err)
+		return err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		stmt, err := tx.PrepareContext(ctx, `update topics_users set 
+					num_messages = ?,
+          num_views = ?,
+					updated_at = ?, 
+					updated_day = ?, 
+					updated_week = ?, 
+					updated_month = ?, 
+					updated_year = ? where id = ? and statusc = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5304}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5374}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			numMessages,
+			numViews,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			topicsuserID,
+			common.Active)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5305}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5375}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5306}).Error(err)
+			err = tx.Rollback()
+			return err
+		}
+		return nil
+	}
+}
+
+// insertTopicsUser - Insert topic user details into database
+func (t *TopicService) insertTopicsUser(ctx context.Context, tx *sql.Tx, poh TopicsUser, userEmail string, requestID string) (*TopicsUser, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5361}).Error(err)
+		return nil, err
+	default:
+		stmt, err := tx.PrepareContext(ctx, `insert into topics_users
+	  (uuid4,
+		topic_id,
+		num_messages,
+    num_views,
+		user_id,
+		ugroup_id,
+		statusc,
+		created_at,
+		updated_at,
+		created_day,
+		created_week,
+		created_month,
+		created_year,
+		updated_day,
+		updated_week,
+		updated_month,
+		updated_year)
+  values (?,?,?,?,?,?,?,?,?,?,
+					?,?,?,?,?,?,?);`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5362}).Error(err)
+			err = stmt.Close()
+			return nil, err
+		}
+		res, err := stmt.ExecContext(ctx,
+			poh.UUID4,
+			poh.TopicID,
+			poh.NumMessages,
+			poh.NumViews,
+			poh.UserID,
+			poh.UgroupID,
+			poh.Statusc,
+			poh.CreatedAt,
+			poh.UpdatedAt,
+			poh.CreatedDay,
+			poh.CreatedWeek,
+			poh.CreatedMonth,
+			poh.CreatedYear,
+			poh.UpdatedDay,
+			poh.UpdatedWeek,
+			poh.UpdatedMonth,
+			poh.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5363}).Error(err)
+			err = stmt.Close()
+			return nil, err
+		}
+		uID, err := res.LastInsertId()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5364}).Error(err)
+			err = stmt.Close()
+			return nil, err
+		}
+		poh.ID = uint(uID)
+		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5365}).Error(err)
+			return nil, err
+		}
+		poh.IDS = uuid4Str
+		err = stmt.Close()
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5366}).Error(err)
+			return nil, err
+		}
+
+		return &poh, nil
 	}
 }
 
@@ -1104,6 +939,207 @@ func (t *TopicService) GetTopicByName(ctx context.Context, topicname string, use
 	}
 }
 
+// GetTopicWithMessages - Get topic with messages
+func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5310}).Error(err)
+		return nil, err
+	default:
+		uuid4byte, err := common.UUIDStrToBytes(ID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5311}).Error(err)
+			return nil, err
+		}
+		db := t.Db
+		poh := &Topic{}
+		tpc, err := t.GetTopic(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5312}).Error(err)
+			return nil, err
+		}
+		var isPresent bool
+		row := db.QueryRowContext(ctx, `select exists (select 1 from messages where topic_id = ?);`, tpc.ID)
+		err = row.Scan(&isPresent)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5313}).Error(err)
+			return nil, err
+		}
+		if isPresent {
+			poh, err = t.GetTopicMessages(ctx, uuid4byte, userEmail, requestID)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5380}).Error(err)
+				return nil, err
+			}
+		} else {
+			poh = tpc
+		}
+
+		if len(poh.Messages) > 0 {
+			msgserv := &MessageService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
+			Messages, err := msgserv.GetMessagesWithTextAttach(ctx, poh.Messages, userEmail, requestID)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5320}).Error(err)
+			}
+			poh.Messages = Messages
+		}
+		return poh, nil
+	}
+}
+
+// GetTopicMessages - get topic with messages
+func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Topic, error) {
+	db := t.Db
+	poh := Topic{}
+	rows, err := db.QueryContext(ctx, `select 
+      p.id,
+			p.uuid4,
+			p.topic_name,
+			p.topic_desc,
+			p.num_tags,
+			p.tag1,
+			p.tag2,
+			p.tag3,
+			p.tag4,
+			p.tag5,
+			p.tag6,
+			p.tag7,
+			p.tag8,
+			p.tag9,
+			p.tag10,
+			p.num_views,
+			p.num_messages,
+			p.category_id,
+			p.ugroup_id,
+			p.user_id,
+			p.statusc,
+			p.created_at,
+			p.updated_at,
+			p.created_day,
+			p.created_week,
+			p.created_month,
+			p.created_year,
+			p.updated_day,
+			p.updated_week,
+			p.updated_month,
+			p.updated_year,
+		  m.id,
+			m.uuid4,
+			m.num_likes,
+			m.num_upvotes,
+			m.num_downvotes,
+			m.category_id,
+			m.topic_id,
+			m.ugroup_id,
+			m.user_id,
+			m.statusc,
+			m.created_at,
+			m.updated_at,
+			m.created_day,
+			m.created_week,
+			m.created_month,
+			m.created_year,
+			m.updated_day,
+			m.updated_week,
+			m.updated_month,
+			m.updated_year from topics p inner join messages m on (p.id = m.topic_id) where p.uuid4 = ?`, uuid4byte)
+
+	if err != nil {
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5314}).Error(err)
+		return nil, err
+	}
+	for rows.Next() {
+		msg := Message{}
+		err = rows.Scan(
+			&poh.ID,
+			&poh.UUID4,
+			&poh.TopicName,
+			&poh.TopicDesc,
+			&poh.NumTags,
+			&poh.Tag1,
+			&poh.Tag2,
+			&poh.Tag3,
+			&poh.Tag4,
+			&poh.Tag5,
+			&poh.Tag6,
+			&poh.Tag7,
+			&poh.Tag8,
+			&poh.Tag9,
+			&poh.Tag10,
+			&poh.NumViews,
+			&poh.NumMessages,
+			&poh.CategoryID,
+			&poh.UgroupID,
+			&poh.UserID,
+			/*  StatusDates  */
+			&poh.Statusc,
+			&poh.CreatedAt,
+			&poh.UpdatedAt,
+			&poh.CreatedDay,
+			&poh.CreatedWeek,
+			&poh.CreatedMonth,
+			&poh.CreatedYear,
+			&poh.UpdatedDay,
+			&poh.UpdatedWeek,
+			&poh.UpdatedMonth,
+			&poh.UpdatedYear,
+			&msg.ID,
+			&msg.UUID4,
+			&msg.NumLikes,
+			&msg.NumUpvotes,
+			&msg.NumDownvotes,
+			&msg.CategoryID,
+			&msg.TopicID,
+			&msg.UgroupID,
+			&msg.UserID,
+			/*  StatusDates  */
+			&msg.Statusc,
+			&msg.CreatedAt,
+			&msg.UpdatedAt,
+			&msg.CreatedDay,
+			&msg.CreatedWeek,
+			&msg.CreatedMonth,
+			&msg.CreatedYear,
+			&msg.UpdatedDay,
+			&msg.UpdatedWeek,
+			&msg.UpdatedMonth,
+			&msg.UpdatedYear)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5315}).Error(err)
+			return nil, err
+		}
+		uuid4Str1, err := common.UUIDBytesToStr(poh.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5316}).Error(err)
+			return nil, err
+		}
+		poh.IDS = uuid4Str1
+
+		uuid4Str, err := common.UUIDBytesToStr(msg.UUID4)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5317}).Error(err)
+			return nil, err
+		}
+		msg.IDS = uuid4Str
+		poh.Messages = append(poh.Messages, &msg)
+	}
+
+	err = rows.Close()
+	if err != nil {
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5318}).Error(err)
+		return nil, err
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5319}).Error(err)
+		return nil, err
+	}
+	return &poh, nil
+}
+
 // GetTopicsUser - Get user topics
 func (t *TopicService) GetTopicsUser(ctx context.Context, ID uint, UserID uint, userEmail string, requestID string) (*TopicsUser, error) {
 	select {
@@ -1168,160 +1204,141 @@ func (t *TopicService) GetTopicsUser(ctx context.Context, ID uint, UserID uint, 
 	}
 }
 
-// InsertTopicsUser - Insert topic user details into database
-func (t *TopicService) InsertTopicsUser(ctx context.Context, tx *sql.Tx, poh TopicsUser, userEmail string, requestID string) (*TopicsUser, error) {
+//UpdateTopic - Update topic
+func (t *TopicService) UpdateTopic(ctx context.Context, ID string, form *Topic, UserID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5361}).Error(err)
-		return nil, err
-	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into topics_users
-	  (uuid4,
-		topic_id,
-		num_messages,
-    num_views,
-		user_id,
-		ugroup_id,
-		statusc,
-		created_at,
-		updated_at,
-		created_day,
-		created_week,
-		created_month,
-		created_year,
-		updated_day,
-		updated_week,
-		updated_month,
-		updated_year)
-  values (?,?,?,?,?,?,?,?,?,?,
-					?,?,?,?,?,?,?);`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5362}).Error(err)
-			err = stmt.Close()
-			return nil, err
-		}
-		res, err := stmt.ExecContext(ctx,
-			poh.UUID4,
-			poh.TopicID,
-			poh.NumMessages,
-			poh.NumViews,
-			poh.UserID,
-			poh.UgroupID,
-			poh.Statusc,
-			poh.CreatedAt,
-			poh.UpdatedAt,
-			poh.CreatedDay,
-			poh.CreatedWeek,
-			poh.CreatedMonth,
-			poh.CreatedYear,
-			poh.UpdatedDay,
-			poh.UpdatedWeek,
-			poh.UpdatedMonth,
-			poh.UpdatedYear)
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5363}).Error(err)
-			err = stmt.Close()
-			return nil, err
-		}
-		uID, err := res.LastInsertId()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5364}).Error(err)
-			err = stmt.Close()
-			return nil, err
-		}
-		poh.ID = uint(uID)
-		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5365}).Error(err)
-			return nil, err
-		}
-		poh.IDS = uuid4Str
-		err = stmt.Close()
-
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5366}).Error(err)
-			return nil, err
-		}
-
-		return &poh, nil
-	}
-}
-
-// InsertUserTopic - Insert user topics details into database
-func (t *TopicService) InsertUserTopic(ctx context.Context, tx *sql.Tx, poh *UserTopic, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5367}).Error(err)
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5382}).Error(err)
 		return err
 	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into user_topics
-	  (
-    uuid4,
-		topic_id,
-		user_id,
-		ugroup_id,
-		statusc,
-		created_at,
-		updated_at,
-		created_day,
-		created_week,
-		created_month,
-		created_year,
-		updated_day,
-		updated_week,
-		updated_month,
-		updated_year)
-  values (?,?,?,?,?,?,?,?,?,?,
-					?,?,?,?,?);`)
+		topic, err := t.GetTopic(ctx, ID, userEmail, requestID)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5368}).Error(err)
-			err = stmt.Close()
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5383}).Error(err)
 			return err
 		}
-		res, err := stmt.ExecContext(ctx,
-			poh.UUID4,
-			poh.TopicID,
-			poh.UserID,
-			poh.UgroupID,
-			poh.Statusc,
-			poh.CreatedAt,
-			poh.UpdatedAt,
-			poh.CreatedDay,
-			poh.CreatedWeek,
-			poh.CreatedMonth,
-			poh.CreatedYear,
-			poh.UpdatedDay,
-			poh.UpdatedWeek,
-			poh.UpdatedMonth,
-			poh.UpdatedYear)
 
+		db := t.Db
+		tx, err := db.Begin()
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5369}).Error(err)
-			err = stmt.Close()
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5384}).Error(err)
 			return err
 		}
-		uID, err := res.LastInsertId()
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update topics set 
+		  topic_name = ?,
+      topic_desc = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5370}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5385}).Error(err)
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5386}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
 			return err
 		}
-		poh.ID = uint(uID)
+		_, err = stmt.ExecContext(ctx,
+			form.TopicName,
+			form.TopicDesc,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			topic.ID,
+			common.Active)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5387}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5388}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
 		err = stmt.Close()
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5371}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5389}).Error(err)
 			return err
 		}
 
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5390}).Error(err)
+			return err
+		}
 		return nil
 	}
 }
 
-// Delete - Delete topic
-func (t *TopicService) Delete(ctx context.Context, ID string, userEmail string, requestID string) error {
+// UpdateNumMessages - update number of messages in topics
+func (t *TopicService) UpdateNumMessages(ctx context.Context, tx *sql.Tx, numMessages uint, ID uint, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5331}).Error(err)
+		return err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		stmt, err := tx.PrepareContext(ctx, `update topics set 
+		  num_messages = ?,
+			updated_at = ?, 
+			updated_day = ?, 
+			updated_week = ?, 
+			updated_month = ?, 
+			updated_year = ? where id = ? and statusc = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5334}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5377}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		_, err = stmt.ExecContext(ctx,
+			numMessages,
+			tn,
+			tnday,
+			tnweek,
+			tnmonth,
+			tnyear,
+			ID,
+			common.Active)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5335}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5378}).Error(err)
+				err = tx.Rollback()
+				return err
+			}
+			err = tx.Rollback()
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5336}).Error(err)
+			return err
+		}
+		return nil
+	}
+}
+
+// DeleteTopic - Delete topic
+func (t *TopicService) DeleteTopic(ctx context.Context, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
