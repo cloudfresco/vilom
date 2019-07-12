@@ -56,7 +56,6 @@ type CategoryServiceIntf interface {
 	GetChildCategories(ctx context.Context, ID string, userEmail string, requestID string) ([]*Category, error)
 	GetParentCategory(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error)
 	UpdateCategory(ctx context.Context, ID string, form *Category, UserID string, userEmail string, requestID string) error
-	updateNumChildren(ctx context.Context, tx *sql.Tx, numchd uint, parentID uint, userEmail string, requestID string) error
 	UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error
 	DeleteCategory(ctx context.Context, ID string, userEmail string, requestID string) error
 }
