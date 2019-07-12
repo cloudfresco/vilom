@@ -445,12 +445,30 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3329}).Error(err)
 		return nil, err
 	default:
+		db := u.Db
+		ubadge, err := u.GetUbadgeByID(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3366}).Error(err)
+			return nil, err
+		}
+
+		var isPresent bool
+		row := db.QueryRowContext(ctx, `select exists (select 1 from ubadges_users where ubadge_id = ?);`, ubadge.ID)
+		err = row.Scan(&isPresent)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3367}).Error(err)
+			return nil, err
+		}
+		if !isPresent {
+			return ubadge, nil
+		}
+
 		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3330}).Error(err)
 			return nil, err
 		}
-		db := u.Db
+
 		poh := Ubadge{}
 		rows, err := db.QueryContext(ctx, `select 
     p.id,

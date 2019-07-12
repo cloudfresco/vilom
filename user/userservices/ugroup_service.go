@@ -710,7 +710,7 @@ func (u *UgroupService) TopLevelUgroups(ctx context.Context, userEmail string, r
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from ugroups where where levelc = ? and statusc = ?;`, 0, common.Active)
+		updated_year from ugroups where levelc = ? and statusc = ?;`, 0, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2380}).Error(err)
 			return nil, err
@@ -835,12 +835,30 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string, userEmail stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2345}).Error(err)
 		return nil, err
 	default:
+		db := u.Db
+		ugroup, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2403}).Error(err)
+			return nil, err
+		}
+
+		var isPresent bool
+		row := db.QueryRowContext(ctx, `select exists (select 1 from ugroups_users where ugroup_id = ?);`, ugroup.ID)
+		err = row.Scan(&isPresent)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2404}).Error(err)
+			return nil, err
+		}
+		if !isPresent {
+			return ugroup, nil
+		}
+
 		uuid4byte, err := common.UUIDStrToBytes(ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2346}).Error(err)
 			return nil, err
 		}
-		db := u.Db
+
 		poh := Ugroup{}
 
 		rows, err := db.QueryContext(ctx, `select 
