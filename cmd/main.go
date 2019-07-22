@@ -91,7 +91,7 @@ func main() {
 	devFlag = false
 	appState.Init(devFlag)
 	appState.SearchIndex = searchservices.InitSearch("", appState.Db)
-	mux := appState.RoutesInit()
+	mux := appState.CreateRoutes()
 
 	if appState.ServerTLS == "true" {
 		var caCertPath, certPath, keyPath string

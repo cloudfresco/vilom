@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/xid"
 	log "github.com/sirupsen/logrus"
-	gomail "gopkg.in/gomail.v2"
 )
 
 /* error message range: 250-499 */
@@ -46,83 +45,6 @@ type Error struct {
 	ErrorMsg       string `json:"error_msg"`
 	HTTPStatusCode int    `json:"status"`
 	RequestID      string `json:"request_id"`
-}
-
-// RedisOptions - used for minimal RedisOptions view representation
-type RedisOptions struct {
-	Addr string `mapstructure:"addr"`
-}
-
-// KeyOptions - used for
-type KeyOptions struct {
-	CaCertPath string `mapstructure:"CaCerTPath"`
-	CertPath   string `mapstructure:"CertPath"`
-	KeyPath    string `mapstructure:"KeyPath"`
-	ServerAddr string `mapstructure:"ServerAddr"`
-}
-
-// OauthOptions - used for
-type OauthOptions struct {
-	ClientID     string `mapstructure:"ClientID"`
-	ClientSecret string `mapstructure:"ClientSecret"`
-}
-
-// DbOptions - used for
-type DbOptions struct {
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Host     string `mapstructure:"hostname"`
-	Port     string `mapstructure:"port"`
-	Schema   string `mapstructure:"database"`
-}
-
-// MailerOptions - used for
-type MailerOptions struct {
-	User     string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	Port     int    `mapstructure:"port"`
-	Server   string `mapstructure:"server"`
-}
-
-// JWTOptions - used for
-type JWTOptions struct {
-	JWTKey      []byte
-	JWTDuration int
-}
-
-// RateLimiterOptions - used for
-type RateLimiterOptions struct {
-	UserMaxRate    int `mapstructure:"usermaxrate"`
-	UserMaxBurst   int `mapstructure:"usermaxburst"`
-	UgroupMaxRate  int `mapstructure:"ugroupmaxrate"`
-	UgroupMaxBurst int `mapstructure:"ugroupmaxburst"`
-	CatMaxRate     int `mapstructure:"catmaxrate"`
-	CatMaxBurst    int `mapstructure:"catmaxburst"`
-	TopicMaxRate   int `mapstructure:"topicmaxrate"`
-	TopicMaxBurst  int `mapstructure:"topicmaxburst"`
-	MsgMaxRate     int `mapstructure:"msgmaxrate"`
-	MsgMaxBurst    int `mapstructure:"msgmaxburst"`
-	UbadgeMaxRate  int `mapstructure:"ubadgemaxrate"`
-	UbadgeMaxBurst int `mapstructure:"ubadgemaxburst"`
-	SearchMaxRate  int `mapstructure:"searchmaxrate"`
-	SearchMaxBurst int `mapstructure:"searchmaxburst"`
-	UMaxRate       int `mapstructure:"umaxrate"`
-	UMaxBurst      int `mapstructure:"umaxburst"`
-}
-
-// UserOptions - used for
-type UserOptions struct {
-	ConfirmTokenDuration string `mapstructure:"confirmtokenduration"`
-	ResetTokenDuration   string `mapstructure:"resettokenduration"`
-}
-
-// Email - for sending email notifications
-type Email struct {
-	From    string
-	To      string
-	Subject string
-	Body    string
-	Cc      string
 }
 
 // ParseURL - parses a url into a slice (GetPathParts) and
@@ -257,22 +179,6 @@ func ParseTemplate(templateFileName string, data interface{}) (string, error) {
 	}
 	body := buf.String()
 	return body, nil
-}
-
-// SendMail - used for sending email
-func SendMail(msg Email, gomailer *gomail.Dialer) error {
-	m := gomail.NewMessage()
-	m.SetHeader("From", gomailer.Username)
-	m.SetHeader("To", msg.To)
-	m.SetHeader("Subject", msg.Subject)
-	m.SetBody("text/html", msg.Body)
-
-	err := gomailer.DialAndSend(m)
-	if err != nil {
-		log.WithFields(log.Fields{"msgnum": 259}).Error(err)
-		return err
-	}
-	return nil
 }
 
 // EncodeCursor - encode cursor

@@ -15,7 +15,7 @@ import (
 	gomail "gopkg.in/gomail.v2"
 
 	"github.com/cloudfresco/vilom/common"
-	"github.com/cloudfresco/vilom/config"
+
 	"github.com/cloudfresco/vilom/msg/msgcontrollers"
 	"github.com/cloudfresco/vilom/msg/msgservices"
 	"github.com/cloudfresco/vilom/search/searchcontrollers"
@@ -45,7 +45,8 @@ type AppState struct {
 
 // Init - Fill up AppState Struct
 func (appState *AppState) Init(devMode bool) {
-	redisObj, db, redisClient, oauth, mailer, keyObj, serverTLS, serverAddr, jwtObj, rateObj, limit, userObj, err := config.InitConfig()
+
+	redisObj, db, redisClient, oauth, mailer, keyObj, serverTLS, serverAddr, jwtObj, rateObj, limit, userObj, err := common.GetConfig()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 750,
@@ -75,7 +76,7 @@ func AddMiddleware(h http.Handler, middleware ...func(http.Handler) http.Handler
 }
 
 // CorsMiddleware - Enable CORS with various options
-func (appState AppState) CorsMiddleware(next http.Handler) http.Handler {
+func (appState *AppState) CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if origin := r.Header.Get("Origin"); origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -95,7 +96,7 @@ func (appState AppState) CorsMiddleware(next http.Handler) http.Handler {
 }
 
 // AuthenticateMiddleware - Authenticate Token from request
-func (appState AppState) AuthenticateMiddleware(next http.Handler) http.Handler {
+func (appState *AppState) AuthenticateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString, err := common.GetAuthBearerToken(r)
 		if err != nil {
@@ -131,7 +132,7 @@ func (appState AppState) AuthenticateMiddleware(next http.Handler) http.Handler 
 }
 
 // GetHTTPRateLimiter - Get HTTP Rate Limiter
-func (appState AppState) GetHTTPRateLimiter(store *goredisstore.GoRedisStore, MaxRate int, MaxBurst int) throttled.HTTPRateLimiter {
+func (appState *AppState) GetHTTPRateLimiter(store *goredisstore.GoRedisStore, MaxRate int, MaxBurst int) throttled.HTTPRateLimiter {
 	quota := throttled.RateQuota{MaxRate: throttled.PerMin(MaxRate), MaxBurst: MaxBurst}
 
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
@@ -148,8 +149,8 @@ func (appState AppState) GetHTTPRateLimiter(store *goredisstore.GoRedisStore, Ma
 	return httpRateLimiter
 }
 
-// RoutesInit - Initiate Routes
-func (appState AppState) RoutesInit() *http.ServeMux {
+// CreateServices create all the services
+func (appState *AppState) CreateServices() (userservices.UserServiceIntf, userservices.UgroupServiceIntf, userservices.UbadgeServiceIntf, msgservices.CategoryServiceIntf, msgservices.TopicServiceIntf, msgservices.MessageServiceIntf, searchservices.SearchServiceIntf) {
 
 	userService := userservices.NewUserService(appState.Config, appState.Db, appState.RedisClient, appState.Mailer, appState.JWTOptions, appState.LimitDefault, appState.UserOptions)
 	ugroupService := userservices.NewUgroupService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
@@ -158,14 +159,30 @@ func (appState AppState) RoutesInit() *http.ServeMux {
 	topicService := msgservices.NewTopicService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
 	msgService := msgservices.NewMessageService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
 	searchService := searchservices.NewSearchService(appState.Config, appState.Db, appState.RedisClient, appState.SearchIndex)
-	uc := usercontrollers.NewUsersController(userService)
-	ug := usercontrollers.NewUgroupController(ugroupService, userService)
-	ub := usercontrollers.NewUbadgeController(ubadgeService, userService)
-	u := usercontrollers.NewUController(userService)
+
+	return userService, ugroupService, ubadgeService, catService, topicService, msgService, searchService
+
+}
+
+// CreateControllers create all the controllers
+func (appState *AppState) CreateControllers(userService userservices.UserServiceIntf, ugroupService userservices.UgroupServiceIntf, ubadgeService userservices.UbadgeServiceIntf, catService msgservices.CategoryServiceIntf, topicService msgservices.TopicServiceIntf, msgService msgservices.MessageServiceIntf, searchService searchservices.SearchServiceIntf) (*usercontrollers.UserController, *usercontrollers.UController, *usercontrollers.UgroupController, *usercontrollers.UbadgeController, *msgcontrollers.CategoryController, *msgcontrollers.TopicController, *msgcontrollers.MessageController, *searchcontrollers.SearchController) {
+
+	usc := usercontrollers.NewUserController(userService)
+	uc := usercontrollers.NewUController(userService)
+	ugc := usercontrollers.NewUgroupController(ugroupService, userService)
+	ubc := usercontrollers.NewUbadgeController(ubadgeService, userService)
+
 	cc := msgcontrollers.NewCategoryController(catService, userService)
 	tc := msgcontrollers.NewTopicController(topicService, userService)
 	mc := msgcontrollers.NewMessageController(msgService, userService)
+
 	sc := searchcontrollers.NewSearchController(searchService, userService)
+
+	return usc, uc, ugc, ubc, cc, tc, mc, sc
+}
+
+// CreateRateLimiters create all the rate limiters
+func (appState *AppState) CreateRateLimiters() (throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter) {
 
 	store, err := goredisstore.New(appState.RedisClient, "throttled:")
 	if err != nil {
@@ -173,41 +190,56 @@ func (appState AppState) RoutesInit() *http.ServeMux {
 			"msgnum": 754,
 		}).Error(err)
 	}
-	httpRateLimiter1 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UserMaxRate, appState.RateLimiter.UserMaxBurst)
-	httpRateLimiter2 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UgroupMaxRate, appState.RateLimiter.UgroupMaxBurst)
-	httpRateLimiter3 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.CatMaxRate, appState.RateLimiter.CatMaxBurst)
-	httpRateLimiter4 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.TopicMaxRate, appState.RateLimiter.TopicMaxBurst)
-	httpRateLimiter5 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.MsgMaxRate, appState.RateLimiter.MsgMaxBurst)
-	httpRateLimiter6 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UbadgeMaxRate, appState.RateLimiter.UbadgeMaxBurst)
-	httpRateLimiter7 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.SearchMaxRate, appState.RateLimiter.SearchMaxBurst)
-	httpRateLimiter8 := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UMaxRate, appState.RateLimiter.UMaxBurst)
+
+	hrlUser := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UserMaxRate, appState.RateLimiter.UserMaxBurst)
+	hrlU := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UMaxRate, appState.RateLimiter.UMaxBurst)
+	hrlUgroup := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UgroupMaxRate, appState.RateLimiter.UgroupMaxBurst)
+	hrlUbadge := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UbadgeMaxRate, appState.RateLimiter.UbadgeMaxBurst)
+
+	hrlCat := appState.GetHTTPRateLimiter(store, appState.RateLimiter.CatMaxRate, appState.RateLimiter.CatMaxBurst)
+	hrlTopic := appState.GetHTTPRateLimiter(store, appState.RateLimiter.TopicMaxRate, appState.RateLimiter.TopicMaxBurst)
+	hrlMsg := appState.GetHTTPRateLimiter(store, appState.RateLimiter.MsgMaxRate, appState.RateLimiter.MsgMaxBurst)
+
+	hrlSearch := appState.GetHTTPRateLimiter(store, appState.RateLimiter.SearchMaxRate, appState.RateLimiter.SearchMaxBurst)
+
+	return hrlUser, hrlU, hrlUgroup, hrlUbadge, hrlCat, hrlTopic, hrlMsg, hrlSearch
+}
+
+// CreateRoutes - Create all the routes
+func (appState *AppState) CreateRoutes() *http.ServeMux {
+
+	userService, ugroupService, ubadgeService, catService, topicService, msgService, searchService := appState.CreateServices()
+
+	usc, uc, ugc, ubc, cc, tc, mc, sc := appState.CreateControllers(userService, ugroupService, ubadgeService, catService, topicService, msgService, searchService)
+
+	hrlUser, hrlU, hrlUgroup, hrlUbadge, hrlCat, hrlTopic, hrlMsg, hrlSearch := appState.CreateRateLimiters()
 
 	mux := http.NewServeMux()
-	mux.Handle("/v0.1/users", AddMiddleware(httpRateLimiter1.RateLimit(uc),
+	mux.Handle("/v0.1/users", AddMiddleware(hrlUser.RateLimit(usc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/users/", AddMiddleware(httpRateLimiter1.RateLimit(uc),
+	mux.Handle("/v0.1/users/", AddMiddleware(hrlUser.RateLimit(usc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/ugroups/", AddMiddleware(httpRateLimiter2.RateLimit(ug),
+	mux.Handle("/v0.1/u/", AddMiddleware(hrlU.RateLimit(uc), appState.CorsMiddleware))
+	mux.Handle("/v0.1/ugroups/", AddMiddleware(hrlUgroup.RateLimit(ugc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/categories/", AddMiddleware(httpRateLimiter3.RateLimit(cc),
+	mux.Handle("/v0.1/ubadges/", AddMiddleware(hrlUbadge.RateLimit(ubc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/topics/", AddMiddleware(httpRateLimiter4.RateLimit(tc),
+	mux.Handle("/v0.1/categories/", AddMiddleware(hrlCat.RateLimit(cc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/messages/", AddMiddleware(httpRateLimiter5.RateLimit(mc),
+	mux.Handle("/v0.1/topics/", AddMiddleware(hrlTopic.RateLimit(tc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/ubadges/", AddMiddleware(httpRateLimiter6.RateLimit(ub),
+	mux.Handle("/v0.1/messages/", AddMiddleware(hrlMsg.RateLimit(mc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/search/", AddMiddleware(httpRateLimiter7.RateLimit(sc),
+	mux.Handle("/v0.1/search/", AddMiddleware(hrlSearch.RateLimit(sc),
 		appState.AuthenticateMiddleware,
 		appState.CorsMiddleware))
-	mux.Handle("/v0.1/u/", AddMiddleware(httpRateLimiter8.RateLimit(u), appState.CorsMiddleware))
 
 	return mux
 }
