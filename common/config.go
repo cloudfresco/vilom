@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -181,7 +182,8 @@ func GetConfig() (*RedisOptions, *sql.DB, *redis.Client, *OauthOptions, *gomail.
 	v1 := viper.New()
 	v1.SetConfigName("config")
 	pwd, _ := os.Getwd()
-	v1.AddConfigPath(pwd)
+	viewpath := pwd + filepath.FromSlash("/common")
+	v1.AddConfigPath(viewpath)
 
 	if err := v1.ReadInConfig(); err != nil {
 		log.WithFields(log.Fields{
