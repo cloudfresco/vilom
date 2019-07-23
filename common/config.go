@@ -179,13 +179,12 @@ func GetConfig() (*RedisOptions, *sql.DB, *redis.Client, *OauthOptions, *gomail.
 	}
 	jwtOpt.JWTDuration = JWTDuration
 
-	v1 := viper.New()
-	v1.SetConfigName("config")
+	v.SetConfigName("config")
 	pwd, _ := os.Getwd()
 	viewpath := pwd + filepath.FromSlash("/common")
-	v1.AddConfigPath(viewpath)
+	v.AddConfigPath(viewpath)
 
-	if err := v1.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 505,
 		}).Error(err)
@@ -193,21 +192,21 @@ func GetConfig() (*RedisOptions, *sql.DB, *redis.Client, *OauthOptions, *gomail.
 	}
 
 	var rateOpt RateLimiterOptions
-	if err := v1.UnmarshalKey("ratelimit", &rateOpt); err != nil {
+	if err := v.UnmarshalKey("ratelimit", &rateOpt); err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 506,
 		}).Error(err)
 	}
 
 	var limit string
-	if err := v1.UnmarshalKey("limit", &limit); err != nil {
+	if err := v.UnmarshalKey("limit", &limit); err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 507,
 		}).Error(err)
 	}
 
 	var userOpt UserOptions
-	if err := v1.UnmarshalKey("useroptions", &userOpt); err != nil {
+	if err := v.UnmarshalKey("useroptions", &userOpt); err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 508,
 		}).Error(err)
