@@ -45,7 +45,7 @@ func (sc *SearchController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		   GET  "/v1/search/"
 		*/
 		if (len(pathParts) == 2) && (pathParts[1] == "search") {
-			sc.LookupTopics(w, r, user, requestID)
+			sc.Search(w, r, user, requestID)
 		}
 	case http.MethodPut:
 	case http.MethodDelete:
@@ -56,8 +56,8 @@ func (sc *SearchController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// LookupTopics - Search Topics
-func (sc *SearchController) LookupTopics(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// Search - Search Topics
+func (sc *SearchController) Search(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {

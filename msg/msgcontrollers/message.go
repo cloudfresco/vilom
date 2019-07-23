@@ -62,7 +62,7 @@ func (mc *MessageController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (mc *MessageController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
-		mc.Show(w, r, pathParts[2], user, requestID)
+		mc.GetMessage(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -79,9 +79,9 @@ func (mc *MessageController) processPost(w http.ResponseWriter, r *http.Request,
 
 	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
 		if pathParts[2] == "create" {
-			mc.Create(w, r, user, requestID)
+			mc.CreateMessage(w, r, user, requestID)
 		} else if pathParts[2] == "like" {
-			mc.UserLikeCreate(w, r, user, requestID)
+			mc.CreateUserLike(w, r, user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
@@ -100,7 +100,7 @@ func (mc *MessageController) processPost(w http.ResponseWriter, r *http.Request,
 func (mc *MessageController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
-		mc.Update(w, r, pathParts[2], user, requestID)
+		mc.UpdateMessage(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -116,7 +116,7 @@ func (mc *MessageController) processPut(w http.ResponseWriter, r *http.Request, 
 func (mc *MessageController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "messages") {
-		mc.Delete(w, r, pathParts[2], user, requestID)
+		mc.DeleteMessage(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -124,8 +124,8 @@ func (mc *MessageController) processDelete(w http.ResponseWriter, r *http.Reques
 
 }
 
-// Show - used to view message
-func (mc *MessageController) Show(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetMessage - used to view message
+func (mc *MessageController) GetMessage(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -144,8 +144,8 @@ func (mc *MessageController) Show(w http.ResponseWriter, r *http.Request, id str
 	}
 }
 
-// Create - Create Message
-func (mc *MessageController) Create(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateMessage - Create Message
+func (mc *MessageController) CreateMessage(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -172,8 +172,8 @@ func (mc *MessageController) Create(w http.ResponseWriter, r *http.Request, user
 	}
 }
 
-// UserLikeCreate - Create User Like
-func (mc *MessageController) UserLikeCreate(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateUserLike - Create User Like
+func (mc *MessageController) CreateUserLike(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -200,8 +200,8 @@ func (mc *MessageController) UserLikeCreate(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// Update - Update Message
-func (mc *MessageController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateMessage - Update Message
+func (mc *MessageController) UpdateMessage(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -228,8 +228,8 @@ func (mc *MessageController) Update(w http.ResponseWriter, r *http.Request, id s
 	}
 }
 
-// Delete - delete message
-func (mc *MessageController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteMessage - delete message
+func (mc *MessageController) DeleteMessage(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {

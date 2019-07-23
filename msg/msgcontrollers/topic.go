@@ -62,7 +62,7 @@ func (tc *TopicController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (tc *TopicController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
-		tc.Show(w, r, pathParts[2], user, requestID)
+		tc.ShowTopic(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -79,9 +79,9 @@ func (tc *TopicController) processPost(w http.ResponseWriter, r *http.Request, u
 
 	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
 		if pathParts[2] == "create" {
-			tc.Create(w, r, user, requestID)
+			tc.CreateTopic(w, r, user, requestID)
 		} else if pathParts[2] == "topicbyname" {
-			tc.Topicbyname(w, r, user, requestID)
+			tc.GetTopicByName(w, r, user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
@@ -100,7 +100,7 @@ func (tc *TopicController) processPost(w http.ResponseWriter, r *http.Request, u
 func (tc *TopicController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
-		tc.Update(w, r, pathParts[2], user, requestID)
+		tc.UpdateTopic(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -116,7 +116,7 @@ func (tc *TopicController) processPut(w http.ResponseWriter, r *http.Request, us
 func (tc *TopicController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
-		tc.Delete(w, r, pathParts[2], user, requestID)
+		tc.DeleteTopic(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -124,8 +124,8 @@ func (tc *TopicController) processDelete(w http.ResponseWriter, r *http.Request,
 
 }
 
-// Show - used to view Topic
-func (tc *TopicController) Show(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// ShowTopic - used to view Topic
+func (tc *TopicController) ShowTopic(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -145,8 +145,8 @@ func (tc *TopicController) Show(w http.ResponseWriter, r *http.Request, id strin
 	}
 }
 
-// Create - used to Create Topic
-func (tc *TopicController) Create(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateTopic - used to Create Topic
+func (tc *TopicController) CreateTopic(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -173,8 +173,8 @@ func (tc *TopicController) Create(w http.ResponseWriter, r *http.Request, user *
 	}
 }
 
-// Topicbyname - used to get Topic by name
-func (tc *TopicController) Topicbyname(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// GetTopicByName - used to get Topic by name
+func (tc *TopicController) GetTopicByName(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -201,8 +201,8 @@ func (tc *TopicController) Topicbyname(w http.ResponseWriter, r *http.Request, u
 	}
 }
 
-// Update - Update topic
-func (tc *TopicController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateTopic - Update topic
+func (tc *TopicController) UpdateTopic(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -229,8 +229,8 @@ func (tc *TopicController) Update(w http.ResponseWriter, r *http.Request, id str
 	}
 }
 
-// Delete - delete topic
-func (tc *TopicController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteTopic - delete topic
+func (tc *TopicController) DeleteTopic(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {

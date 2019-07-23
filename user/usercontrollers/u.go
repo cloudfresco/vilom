@@ -81,7 +81,7 @@ func (uc *UController) processPost(w http.ResponseWriter, r *http.Request, reque
 		if pathParts[2] == "login" {
 			uc.Login(w, r, requestID)
 		} else if pathParts[2] == "create" {
-			uc.Create(w, r, requestID)
+			uc.CreateUser(w, r, requestID)
 		} else if pathParts[2] == "forgot_password" {
 			uc.ForgotPassword(w, r, requestID)
 		} else {
@@ -157,8 +157,8 @@ func (uc *UController) ConfirmEmail(w http.ResponseWriter, r *http.Request, id s
 	}
 }
 
-// Create - Create User
-func (uc *UController) Create(w http.ResponseWriter, r *http.Request, requestID string) {
+// CreateUser - Create User
+func (uc *UController) CreateUser(w http.ResponseWriter, r *http.Request, requestID string) {
 	ctx := r.Context()
 
 	select {

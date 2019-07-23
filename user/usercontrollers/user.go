@@ -63,9 +63,9 @@ func (uc *UserController) processGet(w http.ResponseWriter, r *http.Request, use
 	if (len(pathParts) == 2) && (pathParts[1] == "users") {
 		limit := queryString.Get("limit")
 		cursor := queryString.Get("cursor")
-		uc.Index(w, r, limit, cursor, user, requestID)
+		uc.GetUsers(w, r, limit, cursor, user, requestID)
 	} else if (len(pathParts) == 3) && (pathParts[1] == "users") {
-		uc.Show(w, r, pathParts[2], user, requestID)
+		uc.GetUser(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -84,7 +84,7 @@ func (uc *UserController) processPost(w http.ResponseWriter, r *http.Request, us
 		if pathParts[2] == "change_email" {
 			uc.ChangeEmail(w, r, user, requestID)
 		} else if pathParts[2] == "getuserbyemail" {
-			uc.Getuserbyemail(w, r, user, requestID)
+			uc.GetUserByEmail(w, r, user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
@@ -110,7 +110,7 @@ func (uc *UserController) processPost(w http.ResponseWriter, r *http.Request, us
 func (uc *UserController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "users") {
-		uc.Update(w, r, pathParts[2], user, requestID)
+		uc.UpdateUser(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -126,7 +126,7 @@ func (uc *UserController) processPut(w http.ResponseWriter, r *http.Request, use
 func (uc *UserController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "users") {
-		uc.Delete(w, r, pathParts[2], user, requestID)
+		uc.DeleteUser(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -134,8 +134,8 @@ func (uc *UserController) processDelete(w http.ResponseWriter, r *http.Request, 
 
 }
 
-// Index - Get Users
-func (uc *UserController) Index(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
+// GetUsers - Get Users
+func (uc *UserController) GetUsers(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
 	AllowedRoles := []string{"co_admin"}
 	err := common.CheckRoles(AllowedRoles, user.Roles)
 	if err != nil {
@@ -169,8 +169,8 @@ func (uc *UserController) Index(w http.ResponseWriter, r *http.Request, limit st
 	}
 }
 
-// Show - Get User Details
-func (uc *UserController) Show(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetUser - Get User Details
+func (uc *UserController) GetUser(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	AllowedRoles := []string{"co_admin"}
 	err := common.CheckRoles(AllowedRoles, user.Roles)
 	if err != nil {
@@ -278,8 +278,8 @@ func (uc *UserController) ChangePassword(w http.ResponseWriter, r *http.Request,
 	}
 }
 
-// Getuserbyemail - Get User By email
-func (uc *UserController) Getuserbyemail(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// GetUserByEmail - Get User By email
+func (uc *UserController) GetUserByEmail(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -313,8 +313,8 @@ func (uc *UserController) Getuserbyemail(w http.ResponseWriter, r *http.Request,
 	}
 }
 
-// Update - Update User
-func (uc *UserController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateUser - Update User
+func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -341,8 +341,8 @@ func (uc *UserController) Update(w http.ResponseWriter, r *http.Request, id stri
 	}
 }
 
-// Delete - delete user
-func (uc *UserController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteUser - delete user
+func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {

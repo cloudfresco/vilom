@@ -155,7 +155,7 @@ func (u *UbadgeService) insertUbadge(ctx context.Context, tx *sql.Tx, Ubadge *Ub
 		updated_month,
 		updated_year)
   values (?,?,?,?,?,?,?,?,?,?,
-					?,?,?,?,?);`)
+					?,?,?,?);`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3318}).Error(err)
 			err = stmt.Close()

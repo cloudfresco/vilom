@@ -66,9 +66,9 @@ func (uc *UbadgeController) processGet(w http.ResponseWriter, r *http.Request, u
 	if (len(pathParts) == 2) && (pathParts[1] == "ubadges") {
 		limit := queryString.Get("limit")
 		cursor := queryString.Get("cursor")
-		uc.Index(w, r, limit, cursor, user, requestID)
+		uc.GetUbadges(w, r, limit, cursor, user, requestID)
 	} else if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
-		uc.Show(w, r, pathParts[2], user, requestID)
+		uc.GetUbadge(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -86,7 +86,7 @@ func (uc *UbadgeController) processPost(w http.ResponseWriter, r *http.Request, 
 
 	if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
 		if pathParts[2] == "add" {
-			uc.Create(w, r, user, requestID)
+			uc.CreateUbadge(w, r, user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
@@ -114,7 +114,7 @@ func (uc *UbadgeController) processPost(w http.ResponseWriter, r *http.Request, 
 func (uc *UbadgeController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
-		uc.Update(w, r, pathParts[2], user, requestID)
+		uc.UpdateUbadge(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -130,7 +130,7 @@ func (uc *UbadgeController) processPut(w http.ResponseWriter, r *http.Request, u
 func (uc *UbadgeController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "ubadges") {
-		uc.Delete(w, r, pathParts[2], user, requestID)
+		uc.DeleteUbadge(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -138,8 +138,8 @@ func (uc *UbadgeController) processDelete(w http.ResponseWriter, r *http.Request
 
 }
 
-// Index - Get Ubadges
-func (uc *UbadgeController) Index(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
+// GetUbadges - Get Ubadges
+func (uc *UbadgeController) GetUbadges(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -162,8 +162,8 @@ func (uc *UbadgeController) Index(w http.ResponseWriter, r *http.Request, limit 
 	}
 }
 
-// Show - Get Ubadge Details
-func (uc *UbadgeController) Show(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetUbadge - Get Ubadge Details
+func (uc *UbadgeController) GetUbadge(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -186,8 +186,8 @@ func (uc *UbadgeController) Show(w http.ResponseWriter, r *http.Request, id stri
 	}
 }
 
-// Create - Create Ubadge
-func (uc *UbadgeController) Create(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateUbadge - Create Ubadge
+func (uc *UbadgeController) CreateUbadge(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -224,8 +224,8 @@ func (uc *UbadgeController) Create(w http.ResponseWriter, r *http.Request, user 
 	}
 }
 
-// Delete - delete ubadge
-func (uc *UbadgeController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteUbadge - delete ubadge
+func (uc *UbadgeController) DeleteUbadge(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -324,8 +324,8 @@ func (uc *UbadgeController) DeleteUserFromGroup(w http.ResponseWriter, r *http.R
 	}
 }
 
-// Update - Update Ubadge
-func (uc *UbadgeController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateUbadge - Update Ubadge
+func (uc *UbadgeController) UpdateUbadge(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {

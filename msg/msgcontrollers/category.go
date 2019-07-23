@@ -71,21 +71,21 @@ func (cc *CategoryController) processGet(w http.ResponseWriter, r *http.Request,
 	if (len(pathParts) == 2) && (pathParts[1] == "categories") {
 		limit := queryString.Get("limit")
 		cursor := queryString.Get("cursor")
-		cc.Index(w, r, limit, cursor, user, requestID)
+		cc.GetCategories(w, r, limit, cursor, user, requestID)
 	} else if len(pathParts) == 3 {
 		if pathParts[2] == "topcats" {
-			cc.TopLevelCategories(w, r, user, requestID)
+			cc.GetTopLevelCategories(w, r, user, requestID)
 		} else if pathParts[1] == "categories" {
-			cc.Show(w, r, pathParts[2], user, requestID)
+			cc.GetCategoryWithTopics(w, r, pathParts[2], user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
 		}
 	} else if (len(pathParts) == 4) && (pathParts[1] == "categories") {
 		if pathParts[3] == "chdn" {
-			cc.GetChdn(w, r, pathParts[2], user, requestID)
+			cc.GetChildCategories(w, r, pathParts[2], user, requestID)
 		} else if pathParts[3] == "getparent" {
-			cc.GetParent(w, r, pathParts[2], user, requestID)
+			cc.GetParentCategory(w, r, pathParts[2], user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
@@ -104,7 +104,7 @@ func (cc *CategoryController) processGet(w http.ResponseWriter, r *http.Request,
 func (cc *CategoryController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 	if (len(pathParts) == 3) && (pathParts[1] == "categories") {
 		if pathParts[2] == "create" {
-			cc.Create(w, r, user, requestID)
+			cc.CreateCategory(w, r, user, requestID)
 		} else if pathParts[2] == "chdcreate" {
 			cc.CreateChild(w, r, user, requestID)
 		} else {
@@ -125,7 +125,7 @@ func (cc *CategoryController) processPost(w http.ResponseWriter, r *http.Request
 func (cc *CategoryController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "categories") {
-		cc.Update(w, r, pathParts[2], user, requestID)
+		cc.UpdateCategory(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -141,7 +141,7 @@ func (cc *CategoryController) processPut(w http.ResponseWriter, r *http.Request,
 func (cc *CategoryController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "categories") {
-		cc.Delete(w, r, pathParts[2], user, requestID)
+		cc.DeleteCategory(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -149,8 +149,8 @@ func (cc *CategoryController) processDelete(w http.ResponseWriter, r *http.Reque
 
 }
 
-// Index - used to view all categories
-func (cc *CategoryController) Index(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
+// GetCategories - used to view all categories
+func (cc *CategoryController) GetCategories(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -169,8 +169,8 @@ func (cc *CategoryController) Index(w http.ResponseWriter, r *http.Request, limi
 	}
 }
 
-// Show - used to view category
-func (cc *CategoryController) Show(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetCategoryWithTopics - used to view category
+func (cc *CategoryController) GetCategoryWithTopics(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -189,8 +189,8 @@ func (cc *CategoryController) Show(w http.ResponseWriter, r *http.Request, id st
 	}
 }
 
-// Create - used to Create Category
-func (cc *CategoryController) Create(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateCategory - used to Create Category
+func (cc *CategoryController) CreateCategory(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -245,8 +245,8 @@ func (cc *CategoryController) CreateChild(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// TopLevelCategories - Get all top level categories
-func (cc *CategoryController) TopLevelCategories(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// GetTopLevelCategories - Get all top level categories
+func (cc *CategoryController) GetTopLevelCategories(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -265,8 +265,8 @@ func (cc *CategoryController) TopLevelCategories(w http.ResponseWriter, r *http.
 	}
 }
 
-// GetChdn - Get children of category
-func (cc *CategoryController) GetChdn(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetChildCategories - Get children of category
+func (cc *CategoryController) GetChildCategories(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -285,8 +285,8 @@ func (cc *CategoryController) GetChdn(w http.ResponseWriter, r *http.Request, id
 	}
 }
 
-// GetParent - Get parent category
-func (cc *CategoryController) GetParent(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetParentCategory - Get parent category
+func (cc *CategoryController) GetParentCategory(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -305,8 +305,8 @@ func (cc *CategoryController) GetParent(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// Update - Update Category
-func (cc *CategoryController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateCategory - Update Category
+func (cc *CategoryController) UpdateCategory(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -333,8 +333,8 @@ func (cc *CategoryController) Update(w http.ResponseWriter, r *http.Request, id 
 	}
 }
 
-// Delete - delete category
-func (cc *CategoryController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteCategory - delete category
+func (cc *CategoryController) DeleteCategory(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {

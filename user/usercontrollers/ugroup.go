@@ -68,14 +68,14 @@ func (uc *UgroupController) processGet(w http.ResponseWriter, r *http.Request, u
 	if (len(pathParts) == 2) && (pathParts[1] == "ugroups") {
 		limit := queryString.Get("limit")
 		cursor := queryString.Get("cursor")
-		uc.Index(w, r, limit, cursor, user, requestID)
+		uc.GetUgroups(w, r, limit, cursor, user, requestID)
 	} else if (len(pathParts) == 3) && (pathParts[1] == "ugroups") && (pathParts[2] == "topgroups") {
 		uc.TopLevelGroups(w, r, user, requestID)
 	} else if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
-		uc.Show(w, r, pathParts[2], user, requestID)
+		uc.GetUgroup(w, r, pathParts[2], user, requestID)
 	} else if (len(pathParts) == 4) && (pathParts[1] == "ugroups") {
 		if pathParts[3] == "chdn" {
-			uc.GetChdn(w, r, pathParts[2], user, requestID)
+			uc.GetChildUgroups(w, r, pathParts[2], user, requestID)
 		} else if pathParts[3] == "getparent" {
 			uc.GetParent(w, r, pathParts[2], user, requestID)
 		} else {
@@ -98,7 +98,7 @@ func (uc *UgroupController) processGet(w http.ResponseWriter, r *http.Request, u
 func (uc *UgroupController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 	if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
 		if pathParts[2] == "create" {
-			uc.Create(w, r, user, requestID)
+			uc.CreateUgroup(w, r, user, requestID)
 		} else if pathParts[2] == "chdcreate" {
 			uc.CreateChild(w, r, user, requestID)
 		} else {
@@ -129,7 +129,7 @@ func (uc *UgroupController) processPost(w http.ResponseWriter, r *http.Request, 
 func (uc *UgroupController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
-		uc.Update(w, r, pathParts[2], user, requestID)
+		uc.UpdateUgroup(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -145,7 +145,7 @@ func (uc *UgroupController) processPut(w http.ResponseWriter, r *http.Request, u
 func (uc *UgroupController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
 	if (len(pathParts) == 3) && (pathParts[1] == "ugroups") {
-		uc.Delete(w, r, pathParts[2], user, requestID)
+		uc.DeleteUgroup(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -153,8 +153,8 @@ func (uc *UgroupController) processDelete(w http.ResponseWriter, r *http.Request
 
 }
 
-// Index - Get Ugroups
-func (uc *UgroupController) Index(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
+// GetUgroups - Get Ugroups
+func (uc *UgroupController) GetUgroups(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -200,8 +200,8 @@ func (uc *UgroupController) TopLevelGroups(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// Show - Get ugroup details
-func (uc *UgroupController) Show(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetUgroup - Get ugroup details
+func (uc *UgroupController) GetUgroup(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -224,8 +224,8 @@ func (uc *UgroupController) Show(w http.ResponseWriter, r *http.Request, id stri
 	}
 }
 
-// Create - Create Ugroup
-func (uc *UgroupController) Create(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateUgroup - Create Ugroup
+func (uc *UgroupController) CreateUgroup(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -296,8 +296,8 @@ func (uc *UgroupController) CreateChild(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// Delete - delete ugroup
-func (uc *UgroupController) Delete(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteUgroup - delete ugroup
+func (uc *UgroupController) DeleteUgroup(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -392,8 +392,8 @@ func (uc *UgroupController) DeleteUserFromGroup(w http.ResponseWriter, r *http.R
 	}
 }
 
-// GetChdn - Get children of ugroup
-func (uc *UgroupController) GetChdn(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetChildUgroups - Get children of ugroup
+func (uc *UgroupController) GetChildUgroups(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -440,8 +440,8 @@ func (uc *UgroupController) GetParent(w http.ResponseWriter, r *http.Request, id
 	}
 }
 
-// Update - Update Ugroup
-func (uc *UgroupController) Update(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateUgroup - Update Ugroup
+func (uc *UgroupController) UpdateUgroup(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
