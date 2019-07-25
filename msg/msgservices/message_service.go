@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
@@ -120,19 +119,15 @@ type MessageServiceIntf interface {
 
 // MessageService - For accessing message services
 type MessageService struct {
-	Config       *common.RedisOptions
-	Db           *sql.DB
-	RedisClient  *redis.Client
-	LimitDefault string
+	DBService    *common.DBService
+	RedisService *common.RedisService
 }
 
 // NewMessageService - Create message service
-func NewMessageService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *MessageService {
+func NewMessageService(dbOpt *common.DBService, redisOpt *common.RedisService) *MessageService {
 	return &MessageService{
-		Config:       config,
-		Db:           db,
-		RedisClient:  redisClient,
-		LimitDefault: limitDefault,
+		DBService:    dbOpt,
+		RedisService: redisOpt,
 	}
 }
 
@@ -144,14 +139,14 @@ func (t *MessageService) CreateMessage(ctx context.Context, form *Message, UserI
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6300}).Error(err)
 		return nil, err
 	default:
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		userserv := &userservices.UserService{DBService: t.DBService, RedisService: t.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6301}).Error(err)
 			return nil, err
 		}
 
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6302}).Error(err)
@@ -210,7 +205,7 @@ func (t *MessageService) CreateMessage(ctx context.Context, form *Message, UserI
 			msg.MessageAttachments = append(msg.MessageAttachments, msgattach)
 		}
 
-		topicserv := &TopicService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
+		topicserv := &TopicService{DBService: t.DBService, RedisService: t.RedisService}
 		topic, err := topicserv.GetTopicByID(ctx, form.TopicID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6307}).Error(err)
@@ -703,13 +698,13 @@ func (t *MessageService) CreateUserLike(ctx context.Context, form *UserLike, Use
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6320}).Error(err)
 		return nil, err
 	default:
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		userserv := &userservices.UserService{DBService: t.DBService, RedisService: t.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6321}).Error(err)
 			return nil, err
 		}
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6322}).Error(err)
@@ -840,13 +835,13 @@ func (t *MessageService) CreateUserVote(ctx context.Context, form *UserVote, Use
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6326}).Error(err)
 		return nil, err
 	default:
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		userserv := &userservices.UserService{DBService: t.DBService, RedisService: t.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6327}).Error(err)
 			return nil, err
 		}
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6328}).Error(err)
@@ -987,7 +982,8 @@ func (t *MessageService) GetMessage(ctx context.Context, ID string, userEmail st
 			return nil, err
 		}
 		msg := Message{}
-		row := t.Db.QueryRowContext(ctx, `select
+		db := t.DBService.DB
+		row := db.QueryRowContext(ctx, `select
       id,
  			uuid4,
 			num_likes,
@@ -1044,7 +1040,7 @@ func (t *MessageService) GetMessage(ctx context.Context, ID string, userEmail st
 		msg.IDS = uuid4Str
 
 		var isPresent bool
-		row = t.Db.QueryRowContext(ctx, `select exists (select 1 from message_texts where message_id = ?);`, msg.ID)
+		row = db.QueryRowContext(ctx, `select exists (select 1 from message_texts where message_id = ?);`, msg.ID)
 		err = row.Scan(&isPresent)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6378}).Error(err)
@@ -1059,7 +1055,7 @@ func (t *MessageService) GetMessage(ctx context.Context, ID string, userEmail st
 		}
 
 		var isPresent1 bool
-		row1 := t.Db.QueryRowContext(ctx, `select exists (select 1 from message_attachments where message_id = ?);`, msg.ID)
+		row1 := db.QueryRowContext(ctx, `select exists (select 1 from message_attachments where message_id = ?);`, msg.ID)
 		err = row1.Scan(&isPresent1)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6380}).Error(err)
@@ -1085,7 +1081,7 @@ func (t *MessageService) GetMessagesWithTextAttach(ctx context.Context, messages
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6367}).Error(err)
 		return nil, err
 	default:
-		db := t.Db
+		db := t.DBService.DB
 		pohs := []*Message{}
 
 		for _, message := range messages {
@@ -1128,7 +1124,7 @@ func (t *MessageService) GetMessagesWithTextAttach(ctx context.Context, messages
 
 // GetMessagesTexts - get message texts
 func (t *MessageService) GetMessagesTexts(ctx context.Context, messageID uint, userEmail string, requestID string) ([]*MessageText, error) {
-	db := t.Db
+	db := t.DBService.DB
 	mtexts := []*MessageText{}
 	rows, err := db.QueryContext(ctx, `select 
         id,
@@ -1196,7 +1192,7 @@ func (t *MessageService) GetMessagesTexts(ctx context.Context, messageID uint, u
 
 // GetMessageAttachments - get message attachements
 func (t *MessageService) GetMessageAttachments(ctx context.Context, messageID uint, userEmail string, requestID string) ([]*MessageAttachment, error) {
-	db := t.Db
+	db := t.DBService.DB
 	messageAttachments := []*MessageAttachment{}
 	rows, err := db.QueryContext(ctx, `select 
         id,
@@ -1275,7 +1271,7 @@ func (t *MessageService) UpdateMessage(ctx context.Context, ID string, form *Mes
 			return err
 		}
 
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6385}).Error(err)
@@ -1349,7 +1345,7 @@ func (t *MessageService) DeleteMessage(ctx context.Context, ID string, userEmail
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6393}).Error(err)
 			return err
 		}
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6394}).Error(err)

@@ -16,7 +16,7 @@ import (
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/mapping"
-	"github.com/go-redis/redis"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
@@ -37,18 +37,18 @@ type SearchServiceIntf interface {
 
 // SearchService -  For accessing  search service
 type SearchService struct {
-	Config      *common.RedisOptions
-	Db          *sql.DB
-	RedisClient *redis.Client
-	SearchIndex bleve.Index
+	DBService    *common.DBService
+	RedisService *common.RedisService
+	SearchIndex  bleve.Index
 }
 
 // NewSearchService - Create search service
-func NewSearchService(config *common.RedisOptions,
-	db *sql.DB,
-	redisClient *redis.Client,
-	searchIndex bleve.Index) *SearchService {
-	return &SearchService{config, db, redisClient, searchIndex}
+func NewSearchService(dbOpt *common.DBService, redisOpt *common.RedisService, searchIndex bleve.Index) *SearchService {
+	return &SearchService{
+		DBService:    dbOpt,
+		RedisService: redisOpt,
+		SearchIndex:  searchIndex,
+	}
 }
 
 var bSearchIndex bleve.Index

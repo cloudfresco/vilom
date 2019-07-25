@@ -85,25 +85,33 @@ func main() {
 		log.WithFields(log.Fields{
 			"msgnum": 103,
 		}).Error(err)
+		os.Exit(1)
 	}
 
 	appState = &routes.AppState{}
 	devFlag = false
-	appState.Init(devFlag)
-	appState.SearchIndex = searchservices.InitSearch("", appState.Db)
+	err = appState.Init(devFlag)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	appState.SearchIndex = searchservices.InitSearch("", appState.DBService.DB)
 	mux := appState.CreateRoutes()
 
-	if appState.ServerTLS == "true" {
+	if appState.ServerOptions.ServerTLS == "true" {
 		var caCertPath, certPath, keyPath string
 		var tlsConfig *tls.Config
-		caCertPath = pwd + filepath.FromSlash(appState.KeyOptions.CaCertPath)
-		certPath = pwd + filepath.FromSlash(appState.KeyOptions.CertPath)
-		keyPath = pwd + filepath.FromSlash(appState.KeyOptions.KeyPath)
+		caCertPath = pwd + filepath.FromSlash(appState.ServerOptions.CaCertPath)
+		certPath = pwd + filepath.FromSlash(appState.ServerOptions.CertPath)
+		keyPath = pwd + filepath.FromSlash(appState.ServerOptions.KeyPath)
 
 		tlsConfig = getKeys(caCertPath, certPath, keyPath)
 
 		srv := &http.Server{
-			Addr:      appState.ServerAddr,
+			Addr:      appState.ServerOptions.ServerAddr,
 			Handler:   mux,
 			TLSConfig: tlsConfig,
 		}
@@ -138,7 +146,7 @@ func main() {
 	} else {
 
 		srv := &http.Server{
-			Addr:    appState.ServerAddr,
+			Addr:    appState.ServerOptions.ServerAddr,
 			Handler: mux,
 		}
 

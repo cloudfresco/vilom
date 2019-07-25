@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
@@ -62,19 +61,15 @@ type CategoryServiceIntf interface {
 
 // CategoryService - For accessing category services
 type CategoryService struct {
-	Config       *common.RedisOptions
-	Db           *sql.DB
-	RedisClient  *redis.Client
-	LimitDefault string
+	DBService    *common.DBService
+	RedisService *common.RedisService
 }
 
 // NewCategoryService - Create category service
-func NewCategoryService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *CategoryService {
+func NewCategoryService(dbOpt *common.DBService, redisOpt *common.RedisService) *CategoryService {
 	return &CategoryService{
-		Config:       config,
-		Db:           db,
-		RedisClient:  redisClient,
-		LimitDefault: limitDefault,
+		DBService:    dbOpt,
+		RedisService: redisOpt,
 	}
 }
 
@@ -92,13 +87,13 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4318}).Error(err)
 		return nil, err
 	default:
-		userserv := &userservices.UserService{Config: c.Config, Db: c.Db, RedisClient: c.RedisClient}
+		userserv := &userservices.UserService{DBService: c.DBService, RedisService: c.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4319}).Error(err)
 			return nil, err
 		}
-		db := c.Db
+		db := c.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4368}).Error(err)
@@ -250,7 +245,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4338}).Error(err)
 		return nil, err
 	default:
-		userserv := &userservices.UserService{Config: c.Config, Db: c.Db, RedisClient: c.RedisClient}
+		userserv := &userservices.UserService{DBService: c.DBService, RedisService: c.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4339}).Error(err)
@@ -263,7 +258,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			return nil, err
 		}
 
-		db := c.Db
+		db := c.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
@@ -486,7 +481,7 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 		return nil, err
 	default:
 		if limit == "" {
-			limit = c.LimitDefault
+			limit = c.DBService.LimitSQLRows
 		}
 		query := "(levelc = ? and statusc = ?)"
 		if nextCursor == "" {
@@ -495,9 +490,9 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 			nextCursor = common.DecodeCursor(nextCursor)
 			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 		}
-
+		db := c.DBService.DB
 		cats := []*Category{}
-		rows, err := c.Db.QueryContext(ctx, `select 
+		rows, err := db.QueryContext(ctx, `select 
       id, 
 			uuid4,
 			category_name,
@@ -600,7 +595,7 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4330}).Error(err)
 			return nil, err
 		}
-		db := c.Db
+		db := c.DBService.DB
 		cat := &Category{}
 		ctegry, err := c.GetCategory(ctx, ID, userEmail, requestID)
 		if err != nil {
@@ -780,7 +775,8 @@ func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail 
 			return nil, err
 		}
 		cat := Category{}
-		row := c.Db.QueryRowContext(ctx, `select
+		db := c.DBService.DB
+		row := db.QueryRowContext(ctx, `select
       id,
 			uuid4,
 			category_name,
@@ -852,7 +848,8 @@ func (c *CategoryService) GetCategoryByID(ctx context.Context, ID uint, userEmai
 		return nil, err
 	default:
 		cat := Category{}
-		row := c.Db.QueryRowContext(ctx, `select
+		db := c.DBService.DB
+		row := db.QueryRowContext(ctx, `select
       id,
 			uuid4,
 			category_name,
@@ -924,7 +921,8 @@ func (c *CategoryService) GetTopLevelCategories(ctx context.Context, userEmail s
 		return nil, err
 	default:
 		cats := []*Category{}
-		rows, err := c.Db.QueryContext(ctx, `select 
+		db := c.DBService.DB
+		rows, err := db.QueryContext(ctx, `select 
       id, 
 			uuid4,
 			category_name,
@@ -1013,7 +1011,8 @@ func (c *CategoryService) GetChildCategories(ctx context.Context, ID string, use
 			return nil, err
 		}
 		pohs := []*Category{}
-		rows, err := c.Db.QueryContext(ctx, `select 
+		db := c.DBService.DB
+		rows, err := db.QueryContext(ctx, `select 
 		    c.id,
 				c.uuid4,
 				c.category_name,
@@ -1102,7 +1101,8 @@ func (c *CategoryService) GetParentCategory(ctx context.Context, ID string, user
 			return nil, err
 		}
 		cat := Category{}
-		row := c.Db.QueryRowContext(ctx, `select
+		db := c.DBService.DB
+		row := db.QueryRowContext(ctx, `select
       id,
 			uuid4,
 			category_name,
@@ -1180,7 +1180,7 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 			return err
 		}
 
-		db := c.Db
+		db := c.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4378}).Error(err)
@@ -1313,7 +1313,7 @@ func (c *CategoryService) DeleteCategory(ctx context.Context, ID string, userEma
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4386}).Error(err)
 			return err
 		}
-		db := c.Db
+		db := c.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4387}).Error(err)

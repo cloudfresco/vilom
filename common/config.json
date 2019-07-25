@@ -1,25 +1,25 @@
 {
-  "ratelimit": {
-		"usermaxrate": "1500",
-		"usermaxburst": "1500",
-		"ugroupmaxrate": "300",
-		"ugroupmaxburst": "300",
-		"catmaxrate": "300",
-		"catmaxburst": "300",
-		"topicmaxrate": "400",
-		"topicmaxburst": "400",
-		"msgmaxrate": "1000",
-		"msgmaxburst": "1000",
-		"ubadgemaxrate": "300",
-		"ubadgemaxburst": "300",
-		"searchmaxrate": "20",
-		"searchmaxburst": "5",
-		"umaxrate": "1500",
-		"umaxburst": "1500"
+  "rate_limit": {
+		"user_max_rate": "1500",
+		"user_max_burst": "1500",
+		"ugroup_max_rate": "300",
+		"ugroup_max_burst": "300",
+		"cat_max_rate": "300",
+		"cat_max_burst": "300",
+		"topic_max_rate": "400",
+		"topic_max_burst": "400",
+		"msg_max_rate": "1000",
+		"msg_max_burst": "1000",
+		"ubadge_max_rate": "300",
+		"ubadge_max_burst": "300",
+		"search_max_rate": "20",
+		"search_max_burst": "5",
+		"u_max_rate": "1500",
+		"u_max_burst": "1500"
   },
-  "limit": "21",
-  "useroptions": {
-		"confirmtokenduration": "296h",
-		"resettokenduration": "296h"
+  "limit_sql_rows": "21",
+  "user_options": {
+		"confirm_token_duration": "296h",
+		"reset_token_duration": "296h"
   }
 }

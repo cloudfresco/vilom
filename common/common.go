@@ -75,8 +75,7 @@ func GetPathQueryString(s string) (string, url.Values, error) {
 	return u.Path, u.Query(), nil
 }
 
-// GetPathParts - given a url, returns a slice
-// of the parts of the url
+// GetPathParts - given a url, returns a slice of the parts of the url
 func GetPathParts(url string) []string {
 
 	var pathParts []string

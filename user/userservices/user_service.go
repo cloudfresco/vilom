@@ -11,10 +11,8 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	gomail "gopkg.in/gomail.v2"
 
 	"github.com/cloudfresco/vilom/common"
 )
@@ -121,25 +119,21 @@ type UserServiceIntf interface {
 
 // UserService - For accessing user services
 type UserService struct {
-	Config       *common.RedisOptions
-	Db           *sql.DB
-	RedisClient  *redis.Client
-	Mailer       *gomail.Dialer
-	JWTOptions   *common.JWTOptions
-	LimitDefault string
-	UserOptions  *common.UserOptions
+	DBService     *common.DBService
+	RedisService  *common.RedisService
+	MailerService *common.MailerService
+	JWTOptions    *common.JWTOptions
+	UserOptions   *common.UserOptions
 }
 
 // NewUserService - Create User Service
-func NewUserService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, mailer *gomail.Dialer, jwtOptions *common.JWTOptions, limitDefault string, userOptions *common.UserOptions) *UserService {
+func NewUserService(dbOpt *common.DBService, redisOpt *common.RedisService, mailerOpt *common.MailerService, jwtOptions *common.JWTOptions, userOpt *common.UserOptions) *UserService {
 	return &UserService{
-		Config:       config,
-		Db:           db,
-		RedisClient:  redisClient,
-		Mailer:       mailer,
-		JWTOptions:   jwtOptions,
-		LimitDefault: limitDefault,
-		UserOptions:  userOptions,
+		DBService:     dbOpt,
+		RedisService:  redisOpt,
+		MailerService: mailerOpt,
+		JWTOptions:    jwtOptions,
+		UserOptions:   userOpt,
 	}
 }
 
@@ -169,7 +163,7 @@ func (u *UserService) Login(ctx context.Context, form *LoginForm, requestID stri
 		}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		user := User{}
 		row := db.QueryRowContext(ctx, `select id, email, password from users where email = ? and statusc = ?;`, form.Email, common.Active)
 		err := row.Scan(
@@ -225,7 +219,7 @@ func (u *UserService) CreateUser(ctx context.Context, form *User, hostURL string
 		}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		//check if email already exists
 		var isPresent bool
 		row := db.QueryRowContext(ctx, `select exists (select 1 from users where email = ?)`, form.Email)
@@ -533,39 +527,42 @@ func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, ho
 			return err
 		}
 
-		pwd, _ := os.Getwd()
-		viewpath := pwd + filepath.FromSlash("/common/views/confirmation.html")
-		templateData := struct {
-			Title string
-			URL   string
-		}{
-			Title: "Confirmation",
-			URL:   "http://" + hostURL + "/u/confirmation/" + user.EmailConfirmationToken,
-		}
-		ConfirmationEmail, err := common.ParseTemplate(viewpath, templateData)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"reqid":  requestID,
-				"msgnum": 1534,
-			}).Error(err)
+		hostURL := ""
+		if hostURL != "" {
+			pwd, _ := os.Getwd()
+			viewpath := pwd + filepath.FromSlash("/common/views/confirmation.html")
+			templateData := struct {
+				Title string
+				URL   string
+			}{
+				Title: "Confirmation",
+				URL:   "http://" + hostURL + "/u/confirmation/" + user.EmailConfirmationToken,
+			}
+			ConfirmationEmail, err := common.ParseTemplate(viewpath, templateData)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1534,
+				}).Error(err)
 
-			return err
-		}
+				return err
+			}
 
-		email := common.Email{
-			To:      user.Email,
-			Subject: "Confirmation",
-			Body:    ConfirmationEmail,
-		}
+			email := common.Email{
+				To:      user.Email,
+				Subject: "Confirmation",
+				Body:    ConfirmationEmail,
+			}
 
-		err = common.SendMail(email, u.Mailer)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"reqid":  requestID,
-				"msgnum": 1535,
-			}).Error(err)
+			err = u.MailerService.SendMail(email)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1535,
+				}).Error(err)
 
-			return err
+				return err
+			}
 		}
 		return nil
 	}
@@ -584,7 +581,7 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 		return nil, err
 	default:
 		if limit == "" {
-			limit = u.LimitDefault
+			limit = u.DBService.LimitSQLRows
 		}
 		query := "(statusc = ?)"
 		if nextCursor == "" {
@@ -594,7 +591,8 @@ func (u *UserService) GetUsers(ctx context.Context, limit string, nextCursor str
 			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 		}
 		users := []*User{}
-		rows, err := u.Db.QueryContext(ctx, `select id, uuid4, auth_token, first_name, last_name, email, role from users where `+query, common.Active)
+		db := u.DBService.DB
+		rows, err := db.QueryContext(ctx, `select id, uuid4, auth_token, first_name, last_name, email, role from users where `+query, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -669,7 +667,7 @@ func (u *UserService) GetUserByEmail(ctx context.Context, Email string, userEmai
 		}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		user := User{}
 		row := db.QueryRowContext(ctx, `select
     id,
@@ -748,7 +746,7 @@ func (u *UserService) GetUser(ctx context.Context, ID string, userEmail string, 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1587}).Error(err)
 			return nil, err
 		}
-		db := u.Db
+		db := u.DBService.DB
 		user := User{}
 		row := db.QueryRowContext(ctx, `select
     id,
@@ -824,7 +822,7 @@ func (u *UserService) UpdateUser(ctx context.Context, ID string, form *User, Use
 			return err
 		}
 
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1594}).Error(err)
@@ -900,7 +898,7 @@ func (u *UserService) DeleteUser(ctx context.Context, ID string, userEmail strin
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1602}).Error(err)
 			return err
 		}
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1603}).Error(err)
@@ -971,7 +969,7 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		verifierBytes, selector, err := common.GetSelectorForPasswdRecoveryToken(token, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -1087,7 +1085,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		user, err := u.GetUserByEmail(ctx, form.Email, "", requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -1199,7 +1197,7 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 			Body:    ResetPasswordEmail,
 		}
 
-		err = common.SendMail(email, u.Mailer)
+		err = u.MailerService.SendMail(email)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1219,7 +1217,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 		err := errors.New("Client closed connection")
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		password1, err := common.HashPassword(form.Password, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -1390,7 +1388,7 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1561}).Error(err)
 			return err
 		}
-		db := u.Db
+		db := u.DBService.DB
 		user := User{}
 		row := db.QueryRowContext(ctx, `select id, password from users where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
 		err = row.Scan(
@@ -1492,7 +1490,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 		}).Error(err)
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		user, err := u.GetUserByEmail(ctx, form.Email, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -1606,7 +1604,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 			Body:    ChangeEmail,
 		}
 
-		err = common.SendMail(email, u.Mailer)
+		err = u.MailerService.SendMail(email)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -1631,7 +1629,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 		}).Error(err)
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		verifierBytes, selector, err := common.GetSelectorForPasswdRecoveryToken(token, requestID)
@@ -1746,7 +1744,7 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 // for future requests to use
 func (u *UserService) GetAuthUserDetails(r *http.Request) (*common.ContextData, string, error) {
 	data := r.Context().Value(common.KeyEmailToken).(common.ContextStruct)
-	resp, err := u.RedisClient.Get(data.TokenString).Result()
+	resp, err := u.RedisService.Get(data.TokenString)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 268,
@@ -1755,7 +1753,8 @@ func (u *UserService) GetAuthUserDetails(r *http.Request) (*common.ContextData, 
 	v := common.ContextData{}
 	if resp == "" {
 		user := User{}
-		row := u.Db.QueryRow(`select id, uuid4, email, role from users where email = ?;`, data.Email)
+		db := u.DBService.DB
+		row := db.QueryRow(`select id, uuid4, email, role from users where email = ?;`, data.Email)
 		err = row.Scan(&user.ID, &user.UUID4, &user.Email, &user.Role)
 		if user.ID == 0 {
 			log.WithFields(log.Fields{
@@ -1790,7 +1789,7 @@ func (u *UserService) GetAuthUserDetails(r *http.Request) (*common.ContextData, 
 			}).Error(err)
 			return nil, "", errors.New("User not found")
 		}
-		err = u.RedisClient.Set(data.TokenString, usr, 0).Err()
+		err = u.RedisService.Set(data.TokenString, usr, 0)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"msgnum": 265,

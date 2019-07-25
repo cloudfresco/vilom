@@ -2,17 +2,15 @@ package routes
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 
 	"github.com/blevesearch/bleve"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-redis/redis"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/throttled/throttled"
 	"github.com/throttled/throttled/store/goredisstore"
-	gomail "gopkg.in/gomail.v2"
 
 	"github.com/cloudfresco/vilom/common"
 
@@ -26,45 +24,100 @@ import (
 
 /* error message range: 750-999 */
 
-// AppState - Create AppState Handler
+// AppState - holds pointers to services and options used through the
+// journey of a request received from a client to the response
 type AppState struct {
-	Config       *common.RedisOptions
-	Db           *sql.DB
-	RedisClient  *redis.Client
-	SearchIndex  bleve.Index
-	Oauth        *common.OauthOptions
-	Mailer       *gomail.Dialer
-	KeyOptions   *common.KeyOptions
-	ServerTLS    string
-	ServerAddr   string
-	JWTOptions   *common.JWTOptions
-	RateLimiter  *common.RateLimiterOptions
-	LimitDefault string
-	UserOptions  *common.UserOptions
+	DBService     *common.DBService
+	RedisService  *common.RedisService
+	MailerService *common.MailerService
+	ServerOptions *common.ServerOptions
+	RateOptions   *common.RateOptions
+	JWTOptions    *common.JWTOptions
+	OauthOptions  *common.OauthOptions
+	UserOptions   *common.UserOptions
+	SearchIndex   bleve.Index
 }
 
-// Init - Fill up AppState Struct
-func (appState *AppState) Init(devMode bool) {
-
-	redisObj, db, redisClient, oauth, mailer, keyObj, serverTLS, serverAddr, jwtObj, rateObj, limit, userObj, err := common.GetConfig()
+func createDBService(dbOpt *common.DBOptions) (*common.DBService, error) {
+	dbService, err := common.NewDBService(dbOpt)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 750,
 		}).Error(err)
-		return
+		return nil, err
 	}
-	appState.Config = redisObj
-	appState.Db = db
-	appState.RedisClient = redisClient
-	appState.Oauth = oauth
-	appState.Mailer = mailer
-	appState.KeyOptions = keyObj
-	appState.ServerTLS = serverTLS
-	appState.ServerAddr = serverAddr
-	appState.JWTOptions = jwtObj
-	appState.RateLimiter = rateObj
-	appState.LimitDefault = limit
-	appState.UserOptions = userObj
+	return dbService, nil
+}
+
+func createRedisService(redisOpt *common.RedisOptions) (*common.RedisService, error) {
+	redisService, err := common.NewRedisService(redisOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return nil, err
+	}
+	return redisService, nil
+}
+
+func createMailerService(mailerOpt *common.MailerOptions) (*common.MailerService, error) {
+	mailerService, err := common.NewMailerService(mailerOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return nil, err
+	}
+	return mailerService, nil
+}
+
+// Init - Fill up AppState Struct
+func (appState *AppState) Init(devMode bool) error {
+
+	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, err := common.GetConfig()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return err
+	}
+
+	dbService, err := createDBService(dbOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return err
+	}
+	appState.DBService = dbService
+
+	redisService, err := createRedisService(redisOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return err
+	}
+	appState.RedisService = redisService
+
+	mailerService, err := createMailerService(mailerOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return err
+	}
+	appState.MailerService = mailerService
+
+	appState.ServerOptions = serverOpt
+	appState.RateOptions = rateOpt
+	appState.JWTOptions = jwtOpt
+	appState.OauthOptions = oauthOpt
+	appState.UserOptions = userOpt
+	//appState.ServerTLS = serverTLS
+	//appState.ServerAddr = serverAddr
+	//appState.LimitDefault = limit
+	return nil
 }
 
 // AddMiddleware - adds middleware to a Handler
@@ -152,13 +205,13 @@ func (appState *AppState) GetHTTPRateLimiter(store *goredisstore.GoRedisStore, M
 // CreateServices create all the services
 func (appState *AppState) CreateServices() (userservices.UserServiceIntf, userservices.UgroupServiceIntf, userservices.UbadgeServiceIntf, msgservices.CategoryServiceIntf, msgservices.TopicServiceIntf, msgservices.MessageServiceIntf, searchservices.SearchServiceIntf) {
 
-	userService := userservices.NewUserService(appState.Config, appState.Db, appState.RedisClient, appState.Mailer, appState.JWTOptions, appState.LimitDefault, appState.UserOptions)
-	ugroupService := userservices.NewUgroupService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
-	ubadgeService := userservices.NewUbadgeService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
-	catService := msgservices.NewCategoryService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
-	topicService := msgservices.NewTopicService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
-	msgService := msgservices.NewMessageService(appState.Config, appState.Db, appState.RedisClient, appState.LimitDefault)
-	searchService := searchservices.NewSearchService(appState.Config, appState.Db, appState.RedisClient, appState.SearchIndex)
+	userService := userservices.NewUserService(appState.DBService, appState.RedisService, appState.MailerService, appState.JWTOptions, appState.UserOptions)
+	ugroupService := userservices.NewUgroupService(appState.DBService, appState.RedisService)
+	ubadgeService := userservices.NewUbadgeService(appState.DBService, appState.RedisService)
+	catService := msgservices.NewCategoryService(appState.DBService, appState.RedisService)
+	topicService := msgservices.NewTopicService(appState.DBService, appState.RedisService)
+	msgService := msgservices.NewMessageService(appState.DBService, appState.RedisService)
+	searchService := searchservices.NewSearchService(appState.DBService, appState.RedisService, appState.SearchIndex)
 
 	return userService, ugroupService, ubadgeService, catService, topicService, msgService, searchService
 
@@ -184,23 +237,23 @@ func (appState *AppState) CreateControllers(userService userservices.UserService
 // CreateRateLimiters create all the rate limiters
 func (appState *AppState) CreateRateLimiters() (throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter, throttled.HTTPRateLimiter) {
 
-	store, err := goredisstore.New(appState.RedisClient, "throttled:")
+	store, err := goredisstore.New(appState.RedisService.RedisClient, "throttled:")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 754,
 		}).Error(err)
 	}
 
-	hrlUser := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UserMaxRate, appState.RateLimiter.UserMaxBurst)
-	hrlU := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UMaxRate, appState.RateLimiter.UMaxBurst)
-	hrlUgroup := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UgroupMaxRate, appState.RateLimiter.UgroupMaxBurst)
-	hrlUbadge := appState.GetHTTPRateLimiter(store, appState.RateLimiter.UbadgeMaxRate, appState.RateLimiter.UbadgeMaxBurst)
+	hrlUser := appState.GetHTTPRateLimiter(store, appState.RateOptions.UserMaxRate, appState.RateOptions.UserMaxBurst)
+	hrlU := appState.GetHTTPRateLimiter(store, appState.RateOptions.UMaxRate, appState.RateOptions.UMaxBurst)
+	hrlUgroup := appState.GetHTTPRateLimiter(store, appState.RateOptions.UgroupMaxRate, appState.RateOptions.UgroupMaxBurst)
+	hrlUbadge := appState.GetHTTPRateLimiter(store, appState.RateOptions.UbadgeMaxRate, appState.RateOptions.UbadgeMaxBurst)
 
-	hrlCat := appState.GetHTTPRateLimiter(store, appState.RateLimiter.CatMaxRate, appState.RateLimiter.CatMaxBurst)
-	hrlTopic := appState.GetHTTPRateLimiter(store, appState.RateLimiter.TopicMaxRate, appState.RateLimiter.TopicMaxBurst)
-	hrlMsg := appState.GetHTTPRateLimiter(store, appState.RateLimiter.MsgMaxRate, appState.RateLimiter.MsgMaxBurst)
+	hrlCat := appState.GetHTTPRateLimiter(store, appState.RateOptions.CatMaxRate, appState.RateOptions.CatMaxBurst)
+	hrlTopic := appState.GetHTTPRateLimiter(store, appState.RateOptions.TopicMaxRate, appState.RateOptions.TopicMaxBurst)
+	hrlMsg := appState.GetHTTPRateLimiter(store, appState.RateOptions.MsgMaxRate, appState.RateOptions.MsgMaxBurst)
 
-	hrlSearch := appState.GetHTTPRateLimiter(store, appState.RateLimiter.SearchMaxRate, appState.RateLimiter.SearchMaxBurst)
+	hrlSearch := appState.GetHTTPRateLimiter(store, appState.RateOptions.SearchMaxRate, appState.RateOptions.SearchMaxBurst)
 
 	return hrlUser, hrlU, hrlUgroup, hrlUbadge, hrlCat, hrlTopic, hrlMsg, hrlSearch
 }

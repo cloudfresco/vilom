@@ -1,54 +1,36 @@
 package common
 
 import (
-	"database/sql"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	gomail "gopkg.in/gomail.v2"
 )
 
 /* error message range: 500-749 */
 
+// DBMysql for DbType is mysql
+const DBMysql string = "mysql"
+
+// DBPgsql for DbType is pgsql
+const DBPgsql string = "pgsql"
+
+// DBOptions - for db config
+type DBOptions struct {
+	DB           string `mapstructure:"db"`
+	User         string `mapstructure:"user"`
+	Password     string `mapstructure:"password"`
+	Host         string `mapstructure:"hostname"`
+	Port         string `mapstructure:"port"`
+	Schema       string `mapstructure:"db_schema"`
+	LimitSQLRows string `mapstructure:"limit_sql_rows"`
+}
+
 // RedisOptions - for redis config
 type RedisOptions struct {
 	Addr string `mapstructure:"addr"`
-}
-
-// KeyOptions - for server config
-type KeyOptions struct {
-	CaCertPath string `mapstructure:"CaCerTPath"`
-	CertPath   string `mapstructure:"CertPath"`
-	KeyPath    string `mapstructure:"KeyPath"`
-	ServerAddr string `mapstructure:"ServerAddr"`
-}
-
-// OauthOptions - for oauth config
-type OauthOptions struct {
-	ClientID     string `mapstructure:"ClientID"`
-	ClientSecret string `mapstructure:"ClientSecret"`
-}
-
-// DbMysql for DbType is mysql
-const DbMysql string = "mysql"
-
-// DbPgsql for DbType is pgsql
-const DbPgsql string = "pgsql"
-
-// DbOptions - for db config
-type DbOptions struct {
-	DB       string `mapstructure:"db"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Host     string `mapstructure:"hostname"`
-	Port     string `mapstructure:"port"`
-	Schema   string `mapstructure:"database"`
 }
 
 // MailerOptions - for mailer config
@@ -59,49 +41,57 @@ type MailerOptions struct {
 	Server   string `mapstructure:"server"`
 }
 
+// ServerOptions - for server config
+type ServerOptions struct {
+	ServerAddr string `mapstructure:"server_addr"`
+	ServerTLS  string `mapstructure:"server_tls"`
+	CaCertPath string `mapstructure:"ca_cert_path"`
+	CertPath   string `mapstructure:"cert_path"`
+	KeyPath    string `mapstructure:"key_path"`
+}
+
+// RateOptions - for rate limiting requests
+type RateOptions struct {
+	UserMaxRate    int `mapstructure:"user_max_rate"`
+	UserMaxBurst   int `mapstructure:"user_max_burst"`
+	UgroupMaxRate  int `mapstructure:"ugroup_max_rate"`
+	UgroupMaxBurst int `mapstructure:"ugroup_max_burst"`
+	CatMaxRate     int `mapstructure:"cat_max_rate"`
+	CatMaxBurst    int `mapstructure:"cat_max_burst"`
+	TopicMaxRate   int `mapstructure:"topic_max_rate"`
+	TopicMaxBurst  int `mapstructure:"topic_max_burst"`
+	MsgMaxRate     int `mapstructure:"msg_max_rate"`
+	MsgMaxBurst    int `mapstructure:"msg_max_burst"`
+	UbadgeMaxRate  int `mapstructure:"ubadge_max_rate"`
+	UbadgeMaxBurst int `mapstructure:"ubadge_max_burst"`
+	SearchMaxRate  int `mapstructure:"search_max_rate"`
+	SearchMaxBurst int `mapstructure:"search_max_burst"`
+	UMaxRate       int `mapstructure:"u_max_rate"`
+	UMaxBurst      int `mapstructure:"u_max_burst"`
+}
+
 // JWTOptions - for JWT config
 type JWTOptions struct {
 	JWTKey      []byte
 	JWTDuration int
 }
 
-// RateLimiterOptions - for rate limiting requests
-type RateLimiterOptions struct {
-	UserMaxRate    int `mapstructure:"usermaxrate"`
-	UserMaxBurst   int `mapstructure:"usermaxburst"`
-	UgroupMaxRate  int `mapstructure:"ugroupmaxrate"`
-	UgroupMaxBurst int `mapstructure:"ugroupmaxburst"`
-	CatMaxRate     int `mapstructure:"catmaxrate"`
-	CatMaxBurst    int `mapstructure:"catmaxburst"`
-	TopicMaxRate   int `mapstructure:"topicmaxrate"`
-	TopicMaxBurst  int `mapstructure:"topicmaxburst"`
-	MsgMaxRate     int `mapstructure:"msgmaxrate"`
-	MsgMaxBurst    int `mapstructure:"msgmaxburst"`
-	UbadgeMaxRate  int `mapstructure:"ubadgemaxrate"`
-	UbadgeMaxBurst int `mapstructure:"ubadgemaxburst"`
-	SearchMaxRate  int `mapstructure:"searchmaxrate"`
-	SearchMaxBurst int `mapstructure:"searchmaxburst"`
-	UMaxRate       int `mapstructure:"umaxrate"`
-	UMaxBurst      int `mapstructure:"umaxburst"`
+// OauthOptions - for oauth config
+type OauthOptions struct {
+	ClientID     string `mapstructure:"client_id"`
+	ClientSecret string `mapstructure:"client_secret"`
 }
 
 // UserOptions - for user login
 type UserOptions struct {
-	ConfirmTokenDuration string `mapstructure:"confirmtokenduration"`
-	ResetTokenDuration   string `mapstructure:"resettokenduration"`
+	ConfirmTokenDuration string `mapstructure:"confirm_token_duration"`
+	ResetTokenDuration   string `mapstructure:"reset_token_duration"`
 }
 
-// GetConfig - Confirguration
-func GetConfig() (*RedisOptions, *sql.DB, *redis.Client, *OauthOptions, *gomail.Dialer, *KeyOptions, string, string, *JWTOptions, *RateLimiterOptions, string, *UserOptions, error) {
+func getDbConfig(v *viper.Viper) (*DBOptions, error) {
+	var LimitSQLRows string
 
-	v := viper.New()
-	v.AutomaticEnv()
-	var redisOpt RedisOptions
-	redisOpt.Addr = v.GetString("VILOM_REDIS_ADDRESS")
-
-	var dbOpt DbOptions
-	var db *sql.DB
-	var err error
+	dbOpt := DBOptions{}
 	dbOpt.DB = v.GetString("VILOM_DB")
 	dbOpt.User = v.GetString("VILOM_DBUSER")
 	dbOpt.Password = v.GetString("VILOM_DBPASS")
@@ -109,75 +99,97 @@ func GetConfig() (*RedisOptions, *sql.DB, *redis.Client, *OauthOptions, *gomail.
 	dbOpt.Port = v.GetString("VILOM_DBPORT")
 	dbOpt.Schema = v.GetString("VILOM_DBNAME")
 
-	if dbOpt.DB == DbMysql {
-		db, err = sql.Open("mysql", fmt.Sprint(dbOpt.User, ":", dbOpt.Password, "@(", dbOpt.Host,
-			":", dbOpt.Port, ")/", dbOpt.Schema, "?charset=utf8mb4&parseTime=True"))
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 500,
-			}).Error(err)
-		}
-	} else if dbOpt.DB == DbPgsql {
-
-	}
-
-	// make sure connection is available
-	err = db.Ping()
-	if err != nil {
+	if err := v.UnmarshalKey("limit_sql_rows", &LimitSQLRows); err != nil {
 		log.WithFields(log.Fields{
-			"msgnum": 501,
+			"msgnum": 507,
 		}).Error(err)
-	} else {
-		log.WithFields(log.Fields{
-			"msgnum": 502,
-		}).Info("Connected to Sql DB")
 	}
+	dbOpt.LimitSQLRows = LimitSQLRows
 
-	redisClient := redis.NewClient(&redis.Options{
-		PoolSize:    10, // default
-		IdleTimeout: 30 * time.Second,
-		Addr:        redisOpt.Addr,
-		Password:    "", // no password set
-		DB:          0,  // use default DB
-	})
+	return &dbOpt, nil
+}
 
-	var oauth OauthOptions
-	oauth.ClientID = v.GetString("GOOGLE_OAUTH2_CLIENT_ID")
-	oauth.ClientSecret = v.GetString("GOOGLE_OAUTH2_CLIENT_SECRET")
+func getRedisConfig(v *viper.Viper) (*RedisOptions, error) {
+	redisOpt := RedisOptions{}
+	redisOpt.Addr = v.GetString("VILOM_REDIS_ADDRESS")
+	return &redisOpt, nil
+}
 
-	var mailerOpt MailerOptions
+func getMailerConfig(v *viper.Viper) (*MailerOptions, error) {
+	mailerOpt := MailerOptions{}
 	mailerOpt.Server = v.GetString("VILOM_MAILER_SERVER")
 	MailerPort, err := strconv.Atoi(v.GetString("VILOM_MAILER_PORT"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 503,
 		}).Error(err)
+		return nil, err
 	}
 	mailerOpt.Port = MailerPort
 	mailerOpt.User = v.GetString("VILOM_MAILER_USER")
 	mailerOpt.Password = v.GetString("VILOM_MAILER_PASS")
+	return &mailerOpt, nil
+}
 
-	mailer := gomail.NewDialer(mailerOpt.Server, mailerOpt.Port, mailerOpt.User, mailerOpt.Password)
+func getServerConfig(v *viper.Viper) (*ServerOptions, error) {
+	serverOpt := ServerOptions{}
+	serverOpt.ServerAddr = v.GetString("VILOM_SERVER_ADDRESS")
+	serverOpt.ServerTLS = v.GetString("VILOM_SERVER_TLS")
+	serverOpt.CaCertPath = v.GetString("VILOM_CA_CERT_PATH")
+	serverOpt.CertPath = v.GetString("VILOM_CERT_PATH")
+	serverOpt.KeyPath = v.GetString("VILOM_KEY_PATH")
+	return &serverOpt, nil
+}
 
-	var keyOpt KeyOptions
-	keyOpt.CaCertPath = v.GetString("VILOM_CA_CERT_PATH")
-	keyOpt.CertPath = v.GetString("VILOM_CERT_PATH")
-	keyOpt.KeyPath = v.GetString("VILOM_KEY_PATH")
+func getRateConfig(v *viper.Viper) (*RateOptions, error) {
+	rateOpt := RateOptions{}
+	if err := v.UnmarshalKey("rate_limit", &rateOpt); err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 506,
+		}).Error(err)
+		return nil, err
+	}
+	return &rateOpt, nil
+}
 
-	serverTLS := v.GetString("VILOM_SERVER_TLS")
-	serverAddr := v.GetString("VILOM_SERVER_ADDRESS")
+func getJWTConfig(v *viper.Viper) (*JWTOptions, error) {
+	var err error
 
-	var jwtOpt JWTOptions
-
-	JWTKey := v.GetString("VILOM_JWT_KEY")
-	jwtOpt.JWTKey = []byte(JWTKey)
-	JWTDuration, err := strconv.Atoi(v.GetString("VILOM_JWT_DURATION"))
+	jwtOpt := JWTOptions{}
+	jwtOpt.JWTKey = []byte(v.GetString("VILOM_JWT_KEY"))
+	jwtOpt.JWTDuration, err = strconv.Atoi(v.GetString("VILOM_JWT_DURATION"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 504,
 		}).Error(err)
+		return nil, err
 	}
-	jwtOpt.JWTDuration = JWTDuration
+	return &jwtOpt, nil
+}
+
+func getOauthConfig(v *viper.Viper) (*OauthOptions, error) {
+	oauthOpt := OauthOptions{}
+	oauthOpt.ClientID = v.GetString("GOOGLE_OAUTH2_CLIENT_ID")
+	oauthOpt.ClientSecret = v.GetString("GOOGLE_OAUTH2_CLIENT_SECRET")
+	return &oauthOpt, nil
+}
+
+func getUserConfig(v *viper.Viper) (*UserOptions, error) {
+	userOpt := UserOptions{}
+	if err := v.UnmarshalKey("user_options", &userOpt); err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 508,
+		}).Error(err)
+		return nil, err
+	}
+	return &userOpt, nil
+}
+
+// GetConfig - Bring in Configuration info from ENV and Confi.json
+func GetConfig() (*DBOptions, *RedisOptions, *MailerOptions, *ServerOptions, *RateOptions, *JWTOptions, *OauthOptions, *UserOptions, error) {
+
+	v := viper.New()
+	v.AutomaticEnv()
 
 	v.SetConfigName("config")
 	pwd, _ := os.Getwd()
@@ -191,26 +203,45 @@ func GetConfig() (*RedisOptions, *sql.DB, *redis.Client, *OauthOptions, *gomail.
 		os.Exit(1)
 	}
 
-	var rateOpt RateLimiterOptions
-	if err := v.UnmarshalKey("ratelimit", &rateOpt); err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 506,
-		}).Error(err)
+	dbOpt, err := getDbConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 
-	var limit string
-	if err := v.UnmarshalKey("limit", &limit); err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 507,
-		}).Error(err)
+	redisOpt, err := getRedisConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 
-	var userOpt UserOptions
-	if err := v.UnmarshalKey("useroptions", &userOpt); err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 508,
-		}).Error(err)
+	mailerOpt, err := getMailerConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 
-	return &redisOpt, db, redisClient, &oauth, mailer, &keyOpt, serverTLS, serverAddr, &jwtOpt, &rateOpt, limit, &userOpt, nil
+	serverOpt, err := getServerConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	rateOpt, err := getRateConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	jwtOpt, err := getJWTConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	oauthOpt, err := getOauthConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	userOpt, err := getUserConfig(v)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	return dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, nil
 }

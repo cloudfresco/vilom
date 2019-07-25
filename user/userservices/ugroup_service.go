@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
@@ -71,19 +70,15 @@ type UgroupServiceIntf interface {
 
 // UgroupService - For accessing Ugroup services
 type UgroupService struct {
-	Config       *common.RedisOptions
-	Db           *sql.DB
-	RedisClient  *redis.Client
-	LimitDefault string
+	DBService    *common.DBService
+	RedisService *common.RedisService
 }
 
 // NewUgroupService - Create Ugroup Service
-func NewUgroupService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *UgroupService {
+func NewUgroupService(dbOpt *common.DBService, redisOpt *common.RedisService) *UgroupService {
 	return &UgroupService{
-		Config:       config,
-		Db:           db,
-		RedisClient:  redisClient,
-		LimitDefault: limitDefault,
+		DBService:    dbOpt,
+		RedisService: redisOpt,
 	}
 }
 
@@ -101,7 +96,7 @@ func (u *UgroupService) CreateUgroup(ctx context.Context, form *Ugroup, userEmai
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2306}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2307}).Error(err)
@@ -244,7 +239,7 @@ func (u *UgroupService) CreateChild(ctx context.Context, form *Ugroup, userEmail
 			return nil, err
 		}
 
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2313}).Error(err)
@@ -450,7 +445,7 @@ func (u *UgroupService) AddUserToGroup(ctx context.Context, form *UgroupUser, ID
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2322}).Error(err)
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		ug, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2323}).Error(err)
@@ -593,7 +588,7 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 		return nil, err
 	default:
 		if limit == "" {
-			limit = u.LimitDefault
+			limit = u.DBService.LimitSQLRows
 		}
 		query := "(statusc = ?)"
 		if nextCursor == "" {
@@ -604,7 +599,8 @@ func (u *UgroupService) GetUgroups(ctx context.Context, limit string, nextCursor
 		}
 
 		ugroups := []*Ugroup{}
-		rows, err := u.Db.QueryContext(ctx, `select 
+		db := u.DBService.DB
+		rows, err := db.QueryContext(ctx, `select 
       id,
 			uuid4,
 			ugroup_name,
@@ -692,7 +688,8 @@ func (u *UgroupService) TopLevelUgroups(ctx context.Context, userEmail string, r
 		return nil, err
 	default:
 		Ugroups := []*Ugroup{}
-		rows, err := u.Db.QueryContext(ctx, `select 
+		db := u.DBService.DB
+		rows, err := db.QueryContext(ctx, `select 
     id,
 		uuid4,
 		ugroup_name,
@@ -766,7 +763,7 @@ func (u *UgroupService) GetParent(ctx context.Context, ID string, userEmail stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2384}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		ugroup, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2385}).Error(err)
@@ -835,7 +832,7 @@ func (u *UgroupService) GetUgroup(ctx context.Context, ID string, userEmail stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2345}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		ugroup, err := u.GetUgroupByID(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2403}).Error(err)
@@ -1029,7 +1026,7 @@ func (u *UgroupService) GetUgroupByID(ctx context.Context, ID string, userEmail 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2354}).Error(err)
 			return nil, err
 		}
-		db := u.Db
+		db := u.DBService.DB
 		ug := Ugroup{}
 		row := db.QueryRowContext(ctx, `select
     id,
@@ -1093,7 +1090,7 @@ func (u *UgroupService) GetUgroupByIDuint(ctx context.Context, ID uint, userEmai
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2357}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		ug := Ugroup{}
 		row := db.QueryRowContext(ctx, `select
     id,
@@ -1163,7 +1160,8 @@ func (u *UgroupService) GetChildUgroups(ctx context.Context, ID string, userEmai
 			return nil, err
 		}
 		Ugroups := []*Ugroup{}
-		rows, err := u.Db.QueryContext(ctx, `select 
+		db := u.DBService.DB
+		rows, err := db.QueryContext(ctx, `select 
     ug.id,
 		ug.uuid4,
 		ug.ugroup_name,
@@ -1250,7 +1248,7 @@ func (u *UgroupService) UpdateUgroup(ctx context.Context, ID string, form *Ugrou
 			return err
 		}
 
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2396}).Error(err)
@@ -1326,7 +1324,7 @@ func (u *UgroupService) DeleteUgroup(ctx context.Context, ID string, userEmail s
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2340}).Error(err)
 			return err
 		}
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2391}).Error(err)
@@ -1393,7 +1391,7 @@ func (u *UgroupService) DeleteUserFromGroup(ctx context.Context, form *UgroupUse
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2360}).Error(err)
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 2361}).Error(err)

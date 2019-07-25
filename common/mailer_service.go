@@ -7,11 +7,11 @@ import (
 
 // MailerIntf interface to the Mailer
 type MailerIntf interface {
-	SendMail(msg Email, gomailer *gomail.Dialer) error
+	SendMail(msg Email) error
 }
 
-// Mailer Pointer to mailer
-type Mailer struct {
+// MailerService Pointer to mailer
+type MailerService struct {
 	Mailer *gomail.Dialer
 }
 
@@ -24,15 +24,26 @@ type Email struct {
 	Cc      string
 }
 
+// NewMailerService get connection to mailer and create a MailerService struct
+func NewMailerService(mailerOpt *MailerOptions) (*MailerService, error) {
+
+	mailer := gomail.NewDialer(mailerOpt.Server, mailerOpt.Port, mailerOpt.User, mailerOpt.Password)
+
+	mailerService := &MailerService{}
+	mailerService.Mailer = mailer
+
+	return mailerService, nil
+}
+
 // SendMail - used for sending email
-func SendMail(msg Email, gomailer *gomail.Dialer) error {
+func (mailerService *MailerService) SendMail(msg Email) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", gomailer.Username)
+	m.SetHeader("From", mailerService.Mailer.Username)
 	m.SetHeader("To", msg.To)
 	m.SetHeader("Subject", msg.Subject)
 	m.SetBody("text/html", msg.Body)
 
-	err := gomailer.DialAndSend(m)
+	err := mailerService.Mailer.DialAndSend(m)
 	if err != nil {
 		log.WithFields(log.Fields{"msgnum": 259}).Error(err)
 		return err

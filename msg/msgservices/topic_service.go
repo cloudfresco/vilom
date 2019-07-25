@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
@@ -91,19 +90,15 @@ type TopicServiceIntf interface {
 
 // TopicService - For accessing topic services
 type TopicService struct {
-	Config       *common.RedisOptions
-	Db           *sql.DB
-	RedisClient  *redis.Client
-	LimitDefault string
+	DBService    *common.DBService
+	RedisService *common.RedisService
 }
 
 // NewTopicService - Create topic service
-func NewTopicService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *TopicService {
+func NewTopicService(dbOpt *common.DBService, redisOpt *common.RedisService) *TopicService {
 	return &TopicService{
-		Config:       config,
-		Db:           db,
-		RedisClient:  redisClient,
-		LimitDefault: limitDefault,
+		DBService:    dbOpt,
+		RedisService: redisOpt,
 	}
 }
 
@@ -115,13 +110,13 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5321}).Error(err)
 		return nil, err
 	default:
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		userserv := &userservices.UserService{DBService: t.DBService, RedisService: t.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5322}).Error(err)
 			return nil, err
 		}
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5323}).Error(err)
@@ -175,7 +170,7 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 			return nil, err
 		}
 
-		catserv := &CategoryService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
+		catserv := &CategoryService{DBService: t.DBService, RedisService: t.RedisService}
 		category, err := catserv.GetCategoryByID(ctx, form.CategoryID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5326}).Error(err)
@@ -190,7 +185,7 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 			return nil, err
 		}
 		if form.Mtext != "" {
-			msgserv := &MessageService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
+			msgserv := &MessageService{DBService: t.DBService, RedisService: t.RedisService}
 			msgform := Message{}
 			msgform.CategoryID = category.ID
 			msgform.TopicID = topic.ID
@@ -432,14 +427,14 @@ func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, 
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5300}).Error(err)
 		return nil, err
 	default:
-		db := t.Db
+		db := t.DBService.DB
 		topic, err := t.GetTopicWithMessages(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5301}).Error(err)
 			return nil, err
 		}
 		//update topic_users table
-		userserv := &userservices.UserService{Config: t.Config, Db: t.Db, RedisClient: t.RedisClient}
+		userserv := &userservices.UserService{DBService: t.DBService, RedisService: t.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5302}).Error(err)
@@ -673,7 +668,8 @@ func (t *TopicService) GetTopicByID(ctx context.Context, ID uint, userEmail stri
 		return nil, err
 	default:
 		poh := Topic{}
-		row := t.Db.QueryRowContext(ctx, `select
+		db := t.DBService.DB
+		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
 		topic_name,
@@ -768,7 +764,8 @@ func (t *TopicService) GetTopic(ctx context.Context, ID string, userEmail string
 			return nil, err
 		}
 		poh := Topic{}
-		row := t.Db.QueryRowContext(ctx, `select
+		db := t.DBService.DB
+		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
 		topic_name,
@@ -858,7 +855,8 @@ func (t *TopicService) GetTopicByName(ctx context.Context, topicname string, use
 		return nil, err
 	default:
 		poh := Topic{}
-		row := t.Db.QueryRowContext(ctx, `select
+		db := t.DBService.DB
+		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
 		topic_name,
@@ -952,7 +950,7 @@ func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string, user
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5311}).Error(err)
 			return nil, err
 		}
-		db := t.Db
+		db := t.DBService.DB
 		poh := &Topic{}
 		tpc, err := t.GetTopic(ctx, ID, userEmail, requestID)
 		if err != nil {
@@ -977,7 +975,7 @@ func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string, user
 		}
 
 		if len(poh.Messages) > 0 {
-			msgserv := &MessageService{t.Config, t.Db, t.RedisClient, t.LimitDefault}
+			msgserv := &MessageService{DBService: t.DBService, RedisService: t.RedisService}
 			Messages, err := msgserv.GetMessagesWithTextAttach(ctx, poh.Messages, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5320}).Error(err)
@@ -990,7 +988,7 @@ func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string, user
 
 // GetTopicMessages - get topic with messages
 func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Topic, error) {
-	db := t.Db
+	db := t.DBService.DB
 	poh := Topic{}
 	rows, err := db.QueryContext(ctx, `select 
       p.id,
@@ -1149,7 +1147,8 @@ func (t *TopicService) GetTopicsUser(ctx context.Context, ID uint, UserID uint, 
 		return nil, err
 	default:
 		poh := TopicsUser{}
-		row := t.Db.QueryRowContext(ctx, `select
+		db := t.DBService.DB
+		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
 		topic_id,
@@ -1218,7 +1217,7 @@ func (t *TopicService) UpdateTopic(ctx context.Context, ID string, form *Topic, 
 			return err
 		}
 
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5384}).Error(err)
@@ -1350,7 +1349,7 @@ func (t *TopicService) DeleteTopic(ctx context.Context, ID string, userEmail str
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5377}).Error(err)
 			return err
 		}
-		db := t.Db
+		db := t.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5378}).Error(err)

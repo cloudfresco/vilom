@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudfresco/vilom/common"
@@ -52,19 +51,15 @@ type UbadgeServiceIntf interface {
 
 // UbadgeService - For accessing Ubadge services
 type UbadgeService struct {
-	Config       *common.RedisOptions
-	Db           *sql.DB
-	RedisClient  *redis.Client
-	LimitDefault string
+	DBService    *common.DBService
+	RedisService *common.RedisService
 }
 
 // NewUbadgeService - Create Ubadge Service
-func NewUbadgeService(config *common.RedisOptions, db *sql.DB, redisClient *redis.Client, limitDefault string) *UbadgeService {
+func NewUbadgeService(dbOpt *common.DBService, redisOpt *common.RedisService) *UbadgeService {
 	return &UbadgeService{
-		Config:       config,
-		Db:           db,
-		RedisClient:  redisClient,
-		LimitDefault: limitDefault,
+		DBService:    dbOpt,
+		RedisService: redisOpt,
 	}
 }
 
@@ -82,7 +77,7 @@ func (u *UbadgeService) CreateUbadge(ctx context.Context, form *Ubadge, userEmai
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3306}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3307}).Error(err)
@@ -213,7 +208,7 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3311}).Error(err)
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		ubadge, err := u.GetUbadge(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3312}).Error(err)
@@ -351,7 +346,7 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 		return nil, err
 	default:
 		if limit == "" {
-			limit = u.LimitDefault
+			limit = u.DBService.LimitSQLRows
 		}
 		query := "(statusc = ?)"
 		if nextCursor == "" {
@@ -362,7 +357,8 @@ func (u *UbadgeService) GetUbadges(ctx context.Context, limit string, nextCursor
 		}
 
 		ubadges := []*Ubadge{}
-		rows, err := u.Db.QueryContext(ctx, `select 
+		db := u.DBService.DB
+		rows, err := db.QueryContext(ctx, `select 
       id,
 			uuid4,
 			ubadge_name,
@@ -445,7 +441,7 @@ func (u *UbadgeService) GetUbadge(ctx context.Context, ID string, userEmail stri
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3329}).Error(err)
 		return nil, err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		ubadge, err := u.GetUbadgeByID(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3366}).Error(err)
@@ -632,7 +628,7 @@ func (u *UbadgeService) GetUbadgeByID(ctx context.Context, ID string, userEmail 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3338}).Error(err)
 			return nil, err
 		}
-		db := u.Db
+		db := u.DBService.DB
 		Ubadge := Ubadge{}
 		row := db.QueryRowContext(ctx, `select
     id,
@@ -696,7 +692,7 @@ func (u *UbadgeService) UpdateUbadge(ctx context.Context, ID string, form *Ubadg
 			return err
 		}
 
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3360}).Error(err)
@@ -772,7 +768,7 @@ func (u *UbadgeService) DeleteUbadge(ctx context.Context, ID string, userEmail s
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3324}).Error(err)
 			return err
 		}
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3325}).Error(err)
@@ -842,7 +838,7 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3341}).Error(err)
 		return err
 	default:
-		db := u.Db
+		db := u.DBService.DB
 		tx, err := db.Begin()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3342}).Error(err)
