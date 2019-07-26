@@ -2,7 +2,7 @@ package common
 
 import (
 	"os"
-	"path/filepath"
+	//"path/filepath"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -213,9 +213,14 @@ func GetViper() (*viper.Viper, error) {
 	v.AutomaticEnv()
 
 	v.SetConfigName("config")
-	pwd, _ := os.Getwd()
-	viewpath := pwd + filepath.FromSlash("/common")
-	v.AddConfigPath(viewpath)
+	configFilePath := v.GetString("VILOM_CONFIG_FILE_PATH")
+	v.AddConfigPath(configFilePath)
+
+	/*
+		pwd, _ := os.Getwd()
+		viewpath := pwd + filepath.FromSlash("/common")
+		v.AddConfigPath(viewpath)
+	*/
 
 	if err := v.ReadInConfig(); err != nil {
 		log.WithFields(log.Fields{
@@ -254,17 +259,6 @@ func SetUpLogging(logOpt *LogOptions) {
 		logLevel = log.FatalLevel
 	}
 
-	/*
-		u64, err := strconv.ParseUint(logOpt.Level, 10, 32)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 100,
-			}).Error(err)
-			os.Exit(1)
-		}
-		logLevel = log.Level(u64)
-	*/
-
 	// open the log file
 	f, err = os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
@@ -281,65 +275,38 @@ func SetUpLogging(logOpt *LogOptions) {
 	return
 }
 
-/*
-// GetConfig - Bring in Configuration info from ENV and config.json
-func GetConfig() (*DBOptions, *RedisOptions, *MailerOptions, *ServerOptions, *RateOptions, *JWTOptions, *OauthOptions, *UserOptions, error) {
-
-	v := viper.New()
-	v.AutomaticEnv()
-
-	v.SetConfigName("config")
-	pwd, _ := os.Getwd()
-	viewpath := pwd + filepath.FromSlash("/common")
-	v.AddConfigPath(viewpath)
-
-	if err := v.ReadInConfig(); err != nil {
+// CreateDBService -- init DB
+func CreateDBService(dbOpt *DBOptions) (*DBService, error) {
+	dbService, err := NewDBService(dbOpt)
+	if err != nil {
 		log.WithFields(log.Fields{
-			"msgnum": 505,
+			"msgnum": 750,
 		}).Error(err)
-		os.Exit(1)
+		return nil, err
 	}
-
-	dbOpt, err := getDbConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	redisOpt, err := getRedisConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	mailerOpt, err := getMailerConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	serverOpt, err := getServerConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	rateOpt, err := getRateConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	jwtOpt, err := getJWTConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	oauthOpt, err := getOauthConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	userOpt, err := getUserConfig(v)
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	return dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, nil
+	return dbService, nil
 }
-*/
+
+// CreateRedisService -- init redis
+func CreateRedisService(redisOpt *RedisOptions) (*RedisService, error) {
+	redisService, err := NewRedisService(redisOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return nil, err
+	}
+	return redisService, nil
+}
+
+// CreateMailerService -- init mailer
+func CreateMailerService(mailerOpt *MailerOptions) (*MailerService, error) {
+	mailerService, err := NewMailerService(mailerOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return nil, err
+	}
+	return mailerService, nil
+}

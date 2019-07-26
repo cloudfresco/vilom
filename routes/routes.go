@@ -38,39 +38,6 @@ type AppState struct {
 	SearchIndex   bleve.Index
 }
 
-func createDBService(dbOpt *common.DBOptions) (*common.DBService, error) {
-	dbService, err := common.NewDBService(dbOpt)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, err
-	}
-	return dbService, nil
-}
-
-func createRedisService(redisOpt *common.RedisOptions) (*common.RedisService, error) {
-	redisService, err := common.NewRedisService(redisOpt)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, err
-	}
-	return redisService, nil
-}
-
-func createMailerService(mailerOpt *common.MailerOptions) (*common.MailerService, error) {
-	mailerService, err := common.NewMailerService(mailerOpt)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, err
-	}
-	return mailerService, nil
-}
-
 // Init - Fill up AppState Struct
 func (appState *AppState) Init(dbOpt *common.DBOptions, redisOpt *common.RedisOptions, mailerOpt *common.MailerOptions, serverOpt *common.ServerOptions, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, oauthOpt *common.OauthOptions, userOpt *common.UserOptions) error {
 
@@ -84,7 +51,7 @@ func (appState *AppState) Init(dbOpt *common.DBOptions, redisOpt *common.RedisOp
 		}
 	*/
 
-	dbService, err := createDBService(dbOpt)
+	dbService, err := common.CreateDBService(dbOpt)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 750,
@@ -93,7 +60,7 @@ func (appState *AppState) Init(dbOpt *common.DBOptions, redisOpt *common.RedisOp
 	}
 	appState.DBService = dbService
 
-	redisService, err := createRedisService(redisOpt)
+	redisService, err := common.CreateRedisService(redisOpt)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 750,
@@ -102,7 +69,7 @@ func (appState *AppState) Init(dbOpt *common.DBOptions, redisOpt *common.RedisOp
 	}
 	appState.RedisService = redisService
 
-	mailerService, err := createMailerService(mailerOpt)
+	mailerService, err := common.CreateMailerService(mailerOpt)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 750,
