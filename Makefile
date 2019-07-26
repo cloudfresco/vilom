@@ -35,6 +35,13 @@ buildp:
 	@go build -i -o $(EXEC) $(MFILE)
 
 test:
+	@mysql -uroot -p$(VILOM_DBPASSROOT) -e 'DROP DATABASE IF EXISTS  $(VILOM_DBNAME_TEST);'
+	@mysql -uroot -p$(VILOM_DBPASSROOT) -e 'CREATE DATABASE $(VILOM_DBNAME_TEST);'
+	@mysql -uroot -p$(VILOM_DBPASSROOT) -e "GRANT ALL ON *.* TO '$(VILOM_DBUSER_TEST)'@'$(VILOM_DBHOST)';"
+	@mysql -uroot -p$(VILOM_DBPASSROOT) -e 'FLUSH PRIVILEGES;'
+	@mysql -u$(VILOM_DBUSER_TEST) -p$(VILOM_DBPASS_TEST)  $(VILOM_DBNAME_TEST) < sql/mysql/mysqldb.sql
+
+
 	@echo "Starting tests"	
 	@go test -v $(PKGS)
 

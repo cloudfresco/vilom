@@ -72,15 +72,17 @@ func createMailerService(mailerOpt *common.MailerOptions) (*common.MailerService
 }
 
 // Init - Fill up AppState Struct
-func (appState *AppState) Init(devMode bool) error {
+func (appState *AppState) Init(dbOpt *common.DBOptions, redisOpt *common.RedisOptions, mailerOpt *common.MailerOptions, serverOpt *common.ServerOptions, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, oauthOpt *common.OauthOptions, userOpt *common.UserOptions) error {
 
-	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, err := common.GetConfig()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return err
-	}
+	/*
+		dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, err := common.GetConfig()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 750,
+			}).Error(err)
+			return err
+		}
+	*/
 
 	dbService, err := createDBService(dbOpt)
 	if err != nil {
@@ -114,9 +116,6 @@ func (appState *AppState) Init(devMode bool) error {
 	appState.JWTOptions = jwtOpt
 	appState.OauthOptions = oauthOpt
 	appState.UserOptions = userOpt
-	//appState.ServerTLS = serverTLS
-	//appState.ServerAddr = serverAddr
-	//appState.LimitDefault = limit
 	return nil
 }
 

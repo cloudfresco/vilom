@@ -20,10 +20,10 @@ const DBPgsql string = "pgsql"
 // DBOptions - for db config
 type DBOptions struct {
 	DB           string `mapstructure:"db"`
-	User         string `mapstructure:"user"`
-	Password     string `mapstructure:"password"`
 	Host         string `mapstructure:"hostname"`
 	Port         string `mapstructure:"port"`
+	User         string `mapstructure:"user"`
+	Password     string `mapstructure:"password"`
 	Schema       string `mapstructure:"db_schema"`
 	LimitSQLRows string `mapstructure:"limit_sql_rows"`
 }
@@ -88,15 +88,22 @@ type UserOptions struct {
 	ResetTokenDuration   string `mapstructure:"reset_token_duration"`
 }
 
-func getDbConfig(v *viper.Viper) (*DBOptions, error) {
+// LogOptions - for logging
+type LogOptions struct {
+	Path  string `mapstructure:"log_file_path"`
+	Level string `mapstructure:"log_level"`
+}
+
+// GetDbConfig -- read DB config options
+func GetDbConfig(v *viper.Viper) (*DBOptions, error) {
 	var LimitSQLRows string
 
 	dbOpt := DBOptions{}
 	dbOpt.DB = v.GetString("VILOM_DB")
-	dbOpt.User = v.GetString("VILOM_DBUSER")
-	dbOpt.Password = v.GetString("VILOM_DBPASS")
 	dbOpt.Host = v.GetString("VILOM_DBHOST")
 	dbOpt.Port = v.GetString("VILOM_DBPORT")
+	dbOpt.User = v.GetString("VILOM_DBUSER")
+	dbOpt.Password = v.GetString("VILOM_DBPASS")
 	dbOpt.Schema = v.GetString("VILOM_DBNAME")
 
 	if err := v.UnmarshalKey("limit_sql_rows", &LimitSQLRows); err != nil {
@@ -109,13 +116,15 @@ func getDbConfig(v *viper.Viper) (*DBOptions, error) {
 	return &dbOpt, nil
 }
 
-func getRedisConfig(v *viper.Viper) (*RedisOptions, error) {
+// GetRedisConfig -- read redis config options
+func GetRedisConfig(v *viper.Viper) (*RedisOptions, error) {
 	redisOpt := RedisOptions{}
 	redisOpt.Addr = v.GetString("VILOM_REDIS_ADDRESS")
 	return &redisOpt, nil
 }
 
-func getMailerConfig(v *viper.Viper) (*MailerOptions, error) {
+// GetMailerConfig -- read mailer config options
+func GetMailerConfig(v *viper.Viper) (*MailerOptions, error) {
 	mailerOpt := MailerOptions{}
 	mailerOpt.Server = v.GetString("VILOM_MAILER_SERVER")
 	MailerPort, err := strconv.Atoi(v.GetString("VILOM_MAILER_PORT"))
@@ -131,7 +140,8 @@ func getMailerConfig(v *viper.Viper) (*MailerOptions, error) {
 	return &mailerOpt, nil
 }
 
-func getServerConfig(v *viper.Viper) (*ServerOptions, error) {
+// GetServerConfig -- read server config options
+func GetServerConfig(v *viper.Viper) (*ServerOptions, error) {
 	serverOpt := ServerOptions{}
 	serverOpt.ServerAddr = v.GetString("VILOM_SERVER_ADDRESS")
 	serverOpt.ServerTLS = v.GetString("VILOM_SERVER_TLS")
@@ -141,7 +151,8 @@ func getServerConfig(v *viper.Viper) (*ServerOptions, error) {
 	return &serverOpt, nil
 }
 
-func getRateConfig(v *viper.Viper) (*RateOptions, error) {
+// GetRateConfig -- read rate config options
+func GetRateConfig(v *viper.Viper) (*RateOptions, error) {
 	rateOpt := RateOptions{}
 	if err := v.UnmarshalKey("rate_limit", &rateOpt); err != nil {
 		log.WithFields(log.Fields{
@@ -152,7 +163,8 @@ func getRateConfig(v *viper.Viper) (*RateOptions, error) {
 	return &rateOpt, nil
 }
 
-func getJWTConfig(v *viper.Viper) (*JWTOptions, error) {
+// GetJWTConfig -- read JWT config options
+func GetJWTConfig(v *viper.Viper) (*JWTOptions, error) {
 	var err error
 
 	jwtOpt := JWTOptions{}
@@ -167,14 +179,16 @@ func getJWTConfig(v *viper.Viper) (*JWTOptions, error) {
 	return &jwtOpt, nil
 }
 
-func getOauthConfig(v *viper.Viper) (*OauthOptions, error) {
+// GetOauthConfig -- read oauth config options
+func GetOauthConfig(v *viper.Viper) (*OauthOptions, error) {
 	oauthOpt := OauthOptions{}
 	oauthOpt.ClientID = v.GetString("GOOGLE_OAUTH2_CLIENT_ID")
 	oauthOpt.ClientSecret = v.GetString("GOOGLE_OAUTH2_CLIENT_SECRET")
 	return &oauthOpt, nil
 }
 
-func getUserConfig(v *viper.Viper) (*UserOptions, error) {
+// GetUserConfig -- read user config options
+func GetUserConfig(v *viper.Viper) (*UserOptions, error) {
 	userOpt := UserOptions{}
 	if err := v.UnmarshalKey("user_options", &userOpt); err != nil {
 		log.WithFields(log.Fields{
@@ -185,7 +199,90 @@ func getUserConfig(v *viper.Viper) (*UserOptions, error) {
 	return &userOpt, nil
 }
 
-// GetConfig - Bring in Configuration info from ENV and Confi.json
+// GetLogConfig -- read log config options
+func GetLogConfig(v *viper.Viper) (*LogOptions, error) {
+	logOpt := LogOptions{}
+	logOpt.Path = v.GetString("VILOM_LOG_FILE_PATH")
+	logOpt.Level = v.GetString("VILOM_LOG_LEVEL")
+	return &logOpt, nil
+}
+
+// GetViper -- init viper
+func GetViper() (*viper.Viper, error) {
+	v := viper.New()
+	v.AutomaticEnv()
+
+	v.SetConfigName("config")
+	pwd, _ := os.Getwd()
+	viewpath := pwd + filepath.FromSlash("/common")
+	v.AddConfigPath(viewpath)
+
+	if err := v.ReadInConfig(); err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 505,
+		}).Error(err)
+		return nil, err
+	}
+	return v, nil
+}
+
+// SetUpLogging -- create log file, and other log init
+func SetUpLogging(logOpt *LogOptions) {
+	var logFilePath string
+	var logLevel log.Level
+	var err error
+	var f *os.File
+
+	logFilePath = logOpt.Path
+
+	switch logOpt.Level {
+	case "PanicLevel":
+		logLevel = log.PanicLevel
+	case "FatalLevel":
+		logLevel = log.FatalLevel
+	case "ErrorLevel":
+		logLevel = log.ErrorLevel
+	case "WarnLevel":
+		logLevel = log.WarnLevel
+	case "InfoLevel":
+		logLevel = log.InfoLevel
+	case "DebugLevel":
+		logLevel = log.DebugLevel
+	case "TraceLevel":
+		logLevel = log.TraceLevel
+	default:
+		logLevel = log.FatalLevel
+	}
+
+	/*
+		u64, err := strconv.ParseUint(logOpt.Level, 10, 32)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 100,
+			}).Error(err)
+			os.Exit(1)
+		}
+		logLevel = log.Level(u64)
+	*/
+
+	// open the log file
+	f, err = os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 100,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	log.SetOutput(f)
+	log.SetFormatter(&log.JSONFormatter{})
+
+	log.SetLevel(logLevel)
+	return
+}
+
+/*
+// GetConfig - Bring in Configuration info from ENV and config.json
 func GetConfig() (*DBOptions, *RedisOptions, *MailerOptions, *ServerOptions, *RateOptions, *JWTOptions, *OauthOptions, *UserOptions, error) {
 
 	v := viper.New()
@@ -245,3 +342,4 @@ func GetConfig() (*DBOptions, *RedisOptions, *MailerOptions, *ServerOptions, *Ra
 
 	return dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, nil
 }
+*/

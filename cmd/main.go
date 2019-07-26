@@ -13,31 +13,96 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/routes"
 	"github.com/cloudfresco/vilom/search/searchservices"
 )
 
 /* error message range: 100-249 */
 
-// SetUpLogging - start the logging sub-system
-func setUpLogging(logFile string, logLevel log.Level) error {
-	var err error
-	var f *os.File
+func getConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.MailerOptions, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *common.LogOptions) {
 
-	// open the log file
-	f, err = os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	v, err := common.GetViper()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"msgnum": 100,
+			"msgnum": 103,
 		}).Error(err)
-		return err
+		os.Exit(1)
 	}
 
-	log.SetOutput(f)
-	log.SetFormatter(&log.JSONFormatter{})
+	dbOpt, err := common.GetDbConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
 
-	log.SetLevel(logLevel)
-	return nil
+	redisOpt, err := common.GetRedisConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	mailerOpt, err := common.GetMailerConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	serverOpt, err := common.GetServerConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	rateOpt, err := common.GetRateConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	jwtOpt, err := common.GetJWTConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	oauthOpt, err := common.GetOauthConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	userOpt, err := common.GetUserConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	logOpt, err := common.GetLogConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	return dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt
 }
 
 func getKeys(caCertPath string, certPath string, keyPath string) *tls.Config {
@@ -71,26 +136,20 @@ func getKeys(caCertPath string, certPath string, keyPath string) *tls.Config {
 }
 
 func main() {
-	var devFlag bool
-	var logFile string
-	var logLevel log.Level
 	var appState *routes.AppState
+	var err error
 
-	pwd, _ := os.Getwd()
-	logFile = pwd + filepath.FromSlash("/files/log/app.log")
-	logLevel = log.InfoLevel
+	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt := getConfigOpt()
 
-	err := setUpLogging(logFile, logLevel)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
-	}
+	/*
+		pwd, _ := os.Getwd()
+		logFile = pwd + filepath.FromSlash("/files/log/app.log")
+		logLevel = log.InfoLevel
+	*/
+	common.SetUpLogging(logOpt)
 
 	appState = &routes.AppState{}
-	devFlag = false
-	err = appState.Init(devFlag)
+	err = appState.Init(dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 103,
@@ -104,6 +163,7 @@ func main() {
 	if appState.ServerOptions.ServerTLS == "true" {
 		var caCertPath, certPath, keyPath string
 		var tlsConfig *tls.Config
+		pwd, _ := os.Getwd()
 		caCertPath = pwd + filepath.FromSlash(appState.ServerOptions.CaCertPath)
 		certPath = pwd + filepath.FromSlash(appState.ServerOptions.CertPath)
 		keyPath = pwd + filepath.FromSlash(appState.ServerOptions.KeyPath)
