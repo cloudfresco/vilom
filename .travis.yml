@@ -3,8 +3,24 @@ go:
  - 1.12.x
 env:
  - GO111MODULE=on
+services:
+ - mysql
+ - redis-server
 notifications:
  email: false
+before_script:
+ - export GO111MODULE=on
+ - echo "USE mysql;\nSET PASSWORD FOR 'travis'@'localhost' = PASSWORD('p');\nFLUSH PRIVILEGES;\n" | mysql -u root				
+ - echo "USE mysql;\nSET PASSWORD FOR 'root'@'localhost' = PASSWORD('p');\nFLUSH PRIVILEGES;\n" | mysql -u root 				
+ - export VILOM_DB=mysql
+ - export VILOM_DBHOST=localhost
+ - export VILOM_DBPORT=3306
+ - export VILOM_DBUSER_TEST=travis
+ - export VILOM_DBPASS_TEST=p
+ - export VILOM_DBNAME_TEST=vilom_test
+ - export VILOM_DBPASSROOT=p
+ - export VILOM_DBSQL_MYSQL_TEST=$TRAVIS_BUILD_DIR/testhelpers/fixtures/vilom_mysql_test.sql
+ - export VILOM_REDIS_ADDRESS=localhost:6379
 script:
  - make
  - make test

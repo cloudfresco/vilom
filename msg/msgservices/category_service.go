@@ -596,7 +596,7 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			return nil, err
 		}
 		db := c.DBService.DB
-		cat := &Category{}
+		cat := Category{}
 		ctegry, err := c.GetCategory(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4331}).Error(err)
@@ -755,9 +755,9 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 				return nil, err
 			}
 		} else {
-			cat = ctegry
+			return ctegry, nil
 		}
-		return cat, nil
+		return &cat, nil
 	}
 }
 

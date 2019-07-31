@@ -2,7 +2,6 @@ package common
 
 import (
 	"os"
-	//"path/filepath"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -19,13 +18,15 @@ const DBPgsql string = "pgsql"
 
 // DBOptions - for db config
 type DBOptions struct {
-	DB           string `mapstructure:"db"`
-	Host         string `mapstructure:"hostname"`
-	Port         string `mapstructure:"port"`
-	User         string `mapstructure:"user"`
-	Password     string `mapstructure:"password"`
-	Schema       string `mapstructure:"db_schema"`
-	LimitSQLRows string `mapstructure:"limit_sql_rows"`
+	DB                string `mapstructure:"db"`
+	Host              string `mapstructure:"hostname"`
+	Port              string `mapstructure:"port"`
+	User              string `mapstructure:"user"`
+	Password          string `mapstructure:"password"`
+	Schema            string `mapstructure:"db_schema"`
+	LimitSQLRows      string `mapstructure:"limit_sql_rows"`
+	MySQLTestFilePath string `mapstructure:"mysql_test_file_path"`
+	PgSQLTestFilePath string `mapstructure:"pgsql_test_file_path"`
 }
 
 // RedisOptions - for redis config
@@ -105,6 +106,8 @@ func GetDbConfig(v *viper.Viper) (*DBOptions, error) {
 	dbOpt.User = v.GetString("VILOM_DBUSER")
 	dbOpt.Password = v.GetString("VILOM_DBPASS")
 	dbOpt.Schema = v.GetString("VILOM_DBNAME")
+	dbOpt.MySQLTestFilePath = v.GetString("VILOM_DBSQL_MYSQL_TEST")
+	dbOpt.PgSQLTestFilePath = v.GetString("VILOM_DBSQL_PGSQL_TEST")
 
 	if err := v.UnmarshalKey("limit_sql_rows", &LimitSQLRows); err != nil {
 		log.WithFields(log.Fields{
