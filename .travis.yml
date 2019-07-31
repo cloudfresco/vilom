@@ -10,7 +10,6 @@ notifications:
  email: false
 before_script:
  - export GO111MODULE=on
- - export VILOM_CONFIG_FILE_PATH=$TRAVIS_BUILD_DIR/common
  - echo "USE mysql;\nSET PASSWORD FOR 'travis'@'localhost' = PASSWORD('p');\nFLUSH PRIVILEGES;\n" | mysql -u root				
  - echo "USE mysql;\nSET PASSWORD FOR 'root'@'localhost' = PASSWORD('p');\nFLUSH PRIVILEGES;\n" | mysql -u root 				
  - export VILOM_DB=mysql
@@ -22,6 +21,9 @@ before_script:
  - export VILOM_DBPASSROOT=p
  - export VILOM_DBSQL_MYSQL_TEST=$TRAVIS_BUILD_DIR/testhelpers/fixtures/vilom_mysql_test.sql
  - export VILOM_REDIS_ADDRESS=localhost:6379
+ - export VILOM_CONFIG_FILE_PATH=$TRAVIS_BUILD_DIR/common
+ - export VILOM_LOG_FILE_PATH=$TRAVIS_BUILD_DIR/vilom.log
+ - export VILOM_LOG_LEVEL=InfoLevel
 script:
  - make
  - make test
