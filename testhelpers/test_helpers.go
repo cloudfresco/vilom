@@ -33,7 +33,7 @@ func getTestDbConfig(v *viper.Viper) (*common.DBOptions, error) {
 	return &dbOpt, nil
 }
 
-func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.MailerOptions, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *common.LogOptions) {
+func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.ServerOptions, *common.UserOptions, *common.LogOptions) {
 
 	v, err := common.GetViper()
 	if err != nil {
@@ -59,39 +59,7 @@ func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.Mailer
 		os.Exit(1)
 	}
 
-	mailerOpt, err := common.GetMailerConfig(v)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
-	}
-
 	serverOpt, err := common.GetServerConfig(v)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
-	}
-
-	rateOpt, err := common.GetRateConfig(v)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
-	}
-
-	jwtOpt, err := common.GetJWTConfig(v)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
-	}
-
-	oauthOpt, err := common.GetOauthConfig(v)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 103,
@@ -115,13 +83,13 @@ func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.Mailer
 		os.Exit(1)
 	}
 
-	return dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt
+	return dbOpt, redisOpt, serverOpt, userOpt, logOpt
 }
 
 // InitTest - used for initialization of the test DB etc.
-func InitTest() (*common.DBService, *common.RedisService, *common.MailerService, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, error) {
+func InitTest() (*common.DBService, *common.RedisService, *common.ServerOptions, *common.UserOptions, error) {
 
-	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt := getTestConfigOpt()
+	dbOpt, redisOpt, serverOpt, userOpt, logOpt := getTestConfigOpt()
 
 	common.SetUpLogging(logOpt)
 
@@ -130,7 +98,7 @@ func InitTest() (*common.DBService, *common.RedisService, *common.MailerService,
 		log.WithFields(log.Fields{
 			"msgnum": 750,
 		}).Error(err)
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	redisService, err := common.CreateRedisService(redisOpt)
@@ -138,18 +106,10 @@ func InitTest() (*common.DBService, *common.RedisService, *common.MailerService,
 		log.WithFields(log.Fields{
 			"msgnum": 750,
 		}).Error(err)
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	mailerService, err := common.CreateMailerService(mailerOpt)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, nil, nil, nil, nil, nil, nil, nil, err
-	}
-
-	return dbService, redisService, mailerService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, nil
+	return dbService, redisService, serverOpt, userOpt, nil
 
 }
 

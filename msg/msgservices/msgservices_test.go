@@ -11,18 +11,14 @@ import (
 
 var dbService *common.DBService
 var redisService *common.RedisService
-var mailerService *common.MailerService
 var serverOpt *common.ServerOptions
-var rateOpt *common.RateOptions
-var jwtOpt *common.JWTOptions
-var oauthOpt *common.OauthOptions
 var userOpt *common.UserOptions
 var Layout string
 
 func TestMain(m *testing.M) {
 	var err error
 
-	dbService, redisService, mailerService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, err = testhelpers.InitTest()
+	dbService, redisService, serverOpt, userOpt, err = testhelpers.InitTest()
 	if err != nil {
 		log.Fatal(err)
 	}

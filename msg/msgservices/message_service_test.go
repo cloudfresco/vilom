@@ -51,7 +51,7 @@ func TestMessageService_GetMessage(t *testing.T) {
 	msgtxt := MessageText{}
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
-	msgtxt.Mtext = "separate locations to gain credibility. If they are seized and you are\n\t>compelled to decrypt it, you simply explain that you are an amateur\n\t>cryptologist playing around with one time pads, and that the first\n\t>file is the pad for the second. They XOR the two files, and sure\n\t>enough, out pops a copy of \"War and Peace\".\n\n\tSo, judging from recent history, at this point they drop the original\n\tcharges, preemptively find you guilty of copyright violations, and seize\n\tyour computer, your home, and your financial reserves under federal\n\tforfeiture laws.\n\nAh no - what *really* happens is that they turn up at the court with\n*another* file which when exored with your document gives up the famous\nE911 document :-)  [And I tell you, some judges would fall for it...]\n\nG"
+	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
 	msgtxt.CategoryID = uint(2)
 	msgtxt.TopicID = uint(1)
 	msgtxt.MessageID = uint(1)
@@ -180,7 +180,7 @@ func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
 	msgtxt := MessageText{}
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
-	msgtxt.Mtext = "separate locations to gain credibility. If they are seized and you are\n\t>compelled to decrypt it, you simply explain that you are an amateur\n\t>cryptologist playing around with one time pads, and that the first\n\t>file is the pad for the second. They XOR the two files, and sure\n\t>enough, out pops a copy of \"War and Peace\".\n\n\tSo, judging from recent history, at this point they drop the original\n\tcharges, preemptively find you guilty of copyright violations, and seize\n\tyour computer, your home, and your financial reserves under federal\n\tforfeiture laws.\n\nAh no - what *really* happens is that they turn up at the court with\n*another* file which when exored with your document gives up the famous\nE911 document :-)  [And I tell you, some judges would fall for it...]\n\nG"
+	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
 	msgtxt.CategoryID = uint(2)
 	msgtxt.TopicID = uint(1)
 	msgtxt.MessageID = uint(1)
@@ -287,7 +287,7 @@ func TestMessageService_GetMessagesTexts(t *testing.T) {
 	msgtxts := []*MessageText{}
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
-	msgtxt.Mtext = "separate locations to gain credibility. If they are seized and you are\n\t>compelled to decrypt it, you simply explain that you are an amateur\n\t>cryptologist playing around with one time pads, and that the first\n\t>file is the pad for the second. They XOR the two files, and sure\n\t>enough, out pops a copy of \"War and Peace\".\n\n\tSo, judging from recent history, at this point they drop the original\n\tcharges, preemptively find you guilty of copyright violations, and seize\n\tyour computer, your home, and your financial reserves under federal\n\tforfeiture laws.\n\nAh no - what *really* happens is that they turn up at the court with\n*another* file which when exored with your document gives up the famous\nE911 document :-)  [And I tell you, some judges would fall for it...]\n\nG"
+	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
 	msgtxt.CategoryID = uint(2)
 	msgtxt.TopicID = uint(1)
 	msgtxt.MessageID = uint(1)

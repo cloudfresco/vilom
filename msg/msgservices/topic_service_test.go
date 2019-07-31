@@ -28,8 +28,8 @@ func TestTopicService_ShowTopic(t *testing.T) {
 	topic.ID = uint(1)
 	topic.UUID4 = []byte{68, 178, 230, 116, 112, 49, 68, 135, 190, 150, 96, 9, 59, 254, 138, 195}
 	topic.IDS = "44b2e674-7031-4487-be96-60093bfe8ac3"
-	topic.TopicName = "Hard drive security for FBI targets"
-	topic.TopicDesc = "Hard drive security for FBI targets"
+	topic.TopicName = "Floptical Question"
+	topic.TopicDesc = "Floptical Question"
 	topic.NumTags = 0
 	topic.Tag1 = ""
 	topic.Tag2 = ""
@@ -85,7 +85,7 @@ func TestTopicService_ShowTopic(t *testing.T) {
 	msgtxt := MessageText{}
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
-	msgtxt.Mtext = "separate locations to gain credibility. If they are seized and you are\n\t>compelled to decrypt it, you simply explain that you are an amateur\n\t>cryptologist playing around with one time pads, and that the first\n\t>file is the pad for the second. They XOR the two files, and sure\n\t>enough, out pops a copy of \"War and Peace\".\n\n\tSo, judging from recent history, at this point they drop the original\n\tcharges, preemptively find you guilty of copyright violations, and seize\n\tyour computer, your home, and your financial reserves under federal\n\tforfeiture laws.\n\nAh no - what *really* happens is that they turn up at the court with\n*another* file which when exored with your document gives up the famous\nE911 document :-)  [And I tell you, some judges would fall for it...]\n\nG"
+	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
 	msgtxt.CategoryID = uint(2)
 	msgtxt.TopicID = uint(1)
 	msgtxt.MessageID = uint(1)
@@ -193,8 +193,8 @@ func TestTopicService_GetTopicByID(t *testing.T) {
 	topic.ID = uint(1)
 	topic.UUID4 = []byte{68, 178, 230, 116, 112, 49, 68, 135, 190, 150, 96, 9, 59, 254, 138, 195}
 	topic.IDS = "44b2e674-7031-4487-be96-60093bfe8ac3"
-	topic.TopicName = "Hard drive security for FBI targets"
-	topic.TopicDesc = "Hard drive security for FBI targets"
+	topic.TopicName = "Floptical Question"
+	topic.TopicDesc = "Floptical Question"
 	topic.NumTags = 0
 	topic.Tag1 = ""
 	topic.Tag2 = ""
@@ -283,8 +283,8 @@ func TestTopicService_GetTopic(t *testing.T) {
 	topic.ID = uint(1)
 	topic.UUID4 = []byte{68, 178, 230, 116, 112, 49, 68, 135, 190, 150, 96, 9, 59, 254, 138, 195}
 	topic.IDS = "44b2e674-7031-4487-be96-60093bfe8ac3"
-	topic.TopicName = "Hard drive security for FBI targets"
-	topic.TopicDesc = "Hard drive security for FBI targets"
+	topic.TopicName = "Floptical Question"
+	topic.TopicDesc = "Floptical Question"
 	topic.NumTags = 0
 	topic.Tag1 = ""
 	topic.Tag2 = ""
@@ -373,8 +373,8 @@ func TestTopicService_GetTopicByName(t *testing.T) {
 	topic.ID = uint(1)
 	topic.UUID4 = []byte{68, 178, 230, 116, 112, 49, 68, 135, 190, 150, 96, 9, 59, 254, 138, 195}
 	topic.IDS = "44b2e674-7031-4487-be96-60093bfe8ac3"
-	topic.TopicName = "Hard drive security for FBI targets"
-	topic.TopicDesc = "Hard drive security for FBI targets"
+	topic.TopicName = "Floptical Question"
+	topic.TopicDesc = "Floptical Question"
 	topic.NumTags = 0
 	topic.Tag1 = ""
 	topic.Tag2 = ""
@@ -419,7 +419,7 @@ func TestTopicService_GetTopicByName(t *testing.T) {
 			t: topicService,
 			args: args{
 				ctx:       ctx,
-				topicname: "Hard drive security for FBI targets",
+				topicname: "Floptical Question",
 				userEmail: "abcd145@gmail.com",
 				requestID: "bks1m1g91jau4nkks2f0",
 			},
@@ -463,8 +463,8 @@ func TestTopicService_GetTopicWithMessages(t *testing.T) {
 	topic.ID = uint(1)
 	topic.UUID4 = []byte{68, 178, 230, 116, 112, 49, 68, 135, 190, 150, 96, 9, 59, 254, 138, 195}
 	topic.IDS = "44b2e674-7031-4487-be96-60093bfe8ac3"
-	topic.TopicName = "Hard drive security for FBI targets"
-	topic.TopicDesc = "Hard drive security for FBI targets"
+	topic.TopicName = "Floptical Question"
+	topic.TopicDesc = "Floptical Question"
 	topic.NumTags = 0
 	topic.Tag1 = ""
 	topic.Tag2 = ""
@@ -519,7 +519,7 @@ func TestTopicService_GetTopicWithMessages(t *testing.T) {
 	msgtxt := MessageText{}
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
-	msgtxt.Mtext = "separate locations to gain credibility. If they are seized and you are\n\t>compelled to decrypt it, you simply explain that you are an amateur\n\t>cryptologist playing around with one time pads, and that the first\n\t>file is the pad for the second. They XOR the two files, and sure\n\t>enough, out pops a copy of \"War and Peace\".\n\n\tSo, judging from recent history, at this point they drop the original\n\tcharges, preemptively find you guilty of copyright violations, and seize\n\tyour computer, your home, and your financial reserves under federal\n\tforfeiture laws.\n\nAh no - what *really* happens is that they turn up at the court with\n*another* file which when exored with your document gives up the famous\nE911 document :-)  [And I tell you, some judges would fall for it...]\n\nG"
+	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
 	msgtxt.CategoryID = uint(2)
 	msgtxt.TopicID = uint(1)
 	msgtxt.MessageID = uint(1)
@@ -625,8 +625,8 @@ func TestTopicService_GetTopicMessages(t *testing.T) {
 	topic.ID = uint(1)
 	topic.UUID4 = []byte{68, 178, 230, 116, 112, 49, 68, 135, 190, 150, 96, 9, 59, 254, 138, 195}
 	topic.IDS = "44b2e674-7031-4487-be96-60093bfe8ac3"
-	topic.TopicName = "Hard drive security for FBI targets"
-	topic.TopicDesc = "Hard drive security for FBI targets"
+	topic.TopicName = "Floptical Question"
+	topic.TopicDesc = "Floptical Question"
 	topic.NumTags = 0
 	topic.Tag1 = ""
 	topic.Tag2 = ""

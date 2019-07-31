@@ -30,8 +30,8 @@ func TestCategoryService_GetCategories(t *testing.T) {
 	cat.ID = uint(1)
 	cat.UUID4 = []byte{27, 209, 136, 138, 219, 254, 69, 16, 167, 173, 169, 143, 105, 253, 10, 107}
 	cat.IDS = "1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b"
-	cat.CategoryName = "Output Direct Component"
-	cat.CategoryDesc = "Output Direct Component"
+	cat.CategoryName = "Performance Portable Transmitter"
+	cat.CategoryDesc = "Performance Portable Transmitter"
 	cat.NumViews = uint(0)
 	cat.NumTopics = uint(0)
 	cat.Levelc = uint(0)
@@ -117,8 +117,8 @@ func TestCategoryService_GetCategoryWithTopics(t *testing.T) {
 	cat.ID = uint(2)
 	cat.UUID4 = []byte{28, 41, 191, 58, 70, 132, 73, 156, 165, 25, 44, 52, 138, 161, 50, 70}
 	cat.IDS = "1c29bf3a-4684-499c-a519-2c348aa13246"
-	cat.CategoryName = "Component Type A"
-	cat.CategoryDesc = "Component Type A"
+	cat.CategoryName = "Drive"
+	cat.CategoryDesc = "Drive"
 	cat.NumViews = uint(0)
 	cat.NumTopics = uint(1)
 	cat.Levelc = uint(1)
@@ -142,8 +142,8 @@ func TestCategoryService_GetCategoryWithTopics(t *testing.T) {
 	topic.ID = uint(1)
 	topic.UUID4 = []byte{68, 178, 230, 116, 112, 49, 68, 135, 190, 150, 96, 9, 59, 254, 138, 195}
 	topic.IDS = "44b2e674-7031-4487-be96-60093bfe8ac3"
-	topic.TopicName = "Hard drive security for FBI targets"
-	topic.TopicDesc = "Hard drive security for FBI targets"
+	topic.TopicName = "Floptical Question"
+	topic.TopicDesc = "Floptical Question"
 	topic.NumTags = 0
 	topic.Tag1 = ""
 	topic.Tag2 = ""
@@ -233,8 +233,8 @@ func TestCategoryService_GetCategory(t *testing.T) {
 	cat.ID = uint(1)
 	cat.UUID4 = []byte{27, 209, 136, 138, 219, 254, 69, 16, 167, 173, 169, 143, 105, 253, 10, 107}
 	cat.IDS = "1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b"
-	cat.CategoryName = "Output Direct Component"
-	cat.CategoryDesc = "Output Direct Component"
+	cat.CategoryName = "Performance Portable Transmitter"
+	cat.CategoryDesc = "Performance Portable Transmitter"
 	cat.NumViews = uint(0)
 	cat.NumTopics = uint(0)
 	cat.Levelc = uint(0)
@@ -313,8 +313,8 @@ func TestCategoryService_GetCategoryByID(t *testing.T) {
 	cat.ID = uint(1)
 	cat.UUID4 = []byte{27, 209, 136, 138, 219, 254, 69, 16, 167, 173, 169, 143, 105, 253, 10, 107}
 	cat.IDS = "1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b"
-	cat.CategoryName = "Output Direct Component"
-	cat.CategoryDesc = "Output Direct Component"
+	cat.CategoryName = "Performance Portable Transmitter"
+	cat.CategoryDesc = "Performance Portable Transmitter"
 	cat.NumViews = uint(0)
 	cat.NumTopics = uint(0)
 	cat.Levelc = uint(0)
@@ -394,8 +394,8 @@ func TestCategoryService_GetTopLevelCategories(t *testing.T) {
 	cat.ID = uint(1)
 	cat.UUID4 = []byte{27, 209, 136, 138, 219, 254, 69, 16, 167, 173, 169, 143, 105, 253, 10, 107}
 	cat.IDS = "1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b"
-	cat.CategoryName = "Output Direct Component"
-	cat.CategoryDesc = "Output Direct Component"
+	cat.CategoryName = "Performance Portable Transmitter"
+	cat.CategoryDesc = "Performance Portable Transmitter"
 	cat.NumViews = uint(0)
 	cat.NumTopics = uint(0)
 	cat.Levelc = uint(0)
@@ -474,8 +474,8 @@ func TestCategoryService_GetChildCategories(t *testing.T) {
 	cat.ID = uint(2)
 	cat.UUID4 = []byte{28, 41, 191, 58, 70, 132, 73, 156, 165, 25, 44, 52, 138, 161, 50, 70}
 	cat.IDS = "1c29bf3a-4684-499c-a519-2c348aa13246"
-	cat.CategoryName = "Component Type A"
-	cat.CategoryDesc = "Component Type A"
+	cat.CategoryName = "Drive"
+	cat.CategoryDesc = "Drive"
 	cat.NumViews = uint(0)
 	cat.NumTopics = uint(1)
 	cat.Levelc = uint(1)
@@ -556,8 +556,8 @@ func TestCategoryService_GetParentCategory(t *testing.T) {
 	cat.ID = uint(1)
 	cat.UUID4 = []byte{27, 209, 136, 138, 219, 254, 69, 16, 167, 173, 169, 143, 105, 253, 10, 107}
 	cat.IDS = "1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b"
-	cat.CategoryName = "Output Direct Component"
-	cat.CategoryDesc = "Output Direct Component"
+	cat.CategoryName = "Performance Portable Transmitter"
+	cat.CategoryDesc = "Performance Portable Transmitter"
 	cat.NumViews = uint(0)
 	cat.NumTopics = uint(0)
 	cat.Levelc = uint(0)
