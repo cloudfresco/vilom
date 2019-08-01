@@ -2,7 +2,6 @@ package msgservices
 
 import (
 	"context"
-	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -14,13 +13,13 @@ func TestTopicService_ShowTopic(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	topicService := NewTopicService(dbService, redisService)
@@ -169,7 +168,7 @@ func TestTopicService_ShowTopic(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -178,13 +177,13 @@ func TestTopicService_GetTopicByID(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -259,7 +258,7 @@ func TestTopicService_GetTopicByID(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -268,13 +267,13 @@ func TestTopicService_GetTopic(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -349,7 +348,7 @@ func TestTopicService_GetTopic(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -358,13 +357,13 @@ func TestTopicService_GetTopicByName(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -439,7 +438,7 @@ func TestTopicService_GetTopicByName(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -448,13 +447,13 @@ func TestTopicService_GetTopicWithMessages(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -601,7 +600,7 @@ func TestTopicService_GetTopicWithMessages(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -610,13 +609,13 @@ func TestTopicService_GetTopicMessages(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -719,7 +718,7 @@ func TestTopicService_GetTopicMessages(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -728,13 +727,13 @@ func TestTopicService_GetTopicsUser(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -799,7 +798,7 @@ func TestTopicService_GetTopicsUser(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -808,7 +807,7 @@ func TestTopicService_UpdateTopic(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
@@ -850,7 +849,7 @@ func TestTopicService_UpdateTopic(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -859,7 +858,7 @@ func TestTopicService_DeleteTopic(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
@@ -894,7 +893,7 @@ func TestTopicService_DeleteTopic(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
