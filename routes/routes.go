@@ -39,45 +39,11 @@ type AppState struct {
 }
 
 // Init - Fill up AppState Struct
-func (appState *AppState) Init(dbOpt *common.DBOptions, redisOpt *common.RedisOptions, mailerOpt *common.MailerOptions, serverOpt *common.ServerOptions, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, oauthOpt *common.OauthOptions, userOpt *common.UserOptions) error {
+func (appState *AppState) Init(dbService *common.DBService, redisService *common.RedisService, mailerService *common.MailerService, serverOpt *common.ServerOptions, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, oauthOpt *common.OauthOptions, userOpt *common.UserOptions) error {
 
-	/*
-		dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, err := common.GetConfig()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"msgnum": 750,
-			}).Error(err)
-			return err
-		}
-	*/
-
-	dbService, err := common.CreateDBService(dbOpt)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return err
-	}
 	appState.DBService = dbService
-
-	redisService, err := common.CreateRedisService(redisOpt)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return err
-	}
 	appState.RedisService = redisService
-
-	mailerService, err := common.CreateMailerService(mailerOpt)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return err
-	}
 	appState.MailerService = mailerService
-
 	appState.ServerOptions = serverOpt
 	appState.RateOptions = rateOpt
 	appState.JWTOptions = jwtOpt

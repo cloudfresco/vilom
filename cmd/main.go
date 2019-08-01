@@ -141,15 +141,34 @@ func main() {
 
 	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt := getConfigOpt()
 
-	/*
-		pwd, _ := os.Getwd()
-		logFile = pwd + filepath.FromSlash("/files/log/app.log")
-		logLevel = log.InfoLevel
-	*/
 	common.SetUpLogging(logOpt)
 
+	dbService, err := common.CreateDBService(dbOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	redisService, err := common.CreateRedisService(redisOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	mailerService, err := common.CreateMailerService(mailerOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		os.Exit(1)
+	}
+
 	appState = &routes.AppState{}
-	err = appState.Init(dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt)
+	err = appState.Init(dbService, redisService, mailerService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 103,
