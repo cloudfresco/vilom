@@ -2,7 +2,6 @@ package msgservices
 
 import (
 	"context"
-	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -15,13 +14,13 @@ func TestCategoryService_GetCategories(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	categoryService := NewCategoryService(dbService, redisService)
@@ -94,7 +93,7 @@ func TestCategoryService_GetCategories(t *testing.T) {
 
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -103,13 +102,13 @@ func TestCategoryService_GetCategoryWithTopics(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	categoryService := NewCategoryService(dbService, redisService)
@@ -210,7 +209,7 @@ func TestCategoryService_GetCategoryWithTopics(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -219,13 +218,13 @@ func TestCategoryService_GetCategory(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	categoryService := NewCategoryService(dbService, redisService)
@@ -290,7 +289,7 @@ func TestCategoryService_GetCategory(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -299,13 +298,13 @@ func TestCategoryService_GetCategoryByID(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	categoryService := NewCategoryService(dbService, redisService)
@@ -370,7 +369,7 @@ func TestCategoryService_GetCategoryByID(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -379,13 +378,13 @@ func TestCategoryService_GetTopLevelCategories(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	categoryService := NewCategoryService(dbService, redisService)
@@ -450,7 +449,7 @@ func TestCategoryService_GetTopLevelCategories(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -459,13 +458,13 @@ func TestCategoryService_GetChildCategories(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	categoryService := NewCategoryService(dbService, redisService)
@@ -533,7 +532,7 @@ func TestCategoryService_GetChildCategories(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -542,13 +541,13 @@ func TestCategoryService_GetParentCategory(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 	ctx := context.Background()
 	categoryService := NewCategoryService(dbService, redisService)
@@ -613,7 +612,7 @@ func TestCategoryService_GetParentCategory(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -622,7 +621,7 @@ func TestCategoryService_UpdateCategory(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
@@ -665,7 +664,7 @@ func TestCategoryService_UpdateCategory(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -674,7 +673,7 @@ func TestCategoryService_DeleteCategory(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
@@ -709,7 +708,7 @@ func TestCategoryService_DeleteCategory(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }

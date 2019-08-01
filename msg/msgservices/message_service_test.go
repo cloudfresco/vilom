@@ -2,7 +2,6 @@ package msgservices
 
 import (
 	"context"
-	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -14,13 +13,13 @@ func TestMessageService_GetMessage(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -130,7 +129,7 @@ func TestMessageService_GetMessage(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -139,13 +138,13 @@ func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -262,7 +261,7 @@ func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -271,13 +270,13 @@ func TestMessageService_GetMessagesTexts(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -345,7 +344,7 @@ func TestMessageService_GetMessagesTexts(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -354,13 +353,13 @@ func TestMessageService_GetMessageAttachments(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
 	timeat, err := time.Parse(Layout, "2019-07-23T10:04:26Z")
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 	}
 
 	ctx := context.Background()
@@ -427,7 +426,7 @@ func TestMessageService_GetMessageAttachments(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -436,7 +435,7 @@ func TestMessageService_UpdateMessage(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
@@ -479,7 +478,7 @@ func TestMessageService_UpdateMessage(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
@@ -488,7 +487,7 @@ func TestMessageService_DeleteMessage(t *testing.T) {
 	var err error
 	err = testhelpers.LoadSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 
@@ -523,7 +522,7 @@ func TestMessageService_DeleteMessage(t *testing.T) {
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
-		log.Println(err)
+		t.Error(err)
 		return
 	}
 }
