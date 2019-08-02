@@ -1,7 +1,6 @@
 package usercontrollers
 
 import (
-	//log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/cloudfresco/vilom/common"
@@ -10,7 +9,7 @@ import (
 )
 
 // Init the user controllers
-func Init(userService userservices.UserServiceIntf, ugroupService userservices.UgroupServiceIntf, ubadgeService userservices.UbadgeServiceIntf, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, mux *http.ServeMux, store *goredisstore.GoRedisStore) {
+func Init(userService userservices.UserServiceIntf, ugroupService userservices.UgroupServiceIntf, ubadgeService userservices.UbadgeServiceIntf, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, mux *http.ServeMux, store *goredisstore.GoRedisStore) (*UserController, *UController, *UgroupController, *UbadgeController) {
 
 	usc := NewUserController(userService)
 	uc := NewUController(userService)
@@ -35,5 +34,5 @@ func Init(userService userservices.UserServiceIntf, ugroupService userservices.U
 	mux.Handle("/v0.1/ubadges/", common.AddMiddleware(hrlUbadge.RateLimit(ubc),
 		common.AuthenticateMiddleware,
 		common.CorsMiddleware))
-
+	return usc, uc, ugc, ubc
 }
