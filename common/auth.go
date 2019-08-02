@@ -44,6 +44,18 @@ type User struct {
 	Role  string
 }
 
+var jwtOpt *JWTOptions
+
+// SetJWTOpt set JWT opt used in auth middleware
+func SetJWTOpt(jwt *JWTOptions) {
+	jwtOpt = jwt
+}
+
+// GetJWTOpt get JWT opt used in auth middleware
+func GetJWTOpt() *JWTOptions {
+	return jwtOpt
+}
+
 // GetAuthBearerToken - extract the BEARER token from the auth header
 func GetAuthBearerToken(r *http.Request) (string, error) {
 

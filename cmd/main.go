@@ -13,9 +13,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/throttled/throttled/store/goredisstore"
+
 	"github.com/cloudfresco/vilom/common"
-	"github.com/cloudfresco/vilom/routes"
+	"github.com/cloudfresco/vilom/msg/msgservices"
 	"github.com/cloudfresco/vilom/search/searchservices"
+	"github.com/cloudfresco/vilom/user/userservices"
+
+	"github.com/cloudfresco/vilom/msg/msgcontrollers"
+	"github.com/cloudfresco/vilom/search/searchcontrollers"
+	"github.com/cloudfresco/vilom/user/usercontrollers"
 )
 
 /* error message range: 100-249 */
@@ -136,12 +143,12 @@ func getKeys(caCertPath string, certPath string, keyPath string) *tls.Config {
 }
 
 func main() {
-	var appState *routes.AppState
 	var err error
 
-	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt := getConfigOpt()
+	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, _, userOpt, logOpt := getConfigOpt()
 
 	common.SetUpLogging(logOpt)
+	common.SetJWTOpt(jwtOpt)
 
 	dbService, err := common.CreateDBService(dbOpt)
 	if err != nil {
@@ -167,30 +174,44 @@ func main() {
 		os.Exit(1)
 	}
 
-	appState = &routes.AppState{}
-	err = appState.Init(dbService, redisService, mailerService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt)
+	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"msgnum": 103,
+			"msgnum": 754,
 		}).Error(err)
 		os.Exit(1)
 	}
 
-	appState.SearchIndex = searchservices.InitSearch("", appState.DBService.DB)
-	mux := appState.CreateRoutes()
+	searchIndex := searchservices.InitSearch("", dbService.DB)
 
-	if appState.ServerOptions.ServerTLS == "true" {
+	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
+	ugroupService := userservices.NewUgroupService(dbService, redisService)
+	ubadgeService := userservices.NewUbadgeService(dbService, redisService)
+
+	catService := msgservices.NewCategoryService(dbService, redisService)
+	topicService := msgservices.NewTopicService(dbService, redisService)
+	msgService := msgservices.NewMessageService(dbService, redisService)
+
+	searchService := searchservices.NewSearchService(dbService, redisService, searchIndex)
+
+	mux := http.NewServeMux()
+
+	usercontrollers.Init(userService, ugroupService, ubadgeService, rateOpt, jwtOpt, mux, store)
+	msgcontrollers.Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
+	searchcontrollers.Init(searchService, userService, rateOpt, jwtOpt, mux, store)
+
+	if serverOpt.ServerTLS == "true" {
 		var caCertPath, certPath, keyPath string
 		var tlsConfig *tls.Config
 		pwd, _ := os.Getwd()
-		caCertPath = pwd + filepath.FromSlash(appState.ServerOptions.CaCertPath)
-		certPath = pwd + filepath.FromSlash(appState.ServerOptions.CertPath)
-		keyPath = pwd + filepath.FromSlash(appState.ServerOptions.KeyPath)
+		caCertPath = pwd + filepath.FromSlash(serverOpt.CaCertPath)
+		certPath = pwd + filepath.FromSlash(serverOpt.CertPath)
+		keyPath = pwd + filepath.FromSlash(serverOpt.KeyPath)
 
 		tlsConfig = getKeys(caCertPath, certPath, keyPath)
 
 		srv := &http.Server{
-			Addr:      appState.ServerOptions.ServerAddr,
+			Addr:      serverOpt.ServerAddr,
 			Handler:   mux,
 			TLSConfig: tlsConfig,
 		}
@@ -225,7 +246,7 @@ func main() {
 	} else {
 
 		srv := &http.Server{
-			Addr:    appState.ServerOptions.ServerAddr,
+			Addr:    serverOpt.ServerAddr,
 			Handler: mux,
 		}
 
