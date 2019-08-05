@@ -196,9 +196,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	_, _, _, _ = usercontrollers.Init(userService, ugroupService, ubadgeService, rateOpt, jwtOpt, mux, store)
-	_, _, _ = msgcontrollers.Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-	_ = searchcontrollers.Init(searchService, userService, rateOpt, jwtOpt, mux, store)
+	usercontrollers.Init(userService, ugroupService, ubadgeService, rateOpt, jwtOpt, mux, store)
+	msgcontrollers.Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
+	searchcontrollers.Init(searchService, userService, rateOpt, jwtOpt, mux, store)
 
 	if serverOpt.ServerTLS == "true" {
 		var caCertPath, certPath, keyPath string

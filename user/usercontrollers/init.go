@@ -9,7 +9,7 @@ import (
 )
 
 // Init the user controllers
-func Init(userService userservices.UserServiceIntf, ugroupService userservices.UgroupServiceIntf, ubadgeService userservices.UbadgeServiceIntf, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, mux *http.ServeMux, store *goredisstore.GoRedisStore) (*UserController, *UController, *UgroupController, *UbadgeController) {
+func Init(userService userservices.UserServiceIntf, ugroupService userservices.UgroupServiceIntf, ubadgeService userservices.UbadgeServiceIntf, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, mux *http.ServeMux, store *goredisstore.GoRedisStore) {
 
 	usc := NewUserController(userService)
 	uc := NewUController(userService)
@@ -28,11 +28,16 @@ func Init(userService userservices.UserServiceIntf, ugroupService userservices.U
 		common.AuthenticateMiddleware,
 		common.CorsMiddleware))
 	mux.Handle("/v0.1/u/", common.AddMiddleware(hrlU.RateLimit(uc), common.CorsMiddleware))
+	mux.Handle("/v0.1/ugroups", common.AddMiddleware(hrlUgroup.RateLimit(ugc),
+		common.AuthenticateMiddleware,
+		common.CorsMiddleware))
 	mux.Handle("/v0.1/ugroups/", common.AddMiddleware(hrlUgroup.RateLimit(ugc),
+		common.AuthenticateMiddleware,
+		common.CorsMiddleware))
+	mux.Handle("/v0.1/ubadges", common.AddMiddleware(hrlUbadge.RateLimit(ubc),
 		common.AuthenticateMiddleware,
 		common.CorsMiddleware))
 	mux.Handle("/v0.1/ubadges/", common.AddMiddleware(hrlUbadge.RateLimit(ubc),
 		common.AuthenticateMiddleware,
 		common.CorsMiddleware))
-	return usc, uc, ugc, ubc
 }
