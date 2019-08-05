@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -31,6 +32,21 @@ func getTestDbConfig(v *viper.Viper) (*common.DBOptions, error) {
 	dbOpt.LimitSQLRows = LimitSQLRows
 
 	return &dbOpt, nil
+}
+
+func getTestJWTConfig(v *viper.Viper) (*common.JWTOptions, error) {
+	var err error
+
+	jwtOpt := common.JWTOptions{}
+	jwtOpt.JWTKey = []byte(v.GetString("VILOM_JWT_KEY_TEST"))
+	jwtOpt.JWTDuration, err = strconv.Atoi(v.GetString("VILOM_JWT_DURATION_TEST"))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 504,
+		}).Error(err)
+		return nil, err
+	}
+	return &jwtOpt, nil
 }
 
 func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.ServerOptions, *common.UserOptions, *common.LogOptions) {
@@ -110,6 +126,111 @@ func InitTest() (*common.DBService, *common.RedisService, *common.ServerOptions,
 	}
 
 	return dbService, redisService, serverOpt, userOpt, nil
+
+}
+
+func getTestConfigOptController() (*common.DBOptions, *common.RedisOptions, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *common.LogOptions) {
+
+	v, err := common.GetViper()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	dbOpt, err := getTestDbConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	redisOpt, err := common.GetRedisConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	serverOpt, err := common.GetServerConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	rateOpt, err := common.GetRateConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	jwtOpt, err := getTestJWTConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	oauthOpt, err := common.GetOauthConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	userOpt, err := common.GetUserConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	logOpt, err := common.GetLogConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	return dbOpt, redisOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt
+}
+
+// InitTestController - used for initialization of the test controllers
+func InitTestController() (*common.DBService, *common.RedisService, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, error) {
+
+	dbOpt, redisOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt := getTestConfigOptController()
+
+	common.SetUpLogging(logOpt)
+	common.SetJWTOpt(jwtOpt)
+
+	dbService, err := common.CreateDBService(dbOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	redisService, err := common.CreateRedisService(redisOpt)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 750,
+		}).Error(err)
+		return nil, nil, nil, nil, nil, nil, nil, err
+	}
+
+	return dbService, redisService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, nil
 
 }
 

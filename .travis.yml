@@ -24,6 +24,8 @@ before_script:
  - export VILOM_CONFIG_FILE_PATH=$TRAVIS_BUILD_DIR/common
  - export VILOM_LOG_FILE_PATH=$TRAVIS_BUILD_DIR/vilom.log
  - export VILOM_LOG_LEVEL=InfoLevel
+ - export VILOM_JWT_KEY_TEST=def124+yrT
+ - export VILOM_JWT_DURATION_TEST=6
 script:
  - make
  - make test
