@@ -29,3 +29,6 @@ before_script:
 script:
  - make
  - make test
+after-failure:
+ - cat $TRAVIS_BUILD_DIR/vilom.log
+
