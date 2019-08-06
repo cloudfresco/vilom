@@ -7,11 +7,8 @@ import (
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/throttled/throttled/store/goredisstore"
 
-	"github.com/cloudfresco/vilom/msg/msgservices"
 	"github.com/cloudfresco/vilom/testhelpers"
-	"github.com/cloudfresco/vilom/user/userservices"
 )
 
 func TestGetCategories(t *testing.T) {
@@ -24,22 +21,14 @@ func TestGetCategories(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-
-	topicService := msgservices.NewTopicService(dbService, redisService)
-	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
-	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	mux := http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-
 	req, err := http.NewRequest("GET", "http://localhost:8000/v0.1/categories", bytes.NewBuffer([]byte(`{"limit": 20}, "cursor": ""`)))
 	if err != nil {
 		t.Error(err)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+Tokenstring)
@@ -50,12 +39,24 @@ func TestGetCategories(t *testing.T) {
 	// Check the status code is what we expect.
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code %d", resp.StatusCode)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	expected := string(`{"Categories":[{"id":1,"id_s":"1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b","category_name":"Performance Portable Transmitter","category_desc":"Performance Portable Transmitter","num_chd":1,"user_id":1,"statusc":1,"created_at":"2019-07-23T10:04:26Z","updated_at":"2019-07-23T10:04:26Z","created_day":204,"created_week":30,"created_month":7,"created_year":2019,"updated_day":204,"updated_week":30,"updated_month":7,"updated_year":2019,"Topics":null}],"next_cursor":"MA=="}` + "\n")
 
 	if w.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			w.Body.String(), expected)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
@@ -74,23 +75,15 @@ func TestGetCategoryWithTopics(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-
-	topicService := msgservices.NewTopicService(dbService, redisService)
-	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
-	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	mux := http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-
 	req, err := http.NewRequest("GET", "http://localhost:8000/v0.1/categories/1c29bf3a-4684-499c-a519-2c348aa13246", nil)
 
 	if err != nil {
 		t.Error(err)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 
@@ -102,11 +95,23 @@ func TestGetCategoryWithTopics(t *testing.T) {
 	// Check the status code is what we expect.
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code %d", resp.StatusCode)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	expected := string(`{"id":2,"id_s":"1c29bf3a-4684-499c-a519-2c348aa13246","category_name":"Drive","category_desc":"Drive","num_topics":1,"levelc":1,"parent_id":1,"user_id":1,"statusc":1,"created_at":"2019-07-23T10:04:26Z","updated_at":"2019-07-23T10:04:26Z","created_day":204,"created_week":30,"created_month":7,"created_year":2019,"updated_day":204,"updated_week":30,"updated_month":7,"updated_year":2019,"Topics":[{"id":1,"id_s":"44b2e674-7031-4487-be96-60093bfe8ac3","topic_name":"Floptical Question","topic_desc":"Floptical Question","num_messages":1,"category_id":2,"user_id":1,"statusc":1,"created_at":"2019-07-23T10:04:26Z","updated_at":"2019-07-23T10:04:26Z","created_day":204,"created_week":30,"created_month":7,"created_year":2019,"updated_day":204,"updated_week":30,"updated_month":7,"updated_year":2019,"Messages":null}]}` + "\n")
 	if w.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			w.Body.String(), expected)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
@@ -125,23 +130,15 @@ func TestGetTopLevelCategories(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-
-	topicService := msgservices.NewTopicService(dbService, redisService)
-	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
-	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	mux := http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-
 	req, err := http.NewRequest("GET", "http://localhost:8000/v0.1/categories/topcats", nil)
 
 	if err != nil {
 		t.Error(err)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 
@@ -153,6 +150,12 @@ func TestGetTopLevelCategories(t *testing.T) {
 	// Check the status code is what we expect.
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code %d", resp.StatusCode)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 
 	expected := string(`[{"id":1,"id_s":"1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b","category_name":"Performance Portable Transmitter","category_desc":"Performance Portable Transmitter","num_chd":1,"user_id":1,"statusc":1,"created_at":"2019-07-23T10:04:26Z","updated_at":"2019-07-23T10:04:26Z","created_day":204,"created_week":30,"created_month":7,"created_year":2019,"updated_day":204,"updated_week":30,"updated_month":7,"updated_year":2019,"Topics":null}]` + "\n")
@@ -160,6 +163,12 @@ func TestGetTopLevelCategories(t *testing.T) {
 	if w.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			w.Body.String(), expected)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
@@ -178,24 +187,15 @@ func TestGetChildCategories(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-
-	topicService := msgservices.NewTopicService(dbService, redisService)
-	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
-	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
-	if err != nil {
-		t.Error(err)
-		return
-
-	}
-	mux := http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-
 	req, err := http.NewRequest("GET", "http://localhost:8000/v0.1/categories/1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b/chdn", nil)
 
 	if err != nil {
 		t.Error(err)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 
@@ -207,6 +207,12 @@ func TestGetChildCategories(t *testing.T) {
 	// Check the status code is what we expect.
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code %d", resp.StatusCode)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 
 	expected := string(`[{"id":2,"id_s":"1c29bf3a-4684-499c-a519-2c348aa13246","category_name":"Drive","category_desc":"Drive","num_topics":1,"levelc":1,"parent_id":1,"user_id":1,"statusc":1,"created_at":"2019-07-23T10:04:26Z","updated_at":"2019-07-23T10:04:26Z","created_day":204,"created_week":30,"created_month":7,"created_year":2019,"updated_day":204,"updated_week":30,"updated_month":7,"updated_year":2019,"Topics":null}]` + "\n")
@@ -214,6 +220,12 @@ func TestGetChildCategories(t *testing.T) {
 	if w.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			w.Body.String(), expected)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
@@ -232,23 +244,15 @@ func TestGetParentCategory(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-
-	topicService := msgservices.NewTopicService(dbService, redisService)
-	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
-	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	mux := http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-
 	req, err := http.NewRequest("GET", "http://localhost:8000/v0.1/categories/1c29bf3a-4684-499c-a519-2c348aa13246/getparent", nil)
 
 	if err != nil {
 		t.Error(err)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 
@@ -260,6 +264,12 @@ func TestGetParentCategory(t *testing.T) {
 	// Check the status code is what we expect.
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code %d", resp.StatusCode)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 
 	expected := string(`{"id":1,"id_s":"1bd1888a-dbfe-4510-a7ad-a98f69fd0a6b","category_name":"Performance Portable Transmitter","category_desc":"Performance Portable Transmitter","num_chd":1,"user_id":1,"statusc":1,"created_at":"2019-07-23T10:04:26Z","updated_at":"2019-07-23T10:04:26Z","created_day":204,"created_week":30,"created_month":7,"created_year":2019,"updated_day":204,"updated_week":30,"updated_month":7,"updated_year":2019,"Topics":null}` + "\n")
@@ -267,6 +277,12 @@ func TestGetParentCategory(t *testing.T) {
 	if w.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			w.Body.String(), expected)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
@@ -285,24 +301,17 @@ func TestUpdateCategory(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-
-	topicService := msgservices.NewTopicService(dbService, redisService)
-	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
-	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
-	if err != nil {
-		t.Error(err)
-	}
-	mux := http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-
 	data := []byte(`{"category_name" : "cat3", "category_desc" : "cat3 description"}`)
 
 	req, err := http.NewRequest("PUT", "http://localhost:8000/v0.1/categories/1c29bf3a-4684-499c-a519-2c348aa13246", bytes.NewBuffer(data))
 
 	if err != nil {
 		t.Error(err)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 
@@ -314,6 +323,12 @@ func TestUpdateCategory(t *testing.T) {
 	// Check the status code is what we expect.
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code %d", resp.StatusCode)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 
 	expected := string(`"Updated Successfully"` + "\n")
@@ -321,6 +336,12 @@ func TestUpdateCategory(t *testing.T) {
 	if w.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			w.Body.String(), expected)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
@@ -339,23 +360,15 @@ func TestDeleteCategory(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-
-	topicService := msgservices.NewTopicService(dbService, redisService)
-	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
-	store, err := goredisstore.New(redisService.RedisClient, "throttled:")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	mux := http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
-
 	req, err := http.NewRequest("DELETE", "http://localhost:8000/v0.1/categories/1c29bf3a-4684-499c-a519-2c348aa13246", nil)
 
 	if err != nil {
 		t.Error(err)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		return
 	}
 
@@ -374,6 +387,12 @@ func TestDeleteCategory(t *testing.T) {
 	if w.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			w.Body.String(), expected)
+		err = testhelpers.DeleteSQL(dbService)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		return
 	}
 	err = testhelpers.DeleteSQL(dbService)
 	if err != nil {
