@@ -3,7 +3,6 @@ package msgcontrollers
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -33,7 +32,6 @@ var mux *http.ServeMux
 func TestMain(m *testing.M) {
 	var err error
 
-	fmt.Println("msgcontrollers:TestMain")
 	dbService, redisService, serverOpt, rateOpt, jwtOpt, _, userOpt, err = testhelpers.InitTestController()
 	if err != nil {
 		log.Println(err)
@@ -41,16 +39,7 @@ func TestMain(m *testing.M) {
 	}
 	Layout = "2006-01-02T15:04:05Z"
 
-	/*err = testhelpers.LoadSQL(dbService)
-	if err != nil {
-		log.Println(err)
-		return
-	}*/
-
-	fmt.Println("msgcontrollers:TestMain:load done")
-
 	catService := msgservices.NewCategoryService(dbService, redisService)
-
 	topicService := msgservices.NewTopicService(dbService, redisService)
 	msgService := msgservices.NewMessageService(dbService, redisService)
 	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
