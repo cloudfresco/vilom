@@ -39,11 +39,11 @@ test:
 	@mysql -uroot -p$(VILOM_DBPASSROOT) -e 'CREATE DATABASE $(VILOM_DBNAME_TEST);'
 	@mysql -uroot -p$(VILOM_DBPASSROOT) -e "GRANT ALL ON *.* TO '$(VILOM_DBUSER_TEST)'@'$(VILOM_DBHOST)';"
 	@mysql -uroot -p$(VILOM_DBPASSROOT) -e 'FLUSH PRIVILEGES;'
-	@mysql -u$(VILOM_DBUSER_TEST) -p$(VILOM_DBPASS_TEST)  $(VILOM_DBNAME_TEST) < sql/mysql/mysqldb.sql
+	@mysql -u$(VILOM_DBUSER_TEST) -p$(VILOM_DBPASS_TEST)  $(VILOM_DBNAME_TEST) < sql/mysql/vilom_mysql_schema.sql
 
 
-	@echo "Starting tests"	
-	@go test -v $(PKGS)
+	@echo "Starting tests"
+	@for pkg in $$(go list ./...); do echo "Testing" $$pkg && go test -v $$pkg; done		
 
 clean:
 	@rm -f $(EXEC)

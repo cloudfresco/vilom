@@ -91,11 +91,6 @@ func TestCategoryService_GetCategories(t *testing.T) {
 		}
 	}
 
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestCategoryService_GetCategoryWithTopics(t *testing.T) {
@@ -207,11 +202,6 @@ func TestCategoryService_GetCategoryWithTopics(t *testing.T) {
 			t.Errorf("CategoryService.GetCategoryWithTopics() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestCategoryService_GetCategory(t *testing.T) {
@@ -286,11 +276,6 @@ func TestCategoryService_GetCategory(t *testing.T) {
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("CategoryService.GetCategory() = %v, want %v", got, tt.want)
 		}
-	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
 	}
 }
 
@@ -367,11 +352,6 @@ func TestCategoryService_GetCategoryByID(t *testing.T) {
 			t.Errorf("CategoryService.GetCategoryByID() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestCategoryService_GetTopLevelCategories(t *testing.T) {
@@ -446,11 +426,6 @@ func TestCategoryService_GetTopLevelCategories(t *testing.T) {
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("CategoryService.GetTopLevelCategories() = %v, want %v", got, tt.want)
 		}
-	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
 	}
 }
 
@@ -530,11 +505,6 @@ func TestCategoryService_GetChildCategories(t *testing.T) {
 			t.Errorf("CategoryService.GetChildCategories() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestCategoryService_GetParentCategory(t *testing.T) {
@@ -610,11 +580,6 @@ func TestCategoryService_GetParentCategory(t *testing.T) {
 			t.Errorf("CategoryService.GetParentCategory() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestCategoryService_UpdateCategory(t *testing.T) {
@@ -662,11 +627,6 @@ func TestCategoryService_UpdateCategory(t *testing.T) {
 			t.Errorf("CategoryService.UpdateCategory() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestCategoryService_DeleteCategory(t *testing.T) {
@@ -705,10 +665,5 @@ func TestCategoryService_DeleteCategory(t *testing.T) {
 		if err := tt.c.DeleteCategory(tt.args.ctx, tt.args.ID, tt.args.userEmail, tt.args.requestID); (err != nil) != tt.wantErr {
 			t.Errorf("CategoryService.DeleteCategory() error = %v, wantErr %v", err, tt.wantErr)
 		}
-	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
 	}
 }

@@ -127,11 +127,6 @@ func TestMessageService_GetMessage(t *testing.T) {
 			t.Errorf("MessageService.GetMessage() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
@@ -259,11 +254,6 @@ func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
 		}
 
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestMessageService_GetMessagesTexts(t *testing.T) {
@@ -342,11 +332,6 @@ func TestMessageService_GetMessagesTexts(t *testing.T) {
 		}
 
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestMessageService_GetMessageAttachments(t *testing.T) {
@@ -424,11 +409,6 @@ func TestMessageService_GetMessageAttachments(t *testing.T) {
 			t.Errorf("MessageService.GetMessageAttachments() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestMessageService_UpdateMessage(t *testing.T) {
@@ -476,11 +456,6 @@ func TestMessageService_UpdateMessage(t *testing.T) {
 			t.Errorf("MessageService.UpdateMessage() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestMessageService_DeleteMessage(t *testing.T) {
@@ -519,10 +494,5 @@ func TestMessageService_DeleteMessage(t *testing.T) {
 		if err := tt.t.DeleteMessage(tt.args.ctx, tt.args.ID, tt.args.userEmail, tt.args.requestID); (err != nil) != tt.wantErr {
 			t.Errorf("MessageService.DeleteMessage() error = %v, wantErr %v", err, tt.wantErr)
 		}
-	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
 	}
 }

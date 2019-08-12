@@ -68,9 +68,9 @@ require (
 	golang.org/x/image v0.0.0-20190703141733-d6a02ce849c9 // indirect
 	golang.org/x/mobile v0.0.0-20190711165009-e47acb2ca7f9 // indirect
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
-	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
+	golang.org/x/sys v0.0.0-20190812073006-9eafafc0a87e
 	golang.org/x/text v0.3.2
-	golang.org/x/tools v0.0.0-20190802003818-e9bb7d36c060 // indirect
+	golang.org/x/tools v0.0.0-20190809145639-6d4652c779c4 // indirect
 	google.golang.org/appengine v1.6.1
 	google.golang.org/genproto v0.0.0-20190708153700-3bdd9d9f5532 // indirect
 	google.golang.org/grpc v1.22.0 // indirect

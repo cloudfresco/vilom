@@ -3,6 +3,7 @@ package msgcontrollers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -27,12 +28,12 @@ var rateOpt *common.RateOptions
 var jwtOpt *common.JWTOptions
 var userOpt *common.UserOptions
 var Layout string
-var Tokenstring string
 var mux *http.ServeMux
 
 func TestMain(m *testing.M) {
 	var err error
 
+	fmt.Println("msgcontrollers:TestMain")
 	dbService, redisService, serverOpt, rateOpt, jwtOpt, _, userOpt, err = testhelpers.InitTestController()
 	if err != nil {
 		log.Println(err)
@@ -40,11 +41,13 @@ func TestMain(m *testing.M) {
 	}
 	Layout = "2006-01-02T15:04:05Z"
 
-	err = testhelpers.LoadSQL(dbService)
+	/*err = testhelpers.LoadSQL(dbService)
 	if err != nil {
 		log.Println(err)
 		return
-	}
+	}*/
+
+	fmt.Println("msgcontrollers:TestMain:load done")
 
 	catService := msgservices.NewCategoryService(dbService, redisService)
 
@@ -62,13 +65,16 @@ func TestMain(m *testing.M) {
 	mux = http.NewServeMux()
 	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
 	usercontrollers.Init(userService, ugroupService, ubadgeService, rateOpt, jwtOpt, mux, store)
+	os.Exit(m.Run())
+}
 
+func LoginUser() string {
 	w := httptest.NewRecorder()
 
 	req, err := http.NewRequest("POST", "http://localhost:8000/v0.1/u/login", bytes.NewBuffer([]byte(`{"Email": "abcd145@gmail.com", "Password": "abc1238"}`)))
 	if err != nil {
 		log.Fatal(err)
-		return
+		return ""
 	}
 	mux.ServeHTTP(w, req)
 
@@ -77,13 +83,8 @@ func TestMain(m *testing.M) {
 	err = dec.Decode(&user)
 	if err != nil {
 		log.Println(err)
-		return
+		return ""
 	}
-	Tokenstring = user.Tokenstring
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	os.Exit(m.Run())
+	tokenstring := user.Tokenstring
+	return tokenstring
 }

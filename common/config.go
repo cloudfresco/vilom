@@ -18,15 +18,19 @@ const DBPgsql string = "pgsql"
 
 // DBOptions - for db config
 type DBOptions struct {
-	DB                string `mapstructure:"db"`
-	Host              string `mapstructure:"hostname"`
-	Port              string `mapstructure:"port"`
-	User              string `mapstructure:"user"`
-	Password          string `mapstructure:"password"`
-	Schema            string `mapstructure:"db_schema"`
-	LimitSQLRows      string `mapstructure:"limit_sql_rows"`
-	MySQLTestFilePath string `mapstructure:"mysql_test_file_path"`
-	PgSQLTestFilePath string `mapstructure:"pgsql_test_file_path"`
+	DB                    string `mapstructure:"db"`
+	Host                  string `mapstructure:"hostname"`
+	Port                  string `mapstructure:"port"`
+	User                  string `mapstructure:"user"`
+	Password              string `mapstructure:"password"`
+	Schema                string `mapstructure:"db_schema"`
+	LimitSQLRows          string `mapstructure:"limit_sql_rows"`
+	MySQLTestFilePath     string `mapstructure:"mysql_test_file_path"`
+	MySQLSchemaFilePath   string `mapstructure:"mysql_schema_file_path"`
+	MySQLTruncateFilePath string `mapstructure:"mysql_truncate_file_path"`
+	PgSQLTestFilePath     string `mapstructure:"pgsql_test_file_path"`
+	PgSQLSchemaFilePath   string `mapstructure:"pgsql_schema_file_path"`
+	PgSQLTruncateFilePath string `mapstructure:"pgsql_truncate_file_path"`
 }
 
 // RedisOptions - for redis config
@@ -106,8 +110,12 @@ func GetDbConfig(v *viper.Viper) (*DBOptions, error) {
 	dbOpt.User = v.GetString("VILOM_DBUSER")
 	dbOpt.Password = v.GetString("VILOM_DBPASS")
 	dbOpt.Schema = v.GetString("VILOM_DBNAME")
-	dbOpt.MySQLTestFilePath = v.GetString("VILOM_DBSQL_MYSQL_TEST")
-	dbOpt.PgSQLTestFilePath = v.GetString("VILOM_DBSQL_PGSQL_TEST")
+	dbOpt.MySQLTestFilePath = ""
+	dbOpt.MySQLSchemaFilePath = ""
+	dbOpt.MySQLTruncateFilePath = ""
+	dbOpt.PgSQLTestFilePath = ""
+	dbOpt.PgSQLSchemaFilePath = ""
+	dbOpt.PgSQLTruncateFilePath = ""
 
 	if err := v.UnmarshalKey("limit_sql_rows", &LimitSQLRows); err != nil {
 		log.WithFields(log.Fields{
@@ -218,12 +226,6 @@ func GetViper() (*viper.Viper, error) {
 	v.SetConfigName("config")
 	configFilePath := v.GetString("VILOM_CONFIG_FILE_PATH")
 	v.AddConfigPath(configFilePath)
-
-	/*
-		pwd, _ := os.Getwd()
-		viewpath := pwd + filepath.FromSlash("/common")
-		v.AddConfigPath(viewpath)
-	*/
 
 	if err := v.ReadInConfig(); err != nil {
 		log.WithFields(log.Fields{

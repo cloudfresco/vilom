@@ -2,11 +2,11 @@ package testhelpers
 
 import (
 	"context"
+	"database/sql"
 	"github.com/cloudfresco/vilom/common"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -22,12 +22,14 @@ func getTestDbConfig(v *viper.Viper) (*common.DBOptions, error) {
 	dbOpt.Password = v.GetString("VILOM_DBPASS_TEST")
 	dbOpt.Schema = v.GetString("VILOM_DBNAME_TEST")
 	dbOpt.MySQLTestFilePath = v.GetString("VILOM_DBSQL_MYSQL_TEST")
+	dbOpt.MySQLSchemaFilePath = v.GetString("VILOM_DBSQL_MYSQL_SCHEMA")
+	dbOpt.MySQLTruncateFilePath = v.GetString("VILOM_DBSQL_MYSQL_TRUNCATE")
 	dbOpt.PgSQLTestFilePath = v.GetString("VILOM_DBSQL_PGSQL_TEST")
+	dbOpt.PgSQLSchemaFilePath = v.GetString("VILOM_DBSQL_PGSQL_SCHEMA")
+	dbOpt.PgSQLTruncateFilePath = v.GetString("VILOM_DBSQL_PGSQL_TRUNCATE")
 
 	if err := v.UnmarshalKey("limit_sql_rows", &LimitSQLRows); err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 507,
-		}).Error(err)
+		log.Fatal(err)
 	}
 	dbOpt.LimitSQLRows = LimitSQLRows
 
@@ -41,10 +43,7 @@ func getTestJWTConfig(v *viper.Viper) (*common.JWTOptions, error) {
 	jwtOpt.JWTKey = []byte(v.GetString("VILOM_JWT_KEY_TEST"))
 	jwtOpt.JWTDuration, err = strconv.Atoi(v.GetString("VILOM_JWT_DURATION_TEST"))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 504,
-		}).Error(err)
-		return nil, err
+		log.Fatal(err)
 	}
 	return &jwtOpt, nil
 }
@@ -53,50 +52,32 @@ func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.Server
 
 	v, err := common.GetViper()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	dbOpt, err := getTestDbConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	redisOpt, err := common.GetRedisConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	serverOpt, err := common.GetServerConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	userOpt, err := common.GetUserConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	logOpt, err := common.GetLogConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	return dbOpt, redisOpt, serverOpt, userOpt, logOpt
@@ -111,18 +92,12 @@ func InitTest() (*common.DBService, *common.RedisService, *common.ServerOptions,
 
 	dbService, err := common.CreateDBService(dbOpt)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, nil, nil, nil, err
+		log.Fatal(err)
 	}
 
 	redisService, err := common.CreateRedisService(redisOpt)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, nil, nil, nil, err
+		log.Fatal(err)
 	}
 
 	return dbService, redisService, serverOpt, userOpt, nil
@@ -133,74 +108,47 @@ func getTestConfigOptController() (*common.DBOptions, *common.RedisOptions, *com
 
 	v, err := common.GetViper()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	dbOpt, err := getTestDbConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	redisOpt, err := common.GetRedisConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	serverOpt, err := common.GetServerConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	rateOpt, err := common.GetRateConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	jwtOpt, err := getTestJWTConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	oauthOpt, err := common.GetOauthConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	userOpt, err := common.GetUserConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	logOpt, err := common.GetLogConfig(v)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 103,
-		}).Error(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	return dbOpt, redisOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt
@@ -216,32 +164,99 @@ func InitTestController() (*common.DBService, *common.RedisService, *common.Serv
 
 	dbService, err := common.CreateDBService(dbOpt)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, nil, nil, nil, nil, nil, nil, err
+		log.Fatal(err)
 	}
 
 	redisService, err := common.CreateRedisService(redisOpt)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"msgnum": 750,
-		}).Error(err)
-		return nil, nil, nil, nil, nil, nil, nil, err
+		log.Fatal(err)
 	}
 
 	return dbService, redisService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, nil
 
 }
 
-// LoadSQL -- load data into all tables
+// LoadSQL -- drop db, create db, use db, load data
 func LoadSQL(dbService *common.DBService) error {
+	var err error
+	var sqlCmd string
+
 	ctx := context.Background()
-	content, err := ioutil.ReadFile(dbService.MySQLTestFilePath)
+
+	if dbService.DBType == common.DBMysql {
+		sqlCmd = "DROP DATABASE IF EXISTS " + dbService.Schema
+		err = execSQLCmd(ctx, sqlCmd, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		sqlCmd = "CREATE DATABASE " + dbService.Schema + " CHARACTER SET = 'utf8' COLLATE = 'utf8_general_ci'"
+		err = execSQLCmd(ctx, sqlCmd, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		sqlCmd = "USE " + dbService.Schema
+		err = execSQLCmd(ctx, sqlCmd, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		err = execSQLFile(ctx, dbService.MySQLSchemaFilePath, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		err = execSQLFile(ctx, dbService.MySQLTestFilePath, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+	} else if dbService.DBType == common.DBPgsql {
+		err = execSQLFile(ctx, dbService.PgSQLTruncateFilePath, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		err = execSQLFile(ctx, dbService.PgSQLSchemaFilePath, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		err = execSQLFile(ctx, dbService.PgSQLTestFilePath, dbService.DB)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func execSQLCmd(ctx context.Context, sqlCmd string, db *sql.DB) error {
+	_, err := db.ExecContext(ctx, sqlCmd)
+	return err
+}
+
+func execSQLFile(ctx context.Context, sqlFilePath string, db *sql.DB) error {
+
+	content, err := ioutil.ReadFile(sqlFilePath)
 
 	if err != nil {
 		log.Println(err)
 		return err
+	}
+
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	sqlLines := strings.Split(string(content), ";\n")
@@ -249,61 +264,20 @@ func LoadSQL(dbService *common.DBService) error {
 	for _, sqlLine := range sqlLines {
 
 		if sqlLine != "" {
-			_, err := dbService.DB.ExecContext(ctx, sqlLine)
+			//_, err := db.ExecContext(ctx, sqlLine)
+			_, err := tx.ExecContext(ctx, sqlLine)
 			if err != nil {
-				log.Println(err)
-				return err
+				if rollbackErr := tx.Rollback(); rollbackErr != nil {
+					log.Printf("Load SQL failed: %v, unable to rollback: %v\n", err, rollbackErr)
+					return err
+				}
 			}
 		}
 	}
-	return nil
-}
-
-// DeleteSQL -- delete data from all tables
-func DeleteSQL(dbService *common.DBService) error {
-	ctx := context.Background()
-	tables := []string{}
-	tableSchema := dbService.Schema
-	sql := "select table_name from information_schema.tables where table_schema = " + " '" + tableSchema + "' " + ";"
-	rows, err := dbService.DB.QueryContext(ctx, sql)
+	err = tx.Commit()
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	var tableName string
-	for rows.Next() {
-		err = rows.Scan(&tableName)
-		if err != nil {
-			log.Println(err)
-			err = rows.Close()
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-			return err
-		}
-		tables = append(tables, tableName)
-	}
-	err = rows.Close()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	for _, tableName := range tables {
-		sql = "truncate " + tableName
-		_, err := dbService.DB.ExecContext(ctx, sql)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-	}
-
 	return nil
 }

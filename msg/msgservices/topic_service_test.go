@@ -166,11 +166,6 @@ func TestTopicService_ShowTopic(t *testing.T) {
 			t.Errorf("TopicService.ShowTopic() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestTopicService_GetTopicByID(t *testing.T) {
@@ -255,11 +250,6 @@ func TestTopicService_GetTopicByID(t *testing.T) {
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("TopicService.GetTopicByID() = %v, want %v", got, tt.want)
 		}
-	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
 	}
 }
 
@@ -346,11 +336,6 @@ func TestTopicService_GetTopic(t *testing.T) {
 			t.Errorf("TopicService.GetTopic() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestTopicService_GetTopicByName(t *testing.T) {
@@ -435,11 +420,6 @@ func TestTopicService_GetTopicByName(t *testing.T) {
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("TopicService.GetTopicByName() = %v, want %v", got, tt.want)
 		}
-	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
 	}
 }
 
@@ -598,11 +578,6 @@ func TestTopicService_GetTopicWithMessages(t *testing.T) {
 			t.Errorf("TopicService.GetTopicWithMessages() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestTopicService_GetTopicMessages(t *testing.T) {
@@ -716,11 +691,6 @@ func TestTopicService_GetTopicMessages(t *testing.T) {
 			t.Errorf("TopicService.GetTopicMessages() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestTopicService_GetTopicsUser(t *testing.T) {
@@ -796,11 +766,6 @@ func TestTopicService_GetTopicsUser(t *testing.T) {
 			t.Errorf("TopicService.GetTopicsUser() = %v, want %v", got, tt.want)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestTopicService_UpdateTopic(t *testing.T) {
@@ -847,11 +812,6 @@ func TestTopicService_UpdateTopic(t *testing.T) {
 			t.Errorf("TopicService.UpdateTopic() error = %v, wantErr %v", err, tt.wantErr)
 		}
 	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 }
 
 func TestTopicService_DeleteTopic(t *testing.T) {
@@ -890,10 +850,5 @@ func TestTopicService_DeleteTopic(t *testing.T) {
 		if err := tt.t.DeleteTopic(tt.args.ctx, tt.args.ID, tt.args.userEmail, tt.args.requestID); (err != nil) != tt.wantErr {
 			t.Errorf("TopicService.DeleteTopic() error = %v, wantErr %v", err, tt.wantErr)
 		}
-	}
-	err = testhelpers.DeleteSQL(dbService)
-	if err != nil {
-		t.Error(err)
-		return
 	}
 }

@@ -13,12 +13,16 @@ type DBIntf interface {
 
 // DBService - Database type and Pointer to access Db
 type DBService struct {
-	DBType            string
-	DB                *sql.DB
-	Schema            string
-	LimitSQLRows      string
-	MySQLTestFilePath string
-	PgSQLTestFilePath string
+	DBType                string
+	DB                    *sql.DB
+	Schema                string
+	LimitSQLRows          string
+	MySQLTestFilePath     string
+	MySQLSchemaFilePath   string
+	MySQLTruncateFilePath string
+	PgSQLTestFilePath     string
+	PgSQLSchemaFilePath   string
+	PgSQLTruncateFilePath string
 }
 
 // NewDBService - get connection to DB and create a DBService struct
@@ -54,7 +58,11 @@ func NewDBService(dbOpt *DBOptions) (*DBService, error) {
 	dbService.Schema = dbOpt.Schema
 	dbService.LimitSQLRows = dbOpt.LimitSQLRows
 	dbService.MySQLTestFilePath = dbOpt.MySQLTestFilePath
+	dbService.MySQLSchemaFilePath = dbOpt.MySQLSchemaFilePath
+	dbService.MySQLTruncateFilePath = dbOpt.MySQLTruncateFilePath
 	dbService.PgSQLTestFilePath = dbOpt.PgSQLTestFilePath
+	dbService.PgSQLSchemaFilePath = dbOpt.PgSQLSchemaFilePath
+	dbService.PgSQLTruncateFilePath = dbOpt.PgSQLTruncateFilePath
 
 	return dbService, nil
 }

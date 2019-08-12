@@ -19,7 +19,9 @@ before_script:
  - export VILOM_DBPASS_TEST=p
  - export VILOM_DBNAME_TEST=vilom_test
  - export VILOM_DBPASSROOT=p
+ - export VILOM_DBSQL_MYSQL_SCHEMA=$TRAVIS_BUILD_DIR/sql/mysql/vilom_mysql_schema.sql
  - export VILOM_DBSQL_MYSQL_TEST=$TRAVIS_BUILD_DIR/testhelpers/fixtures/vilom_mysql_test.sql
+ - export VILOM_DBSQL_MYSQL_TRUNCATE=$TRAVIS_BUILD_DIR/testhelpers/fixtures/vilom_mysql_truncate.sql
  - export VILOM_REDIS_ADDRESS=localhost:6379
  - export VILOM_CONFIG_FILE_PATH=$TRAVIS_BUILD_DIR/common
  - export VILOM_LOG_FILE_PATH=$TRAVIS_BUILD_DIR/vilom.log
