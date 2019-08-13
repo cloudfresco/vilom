@@ -179,33 +179,10 @@ func InitTestController() (*common.DBService, *common.RedisService, *common.Serv
 // LoadSQL -- drop db, create db, use db, load data
 func LoadSQL(dbService *common.DBService) error {
 	var err error
-	var sqlCmd string
-
 	ctx := context.Background()
 
 	if dbService.DBType == common.DBMysql {
-		sqlCmd = "DROP DATABASE IF EXISTS " + dbService.Schema
-		err = execSQLCmd(ctx, sqlCmd, dbService.DB)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		sqlCmd = "CREATE DATABASE " + dbService.Schema + " CHARACTER SET = 'utf8' COLLATE = 'utf8_general_ci'"
-		err = execSQLCmd(ctx, sqlCmd, dbService.DB)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		sqlCmd = "USE " + dbService.Schema
-		err = execSQLCmd(ctx, sqlCmd, dbService.DB)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		err = execSQLFile(ctx, dbService.MySQLSchemaFilePath, dbService.DB)
+		err = execSQLFile(ctx, dbService.MySQLTruncateFilePath, dbService.DB)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -224,12 +201,6 @@ func LoadSQL(dbService *common.DBService) error {
 			return err
 		}
 
-		err = execSQLFile(ctx, dbService.PgSQLSchemaFilePath, dbService.DB)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
 		err = execSQLFile(ctx, dbService.PgSQLTestFilePath, dbService.DB)
 		if err != nil {
 			log.Println(err)
@@ -238,11 +209,6 @@ func LoadSQL(dbService *common.DBService) error {
 	}
 
 	return nil
-}
-
-func execSQLCmd(ctx context.Context, sqlCmd string, db *sql.DB) error {
-	_, err := db.ExecContext(ctx, sqlCmd)
-	return err
 }
 
 func execSQLFile(ctx context.Context, sqlFilePath string, db *sql.DB) error {
@@ -264,9 +230,9 @@ func execSQLFile(ctx context.Context, sqlFilePath string, db *sql.DB) error {
 	for _, sqlLine := range sqlLines {
 
 		if sqlLine != "" {
-			//_, err := db.ExecContext(ctx, sqlLine)
 			_, err := tx.ExecContext(ctx, sqlLine)
 			if err != nil {
+				log.Println(err)
 				if rollbackErr := tx.Rollback(); rollbackErr != nil {
 					log.Printf("Load SQL failed: %v, unable to rollback: %v\n", err, rollbackErr)
 					return err
