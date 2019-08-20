@@ -55,7 +55,8 @@ type CategoryServiceIntf interface {
 	GetChildCategories(ctx context.Context, ID string, userEmail string, requestID string) ([]*Category, error)
 	GetParentCategory(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error)
 	UpdateCategory(ctx context.Context, ID string, form *Category, UserID string, userEmail string, requestID string) error
-	UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error
+	UpdateNumTopicsPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error)
+	UpdateNumTopics(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error
 	DeleteCategory(ctx context.Context, ID string, userEmail string, requestID string) error
 }
 
@@ -94,7 +95,12 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 			return nil, err
 		}
 		db := c.DBService.DB
-		tx, err := db.Begin()
+		insertCategoryStmt, err := c.insertCategoryPrepare(ctx, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
+			return nil, err
+		}
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4368}).Error(err)
 			return nil, err
@@ -128,11 +134,20 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 		cat.UpdatedMonth = tnmonth
 		cat.UpdatedYear = tnyear
 
-		err = c.insertCategory(ctx, tx, &cat, userEmail, requestID)
+		err = c.insertCategory(ctx, insertCategoryStmt, tx, &cat, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4321}).Error(err)
 			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
+				return nil, err
+			}
+			err = insertCategoryStmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
+				return nil, err
+			}
 			return nil, err
 		}
 
@@ -142,19 +157,27 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 			err = tx.Rollback()
 			return nil, err
 		}
+
+		err = insertCategoryStmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
+			return nil, err
+		}
+
 		return &cat, nil
 	}
 }
 
-// insertCategory - Insert category details into database
-func (c *CategoryService) insertCategory(ctx context.Context, tx *sql.Tx, cat *Category, userEmail string, requestID string) error {
+// insertCategoryPrepare - Insert Category prepare statement
+func (c *CategoryService) insertCategoryPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4323}).Error(err)
-		return err
+		return nil, err
 	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into categories
+		db := c.DBService.DB
+		stmt, err := db.PrepareContext(ctx, `insert into categories
 	  ( 
 			uuid4,
 			category_name,
@@ -182,10 +205,21 @@ func (c *CategoryService) insertCategory(ctx context.Context, tx *sql.Tx, cat *C
           ?);`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4324}).Error(err)
-			err = stmt.Close()
-			return err
+			return nil, err
 		}
-		res, err := stmt.ExecContext(ctx,
+		return stmt, nil
+	}
+}
+
+// insertCategory - Insert category details into database
+func (c *CategoryService) insertCategory(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, cat *Category, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4323}).Error(err)
+		return err
+	default:
+		res, err := tx.StmtContext(ctx, stmt).Exec(
 			cat.UUID4,
 			cat.CategoryName,
 			cat.CategoryDesc,
@@ -211,14 +245,12 @@ func (c *CategoryService) insertCategory(ctx context.Context, tx *sql.Tx, cat *C
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4325}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4326}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 		cat.ID = uint(uID)
@@ -228,17 +260,125 @@ func (c *CategoryService) insertCategory(ctx context.Context, tx *sql.Tx, cat *C
 			return err
 		}
 		cat.IDS = uuid4Str
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
-			return err
-		}
 		return nil
 	}
 }
 
 // CreateChild - Create Child Category
 func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserID string, userEmail string, requestID string) (*Category, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4338}).Error(err)
+		return nil, err
+	default:
+		db := c.DBService.DB
+		insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, err := c.createChildPrepareStmts(ctx, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
+			return nil, err
+		}
+
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
+			err = c.createChildPrepareStmtsClose(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
+				return nil, err
+			}
+			return nil, err
+		}
+
+		cat, err := c.createChild(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, tx, form, UserID, userEmail, requestID)
+
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4342}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
+				return nil, err
+			}
+			err = c.createChildPrepareStmtsClose(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
+				return nil, err
+			}
+			return nil, err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4372}).Error(err)
+			return nil, err
+		}
+
+		err = c.createChildPrepareStmtsClose(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
+			return nil, err
+		}
+		return cat, nil
+	}
+}
+
+//createChildPrepareStmts - Prepare Statements
+func (c *CategoryService) createChildPrepareStmts(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, *sql.Stmt, *sql.Stmt, error) {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
+		return nil, nil, nil, err
+	default:
+		insertCategoryStmt, err := c.insertCategoryPrepare(ctx, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
+			return nil, nil, nil, err
+		}
+		insertChildStmt, err := c.insertChildPrepare(ctx, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
+			return nil, nil, nil, err
+		}
+		updateNumChildrenStmt, err := c.updateNumChildrenPrepare(ctx, userEmail, requestID)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
+			return nil, nil, nil, err
+		}
+		return insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, nil
+	}
+}
+
+//createChildPrepareStmtsClose - Close Prepare Statements
+func (c *CategoryService) createChildPrepareStmtsClose(ctx context.Context, insertCategoryStmt *sql.Stmt, insertChildStmt *sql.Stmt, updateNumChildrenStmt *sql.Stmt, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
+		return err
+	default:
+		err := insertCategoryStmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
+			return err
+		}
+		err = insertChildStmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
+			return err
+		}
+		err = updateNumChildrenStmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
+			return err
+		}
+
+		return nil
+	}
+}
+
+// createChild - Create Child Category
+func (c *CategoryService) createChild(ctx context.Context, insertCategoryStmt *sql.Stmt, insertChildStmt *sql.Stmt, updateNumChildrenStmt *sql.Stmt, tx *sql.Tx, form *Category, UserID string, userEmail string, requestID string) (*Category, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -258,19 +398,11 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			return nil, err
 		}
 
-		db := c.DBService.DB
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
-			err = tx.Rollback()
-			return nil, err
-		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		cat := Category{}
 		cat.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4341}).Error(err)
-			err = tx.Rollback()
 			return nil, err
 		}
 		cat.CategoryName = form.CategoryName
@@ -295,70 +427,62 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		cat.UpdatedMonth = tnmonth
 		cat.UpdatedYear = tnyear
 
-		err = c.insertCategory(ctx, tx, &cat, userEmail, requestID)
+		err = c.insertCategory(ctx, insertCategoryStmt, tx, &cat, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4342}).Error(err)
-			err = tx.Rollback()
 			return nil, err
 		}
 
-		catchd := CategoryChd{}
-		catchd.UUID4, err = common.GetUUIDBytes()
+		catChd := CategoryChd{}
+		catChd.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4343}).Error(err)
-			err = tx.Rollback()
 			return nil, err
 		}
-		catchd.CategoryID = parent.ID
-		catchd.CategoryChdID = cat.ID
+		catChd.CategoryID = parent.ID
+		catChd.CategoryChdID = cat.ID
 		/*  StatusDates  */
-		catchd.Statusc = common.Active
-		catchd.CreatedAt = tn
-		catchd.UpdatedAt = tn
-		catchd.CreatedDay = tnday
-		catchd.CreatedWeek = tnweek
-		catchd.CreatedMonth = tnmonth
-		catchd.CreatedYear = tnyear
-		catchd.UpdatedDay = tnday
-		catchd.UpdatedWeek = tnweek
-		catchd.UpdatedMonth = tnmonth
-		catchd.UpdatedYear = tnyear
+		catChd.Statusc = common.Active
+		catChd.CreatedAt = tn
+		catChd.UpdatedAt = tn
+		catChd.CreatedDay = tnday
+		catChd.CreatedWeek = tnweek
+		catChd.CreatedMonth = tnmonth
+		catChd.CreatedYear = tnyear
+		catChd.UpdatedDay = tnday
+		catChd.UpdatedWeek = tnweek
+		catChd.UpdatedMonth = tnmonth
+		catChd.UpdatedYear = tnyear
 
-		err = c.insertChild(ctx, tx, &catchd, userEmail, requestID)
+		err = c.insertChild(ctx, insertChildStmt, tx, &catChd, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4344}).Error(err)
-			err = tx.Rollback()
 			return nil, err
 		}
 
 		numchd := parent.NumChd + 1
-		err = c.updateNumChildren(ctx, tx, numchd, parent.ID, userEmail, requestID)
+		err = c.updateNumChildren(ctx, updateNumChildrenStmt, tx, numchd, parent.ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4373}).Error(err)
-			err = tx.Rollback()
 			return nil, err
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4372}).Error(err)
-			return nil, err
-		}
 		return &cat, nil
 	}
 }
 
-// insertChild - Insert child category details into database
-func (c *CategoryService) insertChild(ctx context.Context, tx *sql.Tx, catchd *CategoryChd, userEmail string, requestID string) error {
+// insertChildPrepare - Insert child prepare statement
+func (c *CategoryService) insertChildPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4348}).Error(err)
-		return err
+		return nil, err
 	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into category_chds
+		db := c.DBService.DB
+		stmt, err := db.PrepareContext(ctx, `insert into category_chds
 	  ( 
     uuid4,
 		category_id,
@@ -378,58 +502,62 @@ func (c *CategoryService) insertChild(ctx context.Context, tx *sql.Tx, catchd *C
 					?,?,?,?);`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4349}).Error(err)
-			err = stmt.Close()
-			return err
+			return nil, err
 		}
-		res, err := stmt.ExecContext(ctx,
-			catchd.UUID4,
-			catchd.CategoryID,
-			catchd.CategoryChdID,
+		return stmt, nil
+	}
+}
+
+// insertChild - Insert child category details into database
+func (c *CategoryService) insertChild(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, catChd *CategoryChd, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4348}).Error(err)
+		return err
+	default:
+		res, err := tx.StmtContext(ctx, stmt).Exec(
+			catChd.UUID4,
+			catChd.CategoryID,
+			catChd.CategoryChdID,
 			/*  StatusDates  */
-			catchd.Statusc,
-			catchd.CreatedAt,
-			catchd.UpdatedAt,
-			catchd.CreatedDay,
-			catchd.CreatedWeek,
-			catchd.CreatedMonth,
-			catchd.CreatedYear,
-			catchd.UpdatedDay,
-			catchd.UpdatedWeek,
-			catchd.UpdatedMonth,
-			catchd.UpdatedYear)
+			catChd.Statusc,
+			catChd.CreatedAt,
+			catChd.UpdatedAt,
+			catChd.CreatedDay,
+			catChd.CreatedWeek,
+			catChd.CreatedMonth,
+			catChd.CreatedYear,
+			catChd.UpdatedDay,
+			catChd.UpdatedWeek,
+			catChd.UpdatedMonth,
+			catChd.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4350}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4351}).Error(err)
-			err = stmt.Close()
 			return err
 		}
-		catchd.ID = uint(uID)
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4352}).Error(err)
-			return err
-		}
+		catChd.ID = uint(uID)
 		return nil
 	}
 }
 
-// updateNumChildren - Update number of child in category
-func (c *CategoryService) updateNumChildren(ctx context.Context, tx *sql.Tx, numchd uint, parentID uint, userEmail string, requestID string) error {
+// updateNumChildrenPrepare - updateNumChildren Prepare Statement
+func (c *CategoryService) updateNumChildrenPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4375}).Error(err)
-		return err
+		return nil, err
 	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update categories set 
+		db := c.DBService.DB
+		stmt, err := db.PrepareContext(ctx, `update categories set 
 				  num_chd = ?,
 				  updated_at = ?, 
 					updated_day = ?, 
@@ -438,17 +566,22 @@ func (c *CategoryService) updateNumChildren(ctx context.Context, tx *sql.Tx, num
 					updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4345}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4370}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
+			return nil, err
 		}
+		return stmt, nil
+	}
+}
 
-		_, err = stmt.ExecContext(ctx,
+// updateNumChildren - Update number of child in category
+func (c *CategoryService) updateNumChildren(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numchd uint, parentID uint, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4375}).Error(err)
+		return err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+		_, err := tx.StmtContext(ctx, stmt).Exec(
 			numchd,
 			tn,
 			tnday,
@@ -459,13 +592,6 @@ func (c *CategoryService) updateNumChildren(ctx context.Context, tx *sql.Tx, num
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4346}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4371}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
 			return err
 		}
 		return nil
@@ -1181,14 +1307,8 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 		}
 
 		db := c.DBService.DB
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4378}).Error(err)
-			return err
-		}
-
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update categories set 
+		stmt, err := db.PrepareContext(ctx, `update categories set 
 		  category_name = ?,
       category_desc = ?,
 			updated_at = ?, 
@@ -1198,16 +1318,15 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4379}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4380}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
 			return err
 		}
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4378}).Error(err)
+			return err
+		}
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			form.CategoryName,
 			form.CategoryDesc,
 			tn,
@@ -1219,40 +1338,44 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4381}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4390}).Error(err)
+				return err
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4382}).Error(err)
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
 			return err
 		}
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4384}).Error(err)
+			return err
+		}
+
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4383}).Error(err)
 			return err
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4384}).Error(err)
-			return err
-		}
 		return nil
 	}
 }
 
-// UpdateNumTopics - update number of topics in category
-func (c *CategoryService) UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error {
+// UpdateNumTopicsPrepare - UpdateNumTopics Prepare Statement
+func (c *CategoryService) UpdateNumTopicsPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4374}).Error(err)
-		return err
+		return nil, err
 	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update categories set 
+		db := c.DBService.DB
+		stmt, err := db.PrepareContext(ctx, `update categories set 
     num_topics = ?,
 	  updated_at = ?, 
 		updated_day = ?, 
@@ -1261,16 +1384,23 @@ func (c *CategoryService) UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTo
 		updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5327}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5376}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
+			return nil, err
 		}
-		_, err = stmt.ExecContext(ctx,
+		return stmt, nil
+	}
+}
+
+// UpdateNumTopics - update number of topics in category
+func (c *CategoryService) UpdateNumTopics(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4374}).Error(err)
+		return err
+	default:
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		_, err := tx.StmtContext(ctx, stmt).Exec(
 			numTopics,
 			tn,
 			tnday,
@@ -1281,19 +1411,6 @@ func (c *CategoryService) UpdateNumTopics(ctx context.Context, tx *sql.Tx, numTo
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5328}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5329}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5329}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
 		return nil
@@ -1314,14 +1431,8 @@ func (c *CategoryService) DeleteCategory(ctx context.Context, ID string, userEma
 			return err
 		}
 		db := c.DBService.DB
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4387}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update categories set 
+		stmt, err := db.PrepareContext(ctx, `update categories set 
 		  statusc = ?,
 			updated_at = ?, 
 			updated_day = ?, 
@@ -1330,11 +1441,19 @@ func (c *CategoryService) DeleteCategory(ctx context.Context, ID string, userEma
 			updated_year = ? where uuid4= ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4388}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
-
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4387}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4390}).Error(err)
+				return err
+			}
+			return err
+		}
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			common.Inactive,
 			tn,
 			tnday,
@@ -1345,20 +1464,16 @@ func (c *CategoryService) DeleteCategory(ctx context.Context, ID string, userEma
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4389}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4390}).Error(err)
+				return err
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4390}).Error(err)
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
-			return err
-		}
-
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4391}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
 
@@ -1366,6 +1481,12 @@ func (c *CategoryService) DeleteCategory(ctx context.Context, ID string, userEma
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4392}).Error(err)
 			err = tx.Rollback()
+			return err
+		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4391}).Error(err)
 			return err
 		}
 		return nil

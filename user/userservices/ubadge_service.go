@@ -78,7 +78,7 @@ func (u *UbadgeService) CreateUbadge(ctx context.Context, form *Ubadge, userEmai
 		return nil, err
 	default:
 		db := u.DBService.DB
-		tx, err := db.Begin()
+		insertUbadgeStmt, err := u.insertUbadgePrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3307}).Error(err)
 			return nil, err
@@ -89,7 +89,6 @@ func (u *UbadgeService) CreateUbadge(ctx context.Context, form *Ubadge, userEmai
 		Ubadge.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3308}).Error(err)
-			err = tx.Rollback()
 			return nil, err
 		}
 		Ubadge.UbadgeName = form.UbadgeName
@@ -106,18 +105,38 @@ func (u *UbadgeService) CreateUbadge(ctx context.Context, form *Ubadge, userEmai
 		Ubadge.UpdatedMonth = tnmonth
 		Ubadge.UpdatedYear = tnyear
 
-		err = u.insertUbadge(ctx, tx, &Ubadge, userEmail, requestID)
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3307}).Error(err)
+			return nil, err
+		}
+
+		err = u.insertUbadge(ctx, insertUbadgeStmt, tx, &Ubadge, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3309}).Error(err)
 			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3309}).Error(err)
+				return nil, err
+			}
+			err = insertUbadgeStmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3309}).Error(err)
+				return nil, err
+			}
 			return nil, err
 		}
 
 		err = tx.Commit()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3310}).Error(err)
-			err = tx.Rollback()
+			return nil, err
+		}
+
+		err = insertUbadgeStmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3310}).Error(err)
 			return nil, err
 		}
 
@@ -125,15 +144,16 @@ func (u *UbadgeService) CreateUbadge(ctx context.Context, form *Ubadge, userEmai
 	}
 }
 
-// insertUbadge - Insert Ubadge details into database
-func (u *UbadgeService) insertUbadge(ctx context.Context, tx *sql.Tx, Ubadge *Ubadge, userEmail string, requestID string) error {
+// insertUbadgePrepare - Insert Ubadge Prepare Statements
+func (u *UbadgeService) insertUbadgePrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3317}).Error(err)
-		return err
+		return nil, err
 	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into ubadges
+		db := u.DBService.DB
+		stmt, err := db.PrepareContext(ctx, `insert into ubadges
 	  (
 		uuid4,
 		ubadge_name,
@@ -153,10 +173,21 @@ func (u *UbadgeService) insertUbadge(ctx context.Context, tx *sql.Tx, Ubadge *Ub
 					?,?,?,?);`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3318}).Error(err)
-			err = stmt.Close()
-			return err
+			return nil, err
 		}
-		res, err := stmt.ExecContext(ctx,
+		return stmt, nil
+	}
+}
+
+// insertUbadge - Insert Ubadge details into database
+func (u *UbadgeService) insertUbadge(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, Ubadge *Ubadge, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3317}).Error(err)
+		return err
+	default:
+		res, err := tx.StmtContext(ctx, stmt).Exec(
 			Ubadge.UUID4,
 			Ubadge.UbadgeName,
 			Ubadge.UbadgeDesc,
@@ -174,13 +205,11 @@ func (u *UbadgeService) insertUbadge(ctx context.Context, tx *sql.Tx, Ubadge *Ub
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3319}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3320}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 		Ubadge.ID = uint(uID)
@@ -190,12 +219,6 @@ func (u *UbadgeService) insertUbadge(ctx context.Context, tx *sql.Tx, Ubadge *Ub
 			return err
 		}
 		Ubadge.IDS = uuid4Str
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3322}).Error(err)
-			return err
-		}
-
 		return nil
 	}
 }
@@ -215,20 +238,20 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 			return err
 		}
 
-		tx, err := db.Begin()
+		insertUbadgeUserStmt, err := u.insertUbadgeUserPrepare(ctx, userEmail, requestID)
 		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3313}).Error(err)
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3312}).Error(err)
 			return err
 		}
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		Uguser := UbadgeUser{}
 		Uguser.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3314}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		Uguser.UbadgeID = ubadge.ID
 		Uguser.UserID = form.UserID
@@ -244,33 +267,53 @@ func (u *UbadgeService) AddUserToGroup(ctx context.Context, form *UbadgeUser, ID
 		Uguser.UpdatedMonth = tnmonth
 		Uguser.UpdatedYear = tnyear
 
-		err = u.insertUbadgeUser(ctx, tx, &Uguser, userEmail, requestID)
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3313}).Error(err)
+			return err
+		}
+
+		err = u.insertUbadgeUser(ctx, insertUbadgeUserStmt, tx, &Uguser, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3315}).Error(err)
 			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3315}).Error(err)
+				return err
+			}
+			err = insertUbadgeUserStmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3315}).Error(err)
+				return err
+			}
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3316}).Error(err)
-			err = tx.Rollback()
+			return err
+		}
+		err = insertUbadgeUserStmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3316}).Error(err)
 			return err
 		}
 		return nil
 	}
 }
 
-// insertUbadgeUser - Insert Ubadge User details into database
-func (u *UbadgeService) insertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser *UbadgeUser, userEmail string, requestID string) error {
+// insertUbadgeUserPrepare - Insert Ubadge User Prepare Statements
+func (u *UbadgeService) insertUbadgeUserPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3347}).Error(err)
-		return err
+		return nil, err
 	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into ubadges_users
+		db := u.DBService.DB
+		stmt, err := db.PrepareContext(ctx, `insert into ubadges_users
 	  (
 		uuid4,
 		ubadge_id,
@@ -290,9 +333,21 @@ func (u *UbadgeService) insertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 					?,?,?,?);`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3348}).Error(err)
-			return err
+			return nil, err
 		}
-		res, err := stmt.ExecContext(ctx,
+		return stmt, nil
+	}
+}
+
+// insertUbadgeUser - Insert Ubadge User details into database
+func (u *UbadgeService) insertUbadgeUser(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, Uguser *UbadgeUser, userEmail string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3347}).Error(err)
+		return err
+	default:
+		res, err := tx.StmtContext(ctx, stmt).Exec(
 			Uguser.UUID4,
 			Uguser.UbadgeID,
 			Uguser.UserID,
@@ -310,13 +365,11 @@ func (u *UbadgeService) insertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3349}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 		uID, err := res.LastInsertId()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3350}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 		Uguser.ID = uint(uID)
@@ -326,12 +379,6 @@ func (u *UbadgeService) insertUbadgeUser(ctx context.Context, tx *sql.Tx, Uguser
 			return err
 		}
 		Uguser.IDS = uuid4Str
-
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3352}).Error(err)
-			return err
-		}
 
 		return nil
 	}
@@ -693,14 +740,7 @@ func (u *UbadgeService) UpdateUbadge(ctx context.Context, ID string, form *Ubadg
 		}
 
 		db := u.DBService.DB
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3360}).Error(err)
-			return err
-		}
-
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update ubadges set 
+		stmt, err := db.PrepareContext(ctx, `update ubadges set 
 		  ubadge_name = ?,
       ubadge_desc = ?,
 			updated_at = ?, 
@@ -710,16 +750,18 @@ func (u *UbadgeService) UpdateUbadge(ctx context.Context, ID string, form *Ubadg
 			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3361}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3362}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
 			return err
 		}
-		_, err = stmt.ExecContext(ctx,
+
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3360}).Error(err)
+			return err
+		}
+
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			form.UbadgeName,
 			form.UbadgeDesc,
 			tn,
@@ -731,26 +773,30 @@ func (u *UbadgeService) UpdateUbadge(ctx context.Context, ID string, form *Ubadg
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3363}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3364}).Error(err)
+				return err
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3364}).Error(err)
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
 			return err
 		}
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3366}).Error(err)
+			return err
+		}
+
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3365}).Error(err)
 			return err
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3366}).Error(err)
-			return err
-		}
 		return nil
 	}
 }
@@ -769,13 +815,8 @@ func (u *UbadgeService) DeleteUbadge(ctx context.Context, ID string, userEmail s
 			return err
 		}
 		db := u.DBService.DB
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3325}).Error(err)
-			return err
-		}
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update ubadges set 
+
+		stmt, err := db.PrepareContext(ctx, `update ubadges set 
 		  statusc = ?,
 			updated_at = ?, 
 			updated_day = ?, 
@@ -784,17 +825,17 @@ func (u *UbadgeService) DeleteUbadge(ctx context.Context, ID string, userEmail s
 			updated_year = ? where uuid4= ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3326}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3353}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3325}).Error(err)
+			return err
+		}
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			common.Inactive,
 			tn,
 			tnday,
@@ -805,25 +846,27 @@ func (u *UbadgeService) DeleteUbadge(ctx context.Context, ID string, userEmail s
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3354}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3355}).Error(err)
+				return err
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3355}).Error(err)
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
-			return err
-		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3327}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
 		err = tx.Commit()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3328}).Error(err)
-			err = tx.Rollback()
+			return err
+		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3327}).Error(err)
 			return err
 		}
 		return nil
@@ -839,46 +882,42 @@ func (u *UbadgeService) DeleteUserFromGroup(ctx context.Context, form *UbadgeUse
 		return err
 	default:
 		db := u.DBService.DB
-		tx, err := db.Begin()
+		stmt, err := db.PrepareContext(ctx, `delete from ubadges_users where user_id= ? and ubadge_id = ?;`)
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3343}).Error(err)
+			return err
+		}
+
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3342}).Error(err)
 			return err
 		}
-		stmt, err := tx.PrepareContext(ctx, `delete from ubadges_users where user_id= ? and ubadge_id = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3343}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3356}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
-			return err
-		}
 
-		_, err = stmt.ExecContext(ctx, form.UserID, ID)
+		_, err = tx.StmtContext(ctx, stmt).Exec(form.UserID, ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3344}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3357}).Error(err)
+				return err
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3357}).Error(err)
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3346}).Error(err)
 			return err
 		}
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3345}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 3346}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
 		return nil

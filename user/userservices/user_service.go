@@ -318,7 +318,7 @@ func (u *UserService) CreateUser(ctx context.Context, form *User, hostURL string
 		user.UpdatedMonth = tnmonth
 		user.UpdatedYear = tnyear
 
-		tx, err := db.Begin()
+		insertUserStmt, err := u.insertUserPrepare(ctx, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -327,7 +327,16 @@ func (u *UserService) CreateUser(ctx context.Context, form *User, hostURL string
 
 			return nil, err
 		}
-		err = u.insertUser(ctx, tx, &user, hostURL, requestID)
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1525,
+			}).Error(err)
+
+			return nil, err
+		}
+		err = u.insertUser(ctx, insertUserStmt, tx, &user, hostURL, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -335,6 +344,15 @@ func (u *UserService) CreateUser(ctx context.Context, form *User, hostURL string
 			}).Error(err)
 
 			err = tx.Rollback()
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1526,
+			}).Error(err)
+			err = insertUserStmt.Close()
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1526,
+			}).Error(err)
 			return nil, err
 		}
 
@@ -347,6 +365,11 @@ func (u *UserService) CreateUser(ctx context.Context, form *User, hostURL string
 
 			return nil, err
 		}
+		err = insertUserStmt.Close()
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1526,
+		}).Error(err)
 		return &user, nil
 	}
 }
@@ -377,8 +400,8 @@ func (u *UserService) createJWT(emailAddr string, tokenDuration time.Duration, r
 
 }
 
-// insertUser - Insert User details to database
-func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, hostURL string, requestID string) error {
+// insertUserPrepare - Insert User Prepare Statement
+func (u *UserService) insertUserPrepare(ctx context.Context, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -387,9 +410,10 @@ func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, ho
 			"msgnum": 1528,
 		}).Error(err)
 
-		return err
+		return nil, err
 	default:
-		stmt, err := tx.PrepareContext(ctx, `insert into users
+		db := u.DBService.DB
+		stmt, err := db.PrepareContext(ctx, `insert into users
 	  (
 		uuid4,
     auth_token,
@@ -445,9 +469,25 @@ func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, ho
 				"msgnum": 1529,
 			}).Error(err)
 
-			return err
+			return nil, err
 		}
-		res, err := stmt.ExecContext(ctx,
+		return stmt, err
+	}
+}
+
+// insertUser - Insert User details to database
+func (u *UserService) insertUser(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, user *User, hostURL string, requestID string) error {
+	select {
+	case <-ctx.Done():
+		err := errors.New("Client closed connection")
+		log.WithFields(log.Fields{
+			"reqid":  requestID,
+			"msgnum": 1528,
+		}).Error(err)
+
+		return err
+	default:
+		res, err := tx.StmtContext(ctx, stmt).Exec(
 			user.UUID4,
 			user.AuthToken,
 			user.Email,
@@ -497,7 +537,6 @@ func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, ho
 				"msgnum": 1530,
 			}).Error(err)
 
-			err = stmt.Close()
 			return err
 		}
 		uID, err := res.LastInsertId()
@@ -506,8 +545,6 @@ func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, ho
 				"reqid":  requestID,
 				"msgnum": 1531,
 			}).Error(err)
-
-			err = stmt.Close()
 			return err
 		}
 		user.ID = uint(uID)
@@ -517,15 +554,6 @@ func (u *UserService) insertUser(ctx context.Context, tx *sql.Tx, user *User, ho
 			return err
 		}
 		user.IDS = uuid4Str
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"reqid":  requestID,
-				"msgnum": 1533,
-			}).Error(err)
-
-			return err
-		}
 
 		hostURL := ""
 		if hostURL != "" {
@@ -823,14 +851,8 @@ func (u *UserService) UpdateUser(ctx context.Context, ID string, form *User, Use
 		}
 
 		db := u.DBService.DB
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1594}).Error(err)
-			return err
-		}
-
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update users set 
+		stmt, err := db.PrepareContext(ctx, `update users set 
 		  first_name = ?,
       last_name = ?,
 			updated_at = ?, 
@@ -840,16 +862,20 @@ func (u *UserService) UpdateUser(ctx context.Context, ID string, form *User, Use
 			updated_year = ? where id = ? and statusc = ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1595}).Error(err)
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1596}).Error(err)
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
 			return err
 		}
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1594}).Error(err)
+			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1598}).Error(err)
+				return err
+			}
+			return err
+		}
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			form.FirstName,
 			form.LastName,
 			tn,
@@ -861,26 +887,30 @@ func (u *UserService) UpdateUser(ctx context.Context, ID string, form *User, Use
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1597}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1598}).Error(err)
+				return err
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1598}).Error(err)
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
 			return err
 		}
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1600}).Error(err)
+			return err
+		}
+
 		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1599}).Error(err)
 			return err
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1600}).Error(err)
-			return err
-		}
 		return nil
 	}
 }
@@ -899,14 +929,8 @@ func (u *UserService) DeleteUser(ctx context.Context, ID string, userEmail strin
 			return err
 		}
 		db := u.DBService.DB
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1603}).Error(err)
-			err = tx.Rollback()
-			return err
-		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := tx.PrepareContext(ctx, `update users set 
+		stmt, err := db.PrepareContext(ctx, `update users set 
 		  statusc = ?,
 			updated_at = ?, 
 			updated_day = ?, 
@@ -915,11 +939,15 @@ func (u *UserService) DeleteUser(ctx context.Context, ID string, userEmail strin
 			updated_year = ? where uuid4= ?;`)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1604}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1603}).Error(err)
+			return err
+		}
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			common.Inactive,
 			tn,
 			tnday,
@@ -930,29 +958,31 @@ func (u *UserService) DeleteUser(ctx context.Context, ID string, userEmail strin
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1605}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1606}).Error(err)
+				return err
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1606}).Error(err)
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
-			return err
-		}
-
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1607}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
 
 		err = tx.Commit()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1608}).Error(err)
-			err = tx.Rollback()
 			return err
 		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 1607}).Error(err)
+			return err
+		}
+
 		return nil
 	}
 }
@@ -1032,11 +1062,19 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 				"msgnum": 1540,
 			}).Error(err)
 
-			err = stmt.Close()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1540,
+			}).Error(err)
+			return err
+		}
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			"",
 			"",
 			"",
@@ -1054,12 +1092,29 @@ func (u *UserService) ConfirmEmail(ctx context.Context, token string, requestID 
 				"reqid":  requestID,
 				"msgnum": 1541,
 			}).Error(err)
-
+			err = tx.Rollback()
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1541,
+			}).Error(err)
 			err = stmt.Close()
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1540,
+			}).Error(err)
 			return err
 		}
-		err = stmt.Close()
 
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1540,
+			}).Error(err)
+			return err
+		}
+
+		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1131,12 +1186,19 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 				"reqid":  requestID,
 				"msgnum": 1546,
 			}).Error(err)
-
-			err = stmt.Close()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1546,
+			}).Error(err)
+			return err
+		}
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			token,
 			selector,
 			verifier,
@@ -1154,12 +1216,35 @@ func (u *UserService) ForgotPassword(ctx context.Context, form *ForgotPasswordFo
 				"reqid":  requestID,
 				"msgnum": 1547,
 			}).Error(err)
-
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1547,
+				}).Error(err)
+			}
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1547,
+				}).Error(err)
+				return err
+			}
 			return err
 		}
-		err = stmt.Close()
 
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1548,
+			}).Error(err)
+
+			return err
+		}
+
+		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
@@ -1264,24 +1349,7 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 			return err
 		}
 
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		UpdatedDay := tnday
-		UpdatedWeek := tnweek
-		UpdatedMonth := tnmonth
-		UpdatedYear := tnyear
-
-		tx, err := db.Begin()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"reqid":  requestID,
-				"msgnum": 1555,
-			}).Error(err)
-
-			return err
-		}
-
-		stmt, err := tx.PrepareContext(ctx, `update users set 
+		stmt, err := db.PrepareContext(ctx, `update users set 
 		    password_reset_token = ?,
 				password_selector = ?,
 				password_verifier = ?,
@@ -1299,22 +1367,26 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 				"reqid":  requestID,
 				"msgnum": 1556,
 			}).Error(err)
-
-			err = stmt.Close()
-			if err != nil {
-				log.WithFields(log.Fields{
-					"reqid":  requestID,
-					"msgnum": 1590,
-				}).Error(err)
-
-				err = tx.Rollback()
-				return err
-			}
-			err = tx.Rollback()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
+
+		UpdatedDay := tnday
+		UpdatedWeek := tnweek
+		UpdatedMonth := tnmonth
+		UpdatedYear := tnyear
+
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1555,
+			}).Error(err)
+			return err
+		}
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			"",
 			"",
 			"",
@@ -1333,31 +1405,23 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 				"reqid":  requestID,
 				"msgnum": 1557,
 			}).Error(err)
-
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1591,
+				}).Error(err)
+			}
 			err = stmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{
 					"reqid":  requestID,
 					"msgnum": 1591,
 				}).Error(err)
-
-				err = tx.Rollback()
 				return err
 			}
-			err = tx.Rollback()
 			return err
 		}
-		err = stmt.Close()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"reqid":  requestID,
-				"msgnum": 1558,
-			}).Error(err)
-
-			err = tx.Rollback()
-			return err
-		}
-
 		err = tx.Commit()
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -1367,6 +1431,16 @@ func (u *UserService) ConfirmForgotPassword(ctx context.Context, form *PasswordF
 
 			return err
 		}
+
+		err = stmt.Close()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1558,
+			}).Error(err)
+			return err
+		}
+
 		return nil
 	}
 }
@@ -1443,11 +1517,18 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 				"reqid":  requestID,
 				"msgnum": 1565,
 			}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1555,
+			}).Error(err)
+			return err
+		}
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			password1,
 			tn,
 			UpdatedDay,
@@ -1461,7 +1542,31 @@ func (u *UserService) ChangePassword(ctx context.Context, form *PasswordForm, us
 				"reqid":  requestID,
 				"msgnum": 1566,
 			}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1566,
+				}).Error(err)
+			}
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1566,
+				}).Error(err)
+				return err
+			}
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1559,
+			}).Error(err)
+
 			return err
 		}
 		err = stmt.Close()
@@ -1538,11 +1643,19 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 				"reqid":  requestID,
 				"msgnum": 1571,
 			}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1571,
+			}).Error(err)
+			return err
+		}
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			form.NewEmail,
 			token,
 			selector,
@@ -1562,11 +1675,35 @@ func (u *UserService) ChangeEmail(ctx context.Context, form *ChangeEmailForm, ho
 				"reqid":  requestID,
 				"msgnum": 1572,
 			}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1572,
+				}).Error(err)
+			}
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1572,
+				}).Error(err)
+				return err
+			}
 			return err
 		}
-		err = stmt.Close()
 
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1572,
+			}).Error(err)
+
+			return err
+		}
+
+		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{
 				"user":   userEmail,
@@ -1692,11 +1829,19 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 				"reqid":  requestID,
 				"msgnum": 1580,
 			}).Error(err)
-			err = stmt.Close()
 			return err
 		}
 
-		_, err = stmt.ExecContext(ctx,
+		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1550,
+			}).Error(err)
+			return err
+		}
+
+		_, err = tx.StmtContext(ctx, stmt).Exec(
 			tn,
 			user.NewEmail,
 			"",
@@ -1716,11 +1861,35 @@ func (u *UserService) ConfirmChangeEmail(ctx context.Context, token string, requ
 				"reqid":  requestID,
 				"msgnum": 1581,
 			}).Error(err)
+			err = tx.Rollback()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1581,
+				}).Error(err)
+			}
 			err = stmt.Close()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"reqid":  requestID,
+					"msgnum": 1581,
+				}).Error(err)
+				return err
+			}
 			return err
 		}
-		err = stmt.Close()
 
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reqid":  requestID,
+				"msgnum": 1581,
+			}).Error(err)
+
+			return err
+		}
+
+		err = stmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{
 				"reqid":  requestID,
