@@ -12,6 +12,14 @@ import (
 
 /* error message range: 3300-3999 */
 
+// For validation of Ubadge fields
+const (
+	UbadgeNameLenMin = 1
+	UbadgeNameLenMax = 50
+	UbadgeDescLenMin = 1
+	UbadgeDescLenMax = 1000
+)
+
 // Ubadge - Ubadge view representation
 type Ubadge struct {
 	ID    uint   `json:"id,omitempty"`

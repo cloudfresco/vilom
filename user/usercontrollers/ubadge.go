@@ -208,6 +208,13 @@ func (uc *UbadgeController) CreateUbadge(w http.ResponseWriter, r *http.Request,
 			common.RenderErrorJSON(w, "3002", err.Error(), 402, requestID)
 			return
 		}
+		v := common.NewValidator()
+		v.IsStrLenBetMinMax("Ubadge Name", form.UbadgeName, userservices.UbadgeNameLenMin, userservices.UbadgeNameLenMax)
+		v.IsStrLenBetMinMax("Ubadge Description", form.UbadgeDesc, userservices.UbadgeDescLenMin, userservices.UbadgeDescLenMax)
+		if v.IsValid() {
+			common.RenderErrorJSON(w, "3011", v.Error(), 402, requestID)
+			return
+		}
 		ubadge, err := uc.Service.CreateUbadge(ctx, &form, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{

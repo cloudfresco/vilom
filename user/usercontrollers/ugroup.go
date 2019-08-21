@@ -245,6 +245,13 @@ func (uc *UgroupController) CreateUgroup(w http.ResponseWriter, r *http.Request,
 			common.RenderErrorJSON(w, "2003", err.Error(), 402, requestID)
 			return
 		}
+		v := common.NewValidator()
+		v.IsStrLenBetMinMax("Ugroup Name", form.UgroupName, userservices.UgroupNameLenMin, userservices.UgroupNameLenMax)
+		v.IsStrLenBetMinMax("Ugroup Description", form.UgroupDesc, userservices.UgroupDescLenMin, userservices.UgroupDescLenMax)
+		if v.IsValid() {
+			common.RenderErrorJSON(w, "4012", v.Error(), 402, requestID)
+			return
+		}
 		ugroup, err := uc.Service.CreateUgroup(ctx, &form, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{

@@ -13,6 +13,14 @@ import (
 
 /* error message range: 4300-4999 */
 
+// For validation of category fields
+const (
+	CategoryNameLenMin = 1
+	CategoryNameLenMax = 50
+	CategoryDescLenMin = 1
+	CategoryDescLenMax = 1000
+)
+
 // Category - Category view representation
 type Category struct {
 	ID           uint   `json:"id,omitempty"`

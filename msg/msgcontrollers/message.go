@@ -161,6 +161,13 @@ func (mc *MessageController) CreateMessage(w http.ResponseWriter, r *http.Reques
 			common.RenderErrorJSON(w, "6001", err.Error(), 402, requestID)
 			return
 		}
+		v := common.NewValidator()
+		v.IsStrLenBetMinMax("Message", form.Mtext, msgservices.MtextLenMin, msgservices.MtextLenMax)
+		if v.IsValid() {
+			common.RenderErrorJSON(w, "6008", v.Error(), 402, requestID)
+			return
+		}
+
 		msg, err := mc.Service.CreateMessage(ctx, &form, user.UserID, true, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 6002}).Error(err)

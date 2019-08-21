@@ -13,6 +13,12 @@ import (
 
 /* error message range: 6300-6999 */
 
+// For validation of Message fields
+const (
+	MtextLenMin = 1
+	MtextLenMax = 50
+)
+
 // Message - Message view representation
 type Message struct {
 	ID    uint   `json:"id,omitempty"`

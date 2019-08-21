@@ -13,6 +13,14 @@ import (
 
 /* error message range: 5300-5999 */
 
+// For validation of Topic fields
+const (
+	TopicNameLenMin = 1
+	TopicNameLenMax = 50
+	TopicDescLenMin = 1
+	TopicDescLenMax = 1000
+)
+
 // Topic - Topic view representation
 type Topic struct {
 	ID    uint   `json:"id,omitempty"`

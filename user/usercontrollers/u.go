@@ -177,6 +177,16 @@ func (uc *UController) CreateUser(w http.ResponseWriter, r *http.Request, reques
 			common.RenderErrorJSON(w, "1103", err.Error(), 402, requestID)
 			return
 		}
+
+		v := common.NewValidator()
+		v.IsStrLenBetMinMax("First Name", form.FirstName, userservices.FirstNameLenMin, userservices.FirstNameLenMax)
+		v.IsStrLenBetMinMax("Last Name", form.LastName, userservices.LastNameLenMin, userservices.LastNameLenMax)
+		v.IsStrLenBetMinMax("Password", form.PasswordS, userservices.PasswordLenMin, userservices.PasswordLenMax)
+		v.IsEmail("Email", form.Email)
+		if v.IsValid() {
+			common.RenderErrorJSON(w, "1110", v.Error(), 402, requestID)
+			return
+		}
 		user, err := uc.Service.CreateUser(ctx, &form, r.Host, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{

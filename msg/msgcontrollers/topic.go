@@ -162,6 +162,13 @@ func (tc *TopicController) CreateTopic(w http.ResponseWriter, r *http.Request, u
 			common.RenderErrorJSON(w, "5001", err.Error(), 402, requestID)
 			return
 		}
+		v := common.NewValidator()
+		v.IsStrLenBetMinMax("Topic Name", form.TopicName, msgservices.TopicNameLenMin, msgservices.TopicNameLenMax)
+		v.IsStrLenBetMinMax("Topic Description", form.TopicDesc, msgservices.TopicDescLenMin, msgservices.TopicDescLenMax)
+		if v.IsValid() {
+			common.RenderErrorJSON(w, "5008", v.Error(), 402, requestID)
+			return
+		}
 		topic, err := tc.Service.CreateTopic(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5002}).Error(err)

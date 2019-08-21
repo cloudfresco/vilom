@@ -19,6 +19,16 @@ import (
 
 /* error message range: 1500-1999 */
 
+// For validation of user fields
+const (
+	FirstNameLenMin = 1
+	FirstNameLenMax = 100
+	LastNameLenMin  = 1
+	LastNameLenMax  = 100
+	PasswordLenMin  = 6
+	PasswordLenMax  = 50
+)
+
 // User - User view representation
 type User struct {
 	ID        uint   `json:"id,omitempty"`

@@ -206,6 +206,13 @@ func (cc *CategoryController) CreateCategory(w http.ResponseWriter, r *http.Requ
 			common.RenderErrorJSON(w, "4002", err.Error(), 402, requestID)
 			return
 		}
+		v := common.NewValidator()
+		v.IsStrLenBetMinMax("Category Name", form.CategoryName, msgservices.CategoryNameLenMin, msgservices.CategoryNameLenMax)
+		v.IsStrLenBetMinMax("Category Description", form.CategoryDesc, msgservices.CategoryDescLenMin, msgservices.CategoryDescLenMax)
+		if v.IsValid() {
+			common.RenderErrorJSON(w, "4012", v.Error(), 402, requestID)
+			return
+		}
 		cat, err := cc.Service.CreateCategory(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4003}).Error(err)

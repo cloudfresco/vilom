@@ -12,6 +12,14 @@ import (
 
 /* error message range: 2300-2999 */
 
+// For validation of Ugroup fields
+const (
+	UgroupNameLenMin = 1
+	UgroupNameLenMax = 50
+	UgroupDescLenMin = 1
+	UgroupDescLenMax = 1000
+)
+
 // Ugroup - Ugroup view representation
 type Ugroup struct {
 	ID    uint   `json:"id,omitempty"`
