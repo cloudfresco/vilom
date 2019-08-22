@@ -9,9 +9,24 @@ import (
 
 // ValidatorIntf interface for Validator
 type ValidatorIntf interface {
-	MustBeGreaterThan(high, value int) bool
-	MustBeBefore(high, value time.Time) bool
-	MustBeNotEmpty(fieldValue string) bool
+	IsGreaterThan(fieldName string, fieldValue, high int) bool
+	IsTimeBefore(fieldName string, fieldValue, max time.Time) bool
+	IsStrNotEmpty(fieldName string, fieldValue string) bool
+	IsInt64Negative(fieldName string, fieldValue int64) bool
+	IsInt64NonNegative(fieldName string, fieldValue int64) bool
+	IsInt64Positive(fieldName string, fieldValue int64) bool
+	IsInt64NonPositive(fieldName string, fieldValue int64) bool
+	IsEmail(fieldName string, fieldValue string) bool
+	IsDateFormat(fieldName string, fieldValue string) bool
+	IsPhoneNumber(fieldName string, fieldValue string) bool
+	IsUUID4(fieldName string, fieldValue string) bool
+	IsAlpha(fieldName string, fieldValue string) bool
+	IsAlphaNumeric(fieldName string, fieldValue string) bool
+	IsDigits(fieldName string, fieldValue string) bool
+	IsCreditCard(fieldName string, fieldValue string) bool
+	IsStrLenGtMin(fieldName string, fieldValue string, min int) bool
+	IsStrLenLtMax(fieldName string, fieldValue string, max int) bool
+	IsStrLenBetMinMax(fieldName string, fieldValue string, min int, max int) bool
 	IsValid() bool
 	Error() string
 }
@@ -27,9 +42,9 @@ func NewValidator() *Validator {
 	return &validator
 }
 
-// MustBeGreaterThan int comparison
-func (v *Validator) MustBeGreaterThan(fieldName string, fieldvalue, high int) bool {
-	if fieldvalue <= high {
+// IsGreaterThan int comparison
+func (v *Validator) IsGreaterThan(fieldName string, fieldValue, high int) bool {
+	if fieldValue <= high {
 		v.err = append(v.err, fmt.Errorf(fieldName+" Must be Greater than %d", high))
 		return false
 	}
@@ -37,8 +52,8 @@ func (v *Validator) MustBeGreaterThan(fieldName string, fieldvalue, high int) bo
 }
 
 // IsTimeBefore time comparison
-func (v *Validator) IsTimeBefore(fieldName string, fieldvalue, max time.Time) bool {
-	if fieldvalue.After(max) {
+func (v *Validator) IsTimeBefore(fieldName string, fieldValue, max time.Time) bool {
+	if fieldValue.After(max) {
 		v.err = append(v.err, fmt.Errorf(fieldName+"Must be Before than %v", max))
 		return false
 	}
@@ -55,8 +70,8 @@ func (v *Validator) IsStrNotEmpty(fieldName string, fieldValue string) bool {
 }
 
 // IsInt64Negative returns true if value < 0
-func (v *Validator) IsInt64Negative(fieldName string, fieldvalue int64) bool {
-	if fieldvalue > 0 {
+func (v *Validator) IsInt64Negative(fieldName string, fieldValue int64) bool {
+	if fieldValue > 0 {
 		v.err = append(v.err, fmt.Errorf(fieldName+" Must be Negative"))
 		return false
 	}
@@ -64,26 +79,26 @@ func (v *Validator) IsInt64Negative(fieldName string, fieldvalue int64) bool {
 }
 
 // IsInt64NonNegative returns true if value >= 0
-func (v *Validator) IsInt64NonNegative(fieldName string, fieldvalue int64) bool {
-	if fieldvalue <= 0 {
+func (v *Validator) IsInt64NonNegative(fieldName string, fieldValue int64) bool {
+	if fieldValue <= 0 {
 		v.err = append(v.err, fmt.Errorf(fieldName+" Must not be Negative"))
 		return false
 	}
 	return true
 }
 
-// IsPositive returns true if value > 0
-func (v *Validator) IsPositive(fieldName string, fieldvalue int64) bool {
-	if fieldvalue < 0 {
+// IsInt64Positive returns true if value > 0
+func (v *Validator) IsInt64Positive(fieldName string, fieldValue int64) bool {
+	if fieldValue < 0 {
 		v.err = append(v.err, fmt.Errorf(fieldName+" Must be Positive"))
 		return false
 	}
 	return true
 }
 
-// IsNonPositive returns true if value <= 0
-func (v *Validator) IsNonPositive(fieldName string, fieldvalue int64) bool {
-	if fieldvalue >= 0 {
+// IsInt64NonPositive returns true if value <= 0
+func (v *Validator) IsInt64NonPositive(fieldName string, fieldValue int64) bool {
+	if fieldValue >= 0 {
 		v.err = append(v.err, fmt.Errorf(fieldName+" Must not be Positive"))
 		return false
 	}
