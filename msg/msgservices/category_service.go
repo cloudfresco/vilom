@@ -63,8 +63,6 @@ type CategoryServiceIntf interface {
 	GetChildCategories(ctx context.Context, ID string, userEmail string, requestID string) ([]*Category, error)
 	GetParentCategory(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error)
 	UpdateCategory(ctx context.Context, ID string, form *Category, UserID string, userEmail string, requestID string) error
-	UpdateNumTopicsPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error)
-	UpdateNumTopics(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error
 	DeleteCategory(ctx context.Context, ID string, userEmail string, requestID string) error
 }
 
@@ -1370,57 +1368,6 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 			return err
 		}
 
-		return nil
-	}
-}
-
-// UpdateNumTopicsPrepare - UpdateNumTopics Prepare Statement
-func (c *CategoryService) UpdateNumTopicsPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4374}).Error(err)
-		return nil, err
-	default:
-		db := c.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `update categories set 
-    num_topics = ?,
-	  updated_at = ?, 
-		updated_day = ?, 
-		updated_week = ?, 
-		updated_month = ?, 
-		updated_year = ? where id = ? and statusc = ?;`)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5327}).Error(err)
-			return nil, err
-		}
-		return stmt, nil
-	}
-}
-
-// UpdateNumTopics - update number of topics in category
-func (c *CategoryService) UpdateNumTopics(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error {
-	select {
-	case <-ctx.Done():
-		err := errors.New("Client closed connection")
-		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4374}).Error(err)
-		return err
-	default:
-		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-
-		_, err := tx.StmtContext(ctx, stmt).Exec(
-			numTopics,
-			tn,
-			tnday,
-			tnweek,
-			tnmonth,
-			tnyear,
-			ID,
-			common.Active)
-		if err != nil {
-			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5328}).Error(err)
-			return err
-		}
 		return nil
 	}
 }
