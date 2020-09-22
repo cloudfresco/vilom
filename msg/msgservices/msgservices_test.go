@@ -13,12 +13,13 @@ var dbService *common.DBService
 var redisService *common.RedisService
 var serverOpt *common.ServerOptions
 var userOpt *common.UserOptions
+var roleOpt *common.RoleOptions
 var Layout string
 
 func TestMain(m *testing.M) {
 	var err error
 
-	dbService, redisService, serverOpt, userOpt, err = testhelpers.InitTest()
+	dbService, redisService, serverOpt, userOpt, roleOpt, err = testhelpers.InitTest()
 	if err != nil {
 		log.Fatal(err)
 	}

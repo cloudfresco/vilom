@@ -1,9 +1,11 @@
 package common
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha512"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -11,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	casbindb "github.com/Blank-Xu/sql-adapter"
+	"github.com/casbin/casbin/v2"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -168,34 +172,94 @@ func ValidatePasswdRecoveryToken(verifierBytes [64]byte, verifier string, tokenE
 
 }
 
-// CheckRoles - used for checking roles
-func CheckRoles(AllowedRoles []string, UserRoles []string) error {
-	for _, permission := range AllowedRoles {
-		if err := checkRoles(UserRoles, permission); err != nil {
+// LoadEnforcer - used for checking roles
+func LoadEnforcer(dbOpt *DBService, roleOpt *RoleOptions) (*casbin.Enforcer, error) {
+	e := &casbin.Enforcer{}
+	if dbOpt.DBType == DBMysql {
+		// Initialize an adapter and use it in a Casbin enforcer:
+		casbinMysql, err := casbindb.NewAdapter(dbOpt.DB, DBMysql, roleOpt.RolesTableName)
+		if err != nil {
 			log.WithFields(log.Fields{
-				"msgnum": 267,
+				"msgnum": 268,
 			}).Error(err)
-			return err
+			return nil, err
 		}
-		break
-	}
-	return nil
-}
 
-func checkRoles(roles []string, role string) error {
-	if roles == nil {
-		return errors.New("No user supplied")
-	}
-
-	if role == "" {
-		return errors.New("You must supply a valid permission to check against")
-	}
-
-	for _, roleName := range roles {
-		if role == roleName {
-			return nil
+		ctx := context.Background()
+		tx, err := dbOpt.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 269,
+			}).Error(err)
+			return nil, err
 		}
-	}
 
-	return errors.New("User not authorized")
+		_, err = tx.ExecContext(ctx, `truncate `+roleOpt.RolesTableName+``)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 270,
+			}).Error(err)
+			return nil, err
+		}
+		for _, r := range roleOpt.Roles {
+			stmt, err := tx.Prepare(`insert into ` + roleOpt.RolesTableName + `
+					(p_type,
+					v0,
+					v1,
+					v2,
+					v3,
+					v4,
+					v5)
+				values (?,?,?,?,?,?,?);`)
+
+			if err != nil {
+				log.WithFields(log.Fields{
+					"msgnum": 271,
+				}).Error(err)
+				return nil, err
+			}
+			_, err = stmt.Exec(
+				r.PType,
+				r.V0,
+				r.V1,
+				r.V2,
+				r.V3,
+				r.V4,
+				r.V5)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"msgnum": 272,
+				}).Error(err)
+				return nil, err
+			}
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 273,
+			}).Error(err)
+			return nil, err
+		}
+		// Load policy from file
+
+		e, err = casbin.NewEnforcer(roleOpt.RolesPolicyConfigPath, casbinMysql)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 274,
+			}).Error(err)
+			return nil, err
+		}
+
+		// Load the policy from DB.
+		if err = e.LoadPolicy(); err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 275,
+			}).Error(err)
+			return nil, err
+		}
+	} else if dbOpt.DBType == DBPgsql {
+
+	}
+	return e, nil
 }

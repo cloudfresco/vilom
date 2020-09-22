@@ -3,6 +3,7 @@ package testhelpers
 import (
 	"context"
 	"database/sql"
+	"github.com/casbin/casbin/v2"
 	"github.com/cloudfresco/vilom/common"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -48,7 +49,7 @@ func getTestJWTConfig(v *viper.Viper) (*common.JWTOptions, error) {
 	return &jwtOpt, nil
 }
 
-func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.ServerOptions, *common.UserOptions, *common.LogOptions) {
+func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.ServerOptions, *common.UserOptions, *common.LogOptions, *common.RoleOptions) {
 
 	v, err := common.GetViper()
 	if err != nil {
@@ -80,13 +81,18 @@ func getTestConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.Server
 		log.Fatal(err)
 	}
 
-	return dbOpt, redisOpt, serverOpt, userOpt, logOpt
+	roleOpt, err := common.GetRoleConfig(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return dbOpt, redisOpt, serverOpt, userOpt, logOpt, roleOpt
 }
 
 // InitTest - used for initialization of the test DB etc.
-func InitTest() (*common.DBService, *common.RedisService, *common.ServerOptions, *common.UserOptions, error) {
+func InitTest() (*common.DBService, *common.RedisService, *common.ServerOptions, *common.UserOptions, *common.RoleOptions, error) {
 
-	dbOpt, redisOpt, serverOpt, userOpt, logOpt := getTestConfigOpt()
+	dbOpt, redisOpt, serverOpt, userOpt, logOpt, roleOpt := getTestConfigOpt()
 
 	common.SetUpLogging(logOpt)
 
@@ -100,11 +106,11 @@ func InitTest() (*common.DBService, *common.RedisService, *common.ServerOptions,
 		log.Fatal(err)
 	}
 
-	return dbService, redisService, serverOpt, userOpt, nil
+	return dbService, redisService, serverOpt, userOpt, roleOpt, nil
 
 }
 
-func getTestConfigOptController() (*common.DBOptions, *common.RedisOptions, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *common.LogOptions) {
+func getTestConfigOptController() (*common.DBOptions, *common.RedisOptions, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *common.LogOptions, *common.RoleOptions) {
 
 	v, err := common.GetViper()
 	if err != nil {
@@ -151,13 +157,18 @@ func getTestConfigOptController() (*common.DBOptions, *common.RedisOptions, *com
 		log.Fatal(err)
 	}
 
-	return dbOpt, redisOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt
+	roleOpt, err := common.GetRoleConfig(v)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return dbOpt, redisOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt, roleOpt
 }
 
 // InitTestController - used for initialization of the test controllers
-func InitTestController() (*common.DBService, *common.RedisService, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, error) {
+func InitTestController() (*common.DBService, *common.RedisService, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *casbin.Enforcer, error) {
 
-	dbOpt, redisOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt := getTestConfigOptController()
+	dbOpt, redisOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt, roleOpt := getTestConfigOptController()
 
 	common.SetUpLogging(logOpt)
 	common.SetJWTOpt(jwtOpt)
@@ -172,7 +183,12 @@ func InitTestController() (*common.DBService, *common.RedisService, *common.Serv
 		log.Fatal(err)
 	}
 
-	return dbService, redisService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, nil
+	authEnforcer, err := common.LoadEnforcer(dbService, roleOpt)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return dbService, redisService, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, authEnforcer, nil
 
 }
 

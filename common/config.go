@@ -99,6 +99,24 @@ type LogOptions struct {
 	Level string `mapstructure:"log_level"`
 }
 
+// RoleOptions - for Role
+type RoleOptions struct {
+	Roles                 []Role `mapstructure:"roles"`
+	RolesPolicyConfigPath string
+	RolesTableName        string `mapstructure:"roles_table"`
+}
+
+// Role -  for user roles
+type Role struct {
+	PType string `mapstructure:"ptype"`
+	V0    string `mapstructure:"v0"`
+	V1    string `mapstructure:"v1"`
+	V2    string `mapstructure:"v2"`
+	V3    string `mapstructure:"v3"`
+	V4    string `mapstructure:"v4"`
+	V5    string `mapstructure:"v5"`
+}
+
 // GetDbConfig -- read DB config options
 func GetDbConfig(v *viper.Viper) (*DBOptions, error) {
 	var LimitSQLRows string
@@ -216,6 +234,19 @@ func GetLogConfig(v *viper.Viper) (*LogOptions, error) {
 	logOpt.Path = v.GetString("VILOM_LOG_FILE_PATH")
 	logOpt.Level = v.GetString("VILOM_LOG_LEVEL")
 	return &logOpt, nil
+}
+
+// GetRoleConfig -- read Roles config options
+func GetRoleConfig(v *viper.Viper) (*RoleOptions, error) {
+	roleOpt := RoleOptions{}
+	if err := v.Unmarshal(&roleOpt); err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 751,
+		}).Error(err)
+		return nil, err
+	}
+	roleOpt.RolesPolicyConfigPath = v.GetString("VILOM_ROLES_POLICY_CONFIG_PATH")
+	return &roleOpt, nil
 }
 
 // GetViper -- init viper

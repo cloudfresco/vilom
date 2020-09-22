@@ -13,7 +13,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/throttled/throttled/store/goredisstore"
+	"github.com/throttled/throttled/v2/store/goredisstore"
 
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
@@ -27,7 +27,7 @@ import (
 
 /* error message range: 100-249 */
 
-func getConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.MailerOptions, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *common.LogOptions) {
+func getConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.MailerOptions, *common.ServerOptions, *common.RateOptions, *common.JWTOptions, *common.OauthOptions, *common.UserOptions, *common.RoleOptions, *common.LogOptions) {
 
 	v, err := common.GetViper()
 	if err != nil {
@@ -109,7 +109,15 @@ func getConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.MailerOpti
 		os.Exit(1)
 	}
 
-	return dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, logOpt
+	roleOpt, err := common.GetRoleConfig(v)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 103,
+		}).Error(err)
+		os.Exit(1)
+	}
+
+	return dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, oauthOpt, userOpt, roleOpt, logOpt
 }
 
 func getKeys(caCertPath string, certPath string, keyPath string) *tls.Config {
@@ -145,7 +153,7 @@ func getKeys(caCertPath string, certPath string, keyPath string) *tls.Config {
 func main() {
 	var err error
 
-	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, _, userOpt, logOpt := getConfigOpt()
+	dbOpt, redisOpt, mailerOpt, serverOpt, rateOpt, jwtOpt, _, userOpt, roleOpt, logOpt := getConfigOpt()
 
 	common.SetUpLogging(logOpt)
 	common.SetJWTOpt(jwtOpt)
@@ -184,7 +192,16 @@ func main() {
 
 	searchIndex := searchservices.InitSearch("", dbService.DB)
 
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
+	/*authEnforcer, err := casbin.NewEnforcer("./auth_model.conf", "./policy.csv")
+		if err != nil {
+				log.WithFields(log.Fields{
+				"msgnum": 755,
+			}).Error(err)
+	    os.Exit(1)
+		}*/
+	authEnforcer, err := common.LoadEnforcer(dbService, roleOpt)
+
+	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt, authEnforcer)
 	ugroupService := userservices.NewUgroupService(dbService, redisService)
 	ubadgeService := userservices.NewUbadgeService(dbService, redisService)
 

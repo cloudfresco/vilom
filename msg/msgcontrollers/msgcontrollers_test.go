@@ -10,13 +10,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/casbin/casbin/v2"
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
 	"github.com/cloudfresco/vilom/testhelpers"
 	"github.com/cloudfresco/vilom/user/usercontrollers"
 	"github.com/cloudfresco/vilom/user/userservices"
 
-	"github.com/throttled/throttled/store/goredisstore"
+	"github.com/throttled/throttled/v2/store/goredisstore"
 )
 
 var dbService *common.DBService
@@ -28,11 +29,12 @@ var jwtOpt *common.JWTOptions
 var userOpt *common.UserOptions
 var Layout string
 var mux *http.ServeMux
+var authEnforcer *casbin.Enforcer
 
 func TestMain(m *testing.M) {
 	var err error
 
-	dbService, redisService, serverOpt, rateOpt, jwtOpt, _, userOpt, err = testhelpers.InitTestController()
+	dbService, redisService, serverOpt, rateOpt, jwtOpt, _, userOpt, authEnforcer, err = testhelpers.InitTestController()
 	if err != nil {
 		log.Println(err)
 		return
@@ -42,7 +44,7 @@ func TestMain(m *testing.M) {
 	catService := msgservices.NewCategoryService(dbService, redisService)
 	topicService := msgservices.NewTopicService(dbService, redisService)
 	msgService := msgservices.NewMessageService(dbService, redisService)
-	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt)
+	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt, authEnforcer)
 	ugroupService := userservices.NewUgroupService(dbService, redisService)
 	ubadgeService := userservices.NewUbadgeService(dbService, redisService)
 	store, err := goredisstore.New(redisService.RedisClient, "throttled:")

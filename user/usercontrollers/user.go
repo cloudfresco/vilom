@@ -136,18 +136,6 @@ func (uc *UserController) processDelete(w http.ResponseWriter, r *http.Request, 
 
 // GetUsers - Get Users
 func (uc *UserController) GetUsers(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
-	AllowedRoles := []string{"co_admin"}
-	err := common.CheckRoles(AllowedRoles, user.Roles)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"user":   user.Email,
-			"reqid":  requestID,
-			"msgnum": 1300,
-		}).Error(err)
-		common.RenderErrorJSON(w, "1300", "You are Not Authorised", 402, requestID)
-		return
-	}
-
 	ctx := r.Context()
 
 	select {
@@ -171,18 +159,6 @@ func (uc *UserController) GetUsers(w http.ResponseWriter, r *http.Request, limit
 
 // GetUser - Get User Details
 func (uc *UserController) GetUser(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
-	AllowedRoles := []string{"co_admin"}
-	err := common.CheckRoles(AllowedRoles, user.Roles)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"user":   user.Email,
-			"reqid":  requestID,
-			"msgnum": 1302,
-		}).Error(err)
-		common.RenderErrorJSON(w, "1302", "You are Not Authorised", 402, requestID)
-		return
-	}
-
 	ctx := r.Context()
 
 	select {

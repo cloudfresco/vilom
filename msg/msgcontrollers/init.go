@@ -6,7 +6,7 @@ import (
 	"github.com/cloudfresco/vilom/common"
 	"github.com/cloudfresco/vilom/msg/msgservices"
 	"github.com/cloudfresco/vilom/user/userservices"
-	"github.com/throttled/throttled/store/goredisstore"
+	"github.com/throttled/throttled/v2/store/goredisstore"
 )
 
 // Init the msg controllers

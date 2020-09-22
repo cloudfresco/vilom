@@ -3,7 +3,7 @@ package common
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/throttled/throttled"
-	"github.com/throttled/throttled/store/goredisstore"
+	"github.com/throttled/throttled/v2/store/goredisstore"
 )
 
 // GetHTTPRateLimiter - Get HTTP Rate Limiter

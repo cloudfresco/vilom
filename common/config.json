@@ -21,5 +21,35 @@
   "user_options": {
 		"confirm_token_duration": "296h",
 		"reset_token_duration": "296h"
-  }
+  },
+  "roles_table": "casbin_rules",
+	"roles": [
+		{
+			"ptype": "p",
+			"v0": "co_admin",
+			"v1": "/v0.1/categories",
+			"v2": "GET",
+			"v3": "",
+			"v4": "",
+			"v5": ""
+		},
+		{
+			"ptype": "p",
+			"v0": "co_admin",
+			"v1": "/v0.1/categories/topcats",
+			"v2": "GET",
+			"v3": "",
+			"v4": "",
+			"v5": ""
+		},
+		{
+			"ptype": "p",
+			"v0": "co_admin",
+			"v1": "/v0.1/topics/topicbyname",
+			"v2": "POST",
+			"v3": "",
+			"v4": "",
+			"v5": ""
+		}
+	]
 }

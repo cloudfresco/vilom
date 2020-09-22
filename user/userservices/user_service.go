@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/casbin/casbin/v2"
 	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -134,16 +135,18 @@ type UserService struct {
 	MailerService *common.MailerService
 	JWTOptions    *common.JWTOptions
 	UserOptions   *common.UserOptions
+	Enforcer      *casbin.Enforcer
 }
 
 // NewUserService - Create User Service
-func NewUserService(dbOpt *common.DBService, redisOpt *common.RedisService, mailerOpt *common.MailerService, jwtOptions *common.JWTOptions, userOpt *common.UserOptions) *UserService {
+func NewUserService(dbOpt *common.DBService, redisOpt *common.RedisService, mailerOpt *common.MailerService, jwtOptions *common.JWTOptions, userOpt *common.UserOptions, e *casbin.Enforcer) *UserService {
 	return &UserService{
 		DBService:     dbOpt,
 		RedisService:  redisOpt,
 		MailerService: mailerOpt,
 		JWTOptions:    jwtOptions,
 		UserOptions:   userOpt,
+		Enforcer:      e,
 	}
 }
 
@@ -1983,5 +1986,43 @@ func (u *UserService) GetAuthUserDetails(r *http.Request) (*common.ContextData, 
 			}).Error(err)
 		}
 	}
+	err = u.CheckRoles(r, v.Roles)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"msgnum": 266,
+		}).Error(err)
+		return nil, "", err
+	}
 	return &v, common.GetRequestID(), nil
+}
+
+// CheckRoles - used for checking roles
+func (u *UserService) CheckRoles(r *http.Request, roles []string) error {
+	isRole := false
+	for _, role := range roles {
+		if role == "" {
+			role = "anonymous"
+		}
+		res, err := u.Enforcer.Enforce(role, r.URL.Path, r.Method)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"msgnum": 267,
+			}).Error(err)
+			return err
+		}
+		if res {
+			//user is authorised
+			isRole = true
+			return nil
+		}
+	}
+
+	if !isRole {
+		err := errors.New("Unauthorised")
+		log.WithFields(log.Fields{
+			"msgnum": 263,
+		}).Error(err)
+		return err
+	}
+	return nil
 }
