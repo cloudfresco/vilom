@@ -29,10 +29,10 @@ type Message struct {
 	NumUpvotes   uint `json:"num_upvotes,omitempty"`
 	NumDownvotes uint `json:"num_downvotes,omitempty"`
 
-	CategoryID uint `json:"category_id,omitempty"`
-	TopicID    uint `json:"topic_id,omitempty"`
-	UserID     uint `json:"user_id,omitempty"`
-	UgroupID   uint `json:"ugroup_id,omitempty"`
+	WorkspaceID uint `json:"workspace_id,omitempty"`
+	ChannelID   uint `json:"channel_id,omitempty"`
+	UserID      uint `json:"user_id,omitempty"`
+	UgroupID    uint `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 
@@ -46,28 +46,28 @@ type Message struct {
 
 // MessageText - MessageText view representation
 type MessageText struct {
-	ID         uint   `json:"id,omitempty"`
-	UUID4      []byte `json:"-"`
-	Mtext      string `json:"mtext,omitempty"`
-	CategoryID uint   `json:"category_id,omitempty"`
-	TopicID    uint   `json:"topic_id,omitempty"`
-	MessageID  uint   `json:"message_id,omitempty"`
-	UserID     uint   `json:"user_id,omitempty"`
-	UgroupID   uint   `json:"ugroup_id,omitempty"`
+	ID          uint   `json:"id,omitempty"`
+	UUID4       []byte `json:"-"`
+	Mtext       string `json:"mtext,omitempty"`
+	WorkspaceID uint   `json:"workspace_id,omitempty"`
+	ChannelID   uint   `json:"channel_id,omitempty"`
+	MessageID   uint   `json:"message_id,omitempty"`
+	UserID      uint   `json:"user_id,omitempty"`
+	UgroupID    uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
 
 // MessageAttachment - MessageAttachment view representation
 type MessageAttachment struct {
-	ID         uint   `json:"id,omitempty"`
-	UUID4      []byte `json:"-"`
-	Mattach    string `json:"mattach,omitempty"`
-	CategoryID uint   `json:"category_id,omitempty"`
-	TopicID    uint   `json:"topic_id,omitempty"`
-	MessageID  uint   `json:"message_id,omitempty"`
-	UserID     uint   `json:"user_id,omitempty"`
-	UgroupID   uint   `json:"ugroup_id,omitempty"`
+	ID          uint   `json:"id,omitempty"`
+	UUID4       []byte `json:"-"`
+	Mattach     string `json:"mattach,omitempty"`
+	WorkspaceID uint   `json:"workspace_id,omitempty"`
+	ChannelID   uint   `json:"channel_id,omitempty"`
+	MessageID   uint   `json:"message_id,omitempty"`
+	UserID      uint   `json:"user_id,omitempty"`
+	UgroupID    uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
@@ -76,7 +76,7 @@ type MessageAttachment struct {
 type UserReply struct {
 	ID        uint   `json:"id,omitempty"`
 	UUID4     []byte `json:"-"`
-	TopicID   uint   `json:"topic_id,omitempty"`
+	ChannelID uint   `json:"channel_id,omitempty"`
 	MessageID uint   `json:"message_id,omitempty"`
 	UserID    uint   `json:"user_id,omitempty"`
 	UgroupID  uint   `json:"ugroup_id,omitempty"`
@@ -88,7 +88,7 @@ type UserReply struct {
 type UserLike struct {
 	ID        uint   `json:"id,omitempty"`
 	UUID4     []byte `json:"-"`
-	TopicID   uint   `json:"topic_id,omitempty"`
+	ChannelID uint   `json:"channel_id,omitempty"`
 	MessageID uint   `json:"message_id,omitempty"`
 	UserID    uint   `json:"user_id,omitempty"`
 	UgroupID  uint   `json:"ugroup_id,omitempty"`
@@ -101,7 +101,7 @@ type UserVote struct {
 	ID        uint   `json:"id,omitempty"`
 	UUID4     []byte `json:"-"`
 	Vote      uint   `json:"vote,omitempty"`
-	TopicID   uint   `json:"topic_id,omitempty"`
+	ChannelID uint   `json:"channel_id,omitempty"`
 	MessageID uint   `json:"message_id,omitempty"`
 	UserID    uint   `json:"user_id,omitempty"`
 	UgroupID  uint   `json:"ugroup_id,omitempty"`
@@ -297,8 +297,8 @@ func (m *MessageService) createMessage(ctx context.Context, stmt *sql.Stmt, inse
 		msg.NumLikes = uint(0)
 		msg.NumUpvotes = uint(0)
 		msg.NumDownvotes = uint(0)
-		msg.CategoryID = form.CategoryID
-		msg.TopicID = form.TopicID
+		msg.WorkspaceID = form.WorkspaceID
+		msg.ChannelID = form.ChannelID
 		msg.UserID = user.ID
 		msg.UgroupID = form.UgroupID
 		msg.Statusc = common.Active
@@ -335,22 +335,22 @@ func (m *MessageService) createMessage(ctx context.Context, stmt *sql.Stmt, inse
 			}
 			msg.MessageAttachments = append(msg.MessageAttachments, msgattach)
 		}
-		topicserv := &TopicService{DBService: m.DBService, RedisService: m.RedisService}
-		topic, err := topicserv.GetTopicByID(ctx, form.TopicID, userEmail, requestID)
+		channelserv := &ChannelService{DBService: m.DBService, RedisService: m.RedisService}
+		channel, err := channelserv.GetChannelByID(ctx, form.ChannelID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6328}).Error(err)
 			return nil, err
 		}
 
-		numMessages := topic.NumMessages + 1
-		err = m.updateNumMessages(ctx, updateNumMessagesStmt, tx, numMessages, topic.ID, userEmail, requestID)
+		numMessages := channel.NumMessages + 1
+		err = m.updateNumMessages(ctx, updateNumMessagesStmt, tx, numMessages, channel.ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6329}).Error(err)
 			return nil, err
 		}
 
 		if rplymsg {
-			err = m.createUserReply(ctx, insertUserReplyStmt, tx, form.TopicID, msg.ID, user.ID, form.UgroupID, userEmail, requestID)
+			err = m.createUserReply(ctx, insertUserReplyStmt, tx, form.ChannelID, msg.ID, user.ID, form.UgroupID, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6330}).Error(err)
 				err = tx.Rollback()
@@ -377,8 +377,8 @@ func (m *MessageService) insertMessagePrepare(ctx context.Context, userEmail str
 			num_likes,
 			num_upvotes,
 			num_downvotes,
-			category_id,
-			topic_id,
+			workspace_id,
+			channel_id,
 			user_id,
 			ugroup_id,
 			statusc,
@@ -416,8 +416,8 @@ func (m *MessageService) insertMessage(ctx context.Context, stmt *sql.Stmt, tx *
 			msg.NumLikes,
 			msg.NumUpvotes,
 			msg.NumDownvotes,
-			msg.CategoryID,
-			msg.TopicID,
+			msg.WorkspaceID,
+			msg.ChannelID,
 			msg.UserID,
 			msg.UgroupID,
 			msg.Statusc,
@@ -469,8 +469,8 @@ func (m *MessageService) createMessageText(ctx context.Context, stmt *sql.Stmt, 
 		msgtxt := MessageText{}
 		msgtxt.UUID4 = uuid4
 		msgtxt.Mtext = form.Mtext
-		msgtxt.CategoryID = form.CategoryID
-		msgtxt.TopicID = form.TopicID
+		msgtxt.WorkspaceID = form.WorkspaceID
+		msgtxt.ChannelID = form.ChannelID
 		msgtxt.MessageID = messageID
 		msgtxt.UserID = userID
 		msgtxt.UgroupID = form.UgroupID
@@ -509,8 +509,8 @@ func (m *MessageService) insertMessageTextPrepare(ctx context.Context, userEmail
 	  ( 
       uuid4,
 			mtext,
-			category_id,
-			topic_id,
+			workspace_id,
+			channel_id,
 			message_id,
 			ugroup_id,
 			user_id,
@@ -546,8 +546,8 @@ func (m *MessageService) insertMessageText(ctx context.Context, stmt *sql.Stmt, 
 		res, err := tx.StmtContext(ctx, stmt).Exec(
 			msgtxt.UUID4,
 			msgtxt.Mtext,
-			msgtxt.CategoryID,
-			msgtxt.TopicID,
+			msgtxt.WorkspaceID,
+			msgtxt.ChannelID,
 			msgtxt.MessageID,
 			msgtxt.UgroupID,
 			msgtxt.UserID,
@@ -595,8 +595,8 @@ func (m *MessageService) createMessageAttachment(ctx context.Context, stmt *sql.
 		}
 		msgath.UUID4 = uuid4
 		msgath.Mattach = form.Mattach
-		msgath.CategoryID = form.CategoryID
-		msgath.TopicID = form.TopicID
+		msgath.WorkspaceID = form.WorkspaceID
+		msgath.ChannelID = form.ChannelID
 		msgath.MessageID = messageID
 		msgath.UserID = userID
 		msgath.UgroupID = form.UgroupID
@@ -636,8 +636,8 @@ func (m *MessageService) insertMessageAttachmentPrepare(ctx context.Context, use
 	  ( 
       uuid4,
 			mattach,
-			category_id,
-			topic_id,
+			workspace_id,
+			channel_id,
 			message_id,
 			ugroup_id,
 			user_id,
@@ -673,8 +673,8 @@ func (m *MessageService) insertMessageAttachment(ctx context.Context, stmt *sql.
 		res, err := tx.StmtContext(ctx, stmt).Exec(
 			msgath.UUID4,
 			msgath.Mattach,
-			msgath.CategoryID,
-			msgath.TopicID,
+			msgath.WorkspaceID,
+			msgath.ChannelID,
 			msgath.MessageID,
 			msgath.UgroupID,
 			msgath.UserID,
@@ -705,7 +705,7 @@ func (m *MessageService) insertMessageAttachment(ctx context.Context, stmt *sql.
 }
 
 // createUserReply - create user reply
-func (m *MessageService) createUserReply(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, topicID uint, messageID uint, userID uint, ugroupID uint, userEmail string, requestID string) error {
+func (m *MessageService) createUserReply(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, channelID uint, messageID uint, userID uint, ugroupID uint, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -721,7 +721,7 @@ func (m *MessageService) createUserReply(ctx context.Context, stmt *sql.Stmt, tx
 			return err
 		}
 		ur.UUID4 = uuid4
-		ur.TopicID = topicID
+		ur.ChannelID = channelID
 		ur.MessageID = messageID
 		ur.UserID = userID
 		ur.UgroupID = ugroupID
@@ -758,7 +758,7 @@ func (m *MessageService) updateNumMessagesPrepare(ctx context.Context, userEmail
 		return nil, err
 	default:
 		db := m.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `update topics set 
+		stmt, err := db.PrepareContext(ctx, `update channels set 
 		  num_messages = ?,
 			updated_at = ?, 
 			updated_day = ?, 
@@ -773,7 +773,7 @@ func (m *MessageService) updateNumMessagesPrepare(ctx context.Context, userEmail
 	}
 }
 
-// updateNumMessages - update number of messages in topics
+// updateNumMessages - update number of messages in channels
 func (m *MessageService) updateNumMessages(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numMessages uint, ID uint, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
@@ -811,7 +811,7 @@ func (m *MessageService) insertUserReplyPrepare(ctx context.Context, userEmail s
 		stmt, err := db.PrepareContext(ctx, `insert into user_replies
 	  ( 
       uuid4,
-			topic_id,
+			channel_id,
 			message_id,
 			user_id,
 			ugroup_id,
@@ -846,7 +846,7 @@ func (m *MessageService) insertUserReply(ctx context.Context, stmt *sql.Stmt, tx
 	default:
 		res, err := tx.StmtContext(ctx, stmt).Exec(
 			ur.UUID4,
-			ur.TopicID,
+			ur.ChannelID,
 			ur.MessageID,
 			ur.UserID,
 			ur.UgroupID,
@@ -906,7 +906,7 @@ func (m *MessageService) CreateUserLike(ctx context.Context, form *UserLike, Use
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6364}).Error(err)
 			return nil, err
 		}
-		ul.TopicID = form.TopicID
+		ul.ChannelID = form.ChannelID
 		ul.MessageID = form.MessageID
 		ul.UgroupID = form.UgroupID
 		ul.UserID = user.ID
@@ -972,7 +972,7 @@ func (m *MessageService) insertUserLikePrepare(ctx context.Context, userEmail st
 		stmt, err := db.PrepareContext(ctx, `insert into user_likes
 	  ( 
       uuid4,
-			topic_id,
+			channel_id,
 			message_id,
 			ugroup_id,
 			user_id,
@@ -1007,7 +1007,7 @@ func (m *MessageService) insertUserLike(ctx context.Context, stmt *sql.Stmt, tx 
 	default:
 		res, err := tx.StmtContext(ctx, stmt).Exec(
 			ur.UUID4,
-			ur.TopicID,
+			ur.ChannelID,
 			ur.MessageID,
 			ur.UgroupID,
 			ur.UserID,
@@ -1083,7 +1083,7 @@ func (m *MessageService) CreateUserVote(ctx context.Context, form *UserVote, Use
 			}
 			return nil, err
 		}
-		ul.TopicID = form.TopicID
+		ul.ChannelID = form.ChannelID
 		ul.MessageID = form.MessageID
 		ul.UgroupID = form.UgroupID
 		ul.UserID = user.ID
@@ -1149,7 +1149,7 @@ func (m *MessageService) insertUserVotePrepare(ctx context.Context, userEmail st
 		stmt, err := db.PrepareContext(ctx, `insert into user_votes
 	  ( 
       uuid4,
-			topic_id,
+			channel_id,
 			message_id,
 			vote,
 			ugroup_id,
@@ -1186,7 +1186,7 @@ func (m *MessageService) insertUserVote(ctx context.Context, stmt *sql.Stmt, tx 
 	default:
 		res, err := tx.StmtContext(ctx, stmt).Exec(
 			ur.UUID4,
-			ur.TopicID,
+			ur.ChannelID,
 			ur.MessageID,
 			ur.Vote,
 			ur.UgroupID,
@@ -1239,8 +1239,8 @@ func (m *MessageService) GetMessage(ctx context.Context, ID string, userEmail st
 			num_likes,
 			num_upvotes,
 			num_downvotes,
-			category_id,
-			topic_id,
+			workspace_id,
+			channel_id,
 			user_id,
 			ugroup_id,
 			statusc,
@@ -1261,8 +1261,8 @@ func (m *MessageService) GetMessage(ctx context.Context, ID string, userEmail st
 			&msg.NumLikes,
 			&msg.NumUpvotes,
 			&msg.NumDownvotes,
-			&msg.CategoryID,
-			&msg.TopicID,
+			&msg.WorkspaceID,
+			&msg.ChannelID,
 			&msg.UserID,
 			&msg.UgroupID,
 			/*  StatusDates  */
@@ -1380,8 +1380,8 @@ func (m *MessageService) GetMessagesTexts(ctx context.Context, messageID uint, u
         id,
         uuid4,
 				mtext,
-				category_id,
-				topic_id,
+				workspace_id,
+				channel_id,
 				message_id,
 				ugroup_id,
 				user_id,
@@ -1407,8 +1407,8 @@ func (m *MessageService) GetMessagesTexts(ctx context.Context, messageID uint, u
 			&msgtxt.ID,
 			&msgtxt.UUID4,
 			&msgtxt.Mtext,
-			&msgtxt.CategoryID,
-			&msgtxt.TopicID,
+			&msgtxt.WorkspaceID,
+			&msgtxt.ChannelID,
 			&msgtxt.MessageID,
 			&msgtxt.UgroupID,
 			&msgtxt.UserID,
@@ -1448,8 +1448,8 @@ func (m *MessageService) GetMessageAttachments(ctx context.Context, messageID ui
         id,
         uuid4,
 				mattach,
-				category_id,
-				topic_id,
+				workspace_id,
+				channel_id,
 				message_id,
 				ugroup_id,
 				user_id,
@@ -1474,8 +1474,8 @@ func (m *MessageService) GetMessageAttachments(ctx context.Context, messageID ui
 			&msgath.ID,
 			&msgath.UUID4,
 			&msgath.Mattach,
-			&msgath.CategoryID,
-			&msgath.TopicID,
+			&msgath.WorkspaceID,
+			&msgath.ChannelID,
 			&msgath.MessageID,
 			&msgath.UgroupID,
 			&msgath.UserID,

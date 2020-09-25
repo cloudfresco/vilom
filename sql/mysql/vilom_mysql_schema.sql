@@ -1,18 +1,27 @@
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `categories` (
+CREATE TABLE `channels` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
-  `category_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `category_desc` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `channel_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `channel_desc` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `num_tags` int(10) unsigned DEFAULT NULL,
+  `tag1` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag2` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag3` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag4` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag5` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag6` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag7` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag8` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag9` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tag10` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `num_views` int(10) unsigned DEFAULT 0,
-  `num_topics` int(10) unsigned DEFAULT 0,
-  `levelc` tinyint(4) DEFAULT NULL,
-  `parent_id` int(10) unsigned DEFAULT NULL,
-  `num_chd` smallint(6) DEFAULT NULL,
+  `num_messages` int(10) unsigned DEFAULT 0,
+  `workspace_id` int(10) unsigned DEFAULT NULL,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
   `statusc` tinyint(3) unsigned DEFAULT NULL,
@@ -25,19 +34,22 @@ CREATE TABLE `categories` (
   `updated_month` tinyint(3) unsigned DEFAULT NULL,
   `updated_year` smallint(5) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_categories_deleted_at` (`deleted_at`)
+  KEY `idx_channels_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `category_chds` (
+CREATE TABLE `channels_users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
-  `category_id` int(10) unsigned DEFAULT NULL,
-  `category_chd_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
+  `num_messages` int(10) unsigned DEFAULT 0,
+  `num_views` int(10) unsigned DEFAULT 0,
+  `ugroup_id` int(10) unsigned DEFAULT 0,
+  `user_id` int(10) unsigned DEFAULT NULL,
   `statusc` tinyint(3) unsigned DEFAULT NULL,
   `created_day` smallint(5) unsigned DEFAULT NULL,
   `created_week` tinyint(3) unsigned DEFAULT NULL,
@@ -48,7 +60,7 @@ CREATE TABLE `category_chds` (
   `updated_month` tinyint(3) unsigned DEFAULT NULL,
   `updated_year` smallint(5) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_category_chds_deleted_at` (`deleted_at`)
+  KEY `idx_channels_users_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -65,8 +77,8 @@ CREATE TABLE `mdrafts` (
   `mattach3` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `mattach4` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `mattach5` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `category_id` int(10) unsigned DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `workspace_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
   `statusc` tinyint(3) unsigned DEFAULT NULL,
@@ -91,8 +103,8 @@ CREATE TABLE `message_attachments` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
   `mattach` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `category_id` int(10) unsigned DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `workspace_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `message_id` int(10) unsigned DEFAULT NULL,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
@@ -118,8 +130,8 @@ CREATE TABLE `message_texts` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
   `mtext` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `category_id` int(10) unsigned DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `workspace_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `message_id` int(10) unsigned DEFAULT NULL,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
@@ -147,8 +159,8 @@ CREATE TABLE `messages` (
   `num_likes` int(10) unsigned DEFAULT NULL,
   `num_upvotes` int(10) unsigned DEFAULT NULL,
   `num_downvotes` int(10) unsigned DEFAULT NULL,
-  `category_id` int(10) unsigned DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `workspace_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
   `statusc` tinyint(3) unsigned DEFAULT NULL,
@@ -162,71 +174,6 @@ CREATE TABLE `messages` (
   `updated_year` smallint(5) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_messages_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `topics` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `uuid4` binary(16) DEFAULT NULL,
-  `topic_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `topic_desc` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `num_tags` int(10) unsigned DEFAULT NULL,
-  `tag1` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag2` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag3` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag4` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag5` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag6` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag7` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag8` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag9` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `tag10` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `num_views` int(10) unsigned DEFAULT 0,
-  `num_messages` int(10) unsigned DEFAULT 0,
-  `category_id` int(10) unsigned DEFAULT NULL,
-  `ugroup_id` int(10) unsigned DEFAULT 0,
-  `user_id` int(10) unsigned DEFAULT NULL,
-  `statusc` tinyint(3) unsigned DEFAULT NULL,
-  `created_day` smallint(5) unsigned DEFAULT NULL,
-  `created_week` tinyint(3) unsigned DEFAULT NULL,
-  `created_month` tinyint(3) unsigned DEFAULT NULL,
-  `created_year` smallint(5) unsigned DEFAULT NULL,
-  `updated_day` smallint(5) unsigned DEFAULT NULL,
-  `updated_week` tinyint(3) unsigned DEFAULT NULL,
-  `updated_month` tinyint(3) unsigned DEFAULT NULL,
-  `updated_year` smallint(5) unsigned DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_topics_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `topics_users` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `uuid4` binary(16) DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
-  `num_messages` int(10) unsigned DEFAULT 0,
-  `num_views` int(10) unsigned DEFAULT 0,
-  `ugroup_id` int(10) unsigned DEFAULT 0,
-  `user_id` int(10) unsigned DEFAULT NULL,
-  `statusc` tinyint(3) unsigned DEFAULT NULL,
-  `created_day` smallint(5) unsigned DEFAULT NULL,
-  `created_week` tinyint(3) unsigned DEFAULT NULL,
-  `created_month` tinyint(3) unsigned DEFAULT NULL,
-  `created_year` smallint(5) unsigned DEFAULT NULL,
-  `updated_day` smallint(5) unsigned DEFAULT NULL,
-  `updated_week` tinyint(3) unsigned DEFAULT NULL,
-  `updated_month` tinyint(3) unsigned DEFAULT NULL,
-  `updated_year` smallint(5) unsigned DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_topics_users_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -355,7 +302,7 @@ CREATE TABLE `user_bookmarks` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
   `statusc` tinyint(3) unsigned DEFAULT NULL,
@@ -373,13 +320,37 @@ CREATE TABLE `user_bookmarks` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user_channels` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `uuid4` binary(16) DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
+  `ugroup_id` int(10) unsigned DEFAULT 0,
+  `user_id` int(10) unsigned DEFAULT NULL,
+  `statusc` tinyint(3) unsigned DEFAULT NULL,
+  `created_day` smallint(5) unsigned DEFAULT NULL,
+  `created_week` tinyint(3) unsigned DEFAULT NULL,
+  `created_month` tinyint(3) unsigned DEFAULT NULL,
+  `created_year` smallint(5) unsigned DEFAULT NULL,
+  `updated_day` smallint(5) unsigned DEFAULT NULL,
+  `updated_week` tinyint(3) unsigned DEFAULT NULL,
+  `updated_month` tinyint(3) unsigned DEFAULT NULL,
+  `updated_year` smallint(5) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_channels_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `user_likes` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `message_id` int(10) unsigned DEFAULT 0,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
@@ -404,7 +375,7 @@ CREATE TABLE `user_replies` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `message_id` int(10) unsigned DEFAULT 0,
   `ugroup_id` int(10) unsigned DEFAULT 0,
   `user_id` int(10) unsigned DEFAULT NULL,
@@ -423,37 +394,13 @@ CREATE TABLE `user_replies` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `user_topics` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `uuid4` binary(16) DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
-  `ugroup_id` int(10) unsigned DEFAULT 0,
-  `user_id` int(10) unsigned DEFAULT NULL,
-  `statusc` tinyint(3) unsigned DEFAULT NULL,
-  `created_day` smallint(5) unsigned DEFAULT NULL,
-  `created_week` tinyint(3) unsigned DEFAULT NULL,
-  `created_month` tinyint(3) unsigned DEFAULT NULL,
-  `created_year` smallint(5) unsigned DEFAULT NULL,
-  `updated_day` smallint(5) unsigned DEFAULT NULL,
-  `updated_week` tinyint(3) unsigned DEFAULT NULL,
-  `updated_month` tinyint(3) unsigned DEFAULT NULL,
-  `updated_year` smallint(5) unsigned DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_user_topics_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `user_votes` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `uuid4` binary(16) DEFAULT NULL,
-  `topic_id` int(10) unsigned DEFAULT NULL,
+  `channel_id` int(10) unsigned DEFAULT NULL,
   `message_id` int(10) unsigned DEFAULT 0,
   `vote` int(10) unsigned DEFAULT 0,
   `ugroup_id` int(10) unsigned DEFAULT 0,
@@ -521,5 +468,58 @@ CREATE TABLE `users` (
   `updated_year` smallint(5) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_users_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `workspace_chds` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `uuid4` binary(16) DEFAULT NULL,
+  `workspace_id` int(10) unsigned DEFAULT NULL,
+  `workspace_chd_id` int(10) unsigned DEFAULT NULL,
+  `statusc` tinyint(3) unsigned DEFAULT NULL,
+  `created_day` smallint(5) unsigned DEFAULT NULL,
+  `created_week` tinyint(3) unsigned DEFAULT NULL,
+  `created_month` tinyint(3) unsigned DEFAULT NULL,
+  `created_year` smallint(5) unsigned DEFAULT NULL,
+  `updated_day` smallint(5) unsigned DEFAULT NULL,
+  `updated_week` tinyint(3) unsigned DEFAULT NULL,
+  `updated_month` tinyint(3) unsigned DEFAULT NULL,
+  `updated_year` smallint(5) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_workspace_chds_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `workspaces` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `uuid4` binary(16) DEFAULT NULL,
+  `workspace_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `workspace_desc` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `num_views` int(10) unsigned DEFAULT 0,
+  `num_channels` int(10) unsigned DEFAULT 0,
+  `levelc` tinyint(4) DEFAULT NULL,
+  `parent_id` int(10) unsigned DEFAULT NULL,
+  `num_chd` smallint(6) DEFAULT NULL,
+  `ugroup_id` int(10) unsigned DEFAULT 0,
+  `user_id` int(10) unsigned DEFAULT NULL,
+  `statusc` tinyint(3) unsigned DEFAULT NULL,
+  `created_day` smallint(5) unsigned DEFAULT NULL,
+  `created_week` tinyint(3) unsigned DEFAULT NULL,
+  `created_month` tinyint(3) unsigned DEFAULT NULL,
+  `created_year` smallint(5) unsigned DEFAULT NULL,
+  `updated_day` smallint(5) unsigned DEFAULT NULL,
+  `updated_week` tinyint(3) unsigned DEFAULT NULL,
+  `updated_month` tinyint(3) unsigned DEFAULT NULL,
+  `updated_year` smallint(5) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_workspaces_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

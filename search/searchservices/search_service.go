@@ -57,7 +57,7 @@ var bSearchIndex bleve.Index
 func InitSearch(p string, db *sql.DB) bleve.Index {
 	indexPath := ""
 	pwd, _ := os.Getwd()
-	indexPath = pwd + filepath.FromSlash("/files/search/topics.bleve")
+	indexPath = pwd + filepath.FromSlash("/files/search/channels.bleve")
 	productIndex, err := bleve.OpenUsing(indexPath, map[string]interface{}{
 		"read_only": true,
 	})
@@ -82,7 +82,7 @@ func InitSearch(p string, db *sql.DB) bleve.Index {
 		}).Error(err)
 	}
 
-	err = IndexTopics(db, productIndex)
+	err = IndexChannels(db, productIndex)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 7005,
@@ -107,22 +107,22 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 	keywordFieldMapping := bleve.NewTextFieldMapping()
 	keywordFieldMapping.Analyzer = keyword.Name
 
-	topicMapping := bleve.NewDocumentMapping()
+	channelMapping := bleve.NewDocumentMapping()
 
 	//disabledMapping := bleve.NewDocumentDisabledMapping()
 
 	// name
-	topicMapping.AddFieldMappingsAt("Name", englishTextFieldMapping)
+	channelMapping.AddFieldMappingsAt("Name", englishTextFieldMapping)
 
 	// description
-	topicMapping.AddFieldMappingsAt("Description",
+	channelMapping.AddFieldMappingsAt("Description",
 		englishTextFieldMapping, edgeNgram325FieldMapping)
 
 	// messagetext
-	topicMapping.AddFieldMappingsAt("MessageText", englishTextFieldMapping, edgeNgram325FieldMapping)
+	channelMapping.AddFieldMappingsAt("MessageText", englishTextFieldMapping, edgeNgram325FieldMapping)
 
 	indexMapping := bleve.NewIndexMapping()
-	indexMapping.AddDocumentMapping("Name", topicMapping)
+	indexMapping.AddDocumentMapping("Name", channelMapping)
 	err := indexMapping.AddCustomTokenFilter("edgeNgram325",
 		map[string]interface{}{
 			"type": edgengram.Name,
@@ -159,12 +159,12 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 	return indexMapping, nil
 }
 
-// IndexTopics - used for
-func IndexTopics(db *sql.DB, index bleve.Index) error {
+// IndexChannels - used for
+func IndexChannels(db *sql.DB, index bleve.Index) error {
 	batch := index.NewBatch()
-	var topicMsgMap map[string]string
+	var channelMsgMap map[string]string
 	docID := ""
-	topics, err := getTopics(db)
+	channels, err := getChannels(db)
 
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -172,8 +172,8 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 		}).Error(err)
 		return err
 	}
-	for _, topic := range topics {
-		messages, err := getMessagesByTopicID(topic.ID, db)
+	for _, channel := range channels {
+		messages, err := getMessagesByChannelID(channel.ID, db)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"msgnum": 7009,
@@ -181,16 +181,16 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 			return err
 		}
 		for _, message := range messages {
-			topicMsgMap = map[string]string{"Type": "Name"}
+			channelMsgMap = map[string]string{"Type": "Name"}
 
-			topicMsgMap["Name"] = topic.TopicName
-			topicMsgMap["Description"] = topic.TopicDesc
-			topicMsgMap["Pid"] = strconv.FormatUint(uint64(topic.ID), 10)
-			topicMsgMap["MessageText"] = message.Mtext
+			channelMsgMap["Name"] = channel.ChannelName
+			channelMsgMap["Description"] = channel.ChannelDesc
+			channelMsgMap["Pid"] = strconv.FormatUint(uint64(channel.ID), 10)
+			channelMsgMap["MessageText"] = message.Mtext
 
-			docID = fmt.Sprintf("%d##%d", topic.ID, message.ID)
+			docID = fmt.Sprintf("%d##%d", channel.ID, message.ID)
 
-			p, err := json.Marshal(topicMsgMap)
+			p, err := json.Marshal(channelMsgMap)
 
 			if err == nil {
 				var prodInterface interface{}
@@ -203,7 +203,7 @@ func IndexTopics(db *sql.DB, index bleve.Index) error {
 					return err
 				}
 
-				err = batch.Index(docID, topicMsgMap)
+				err = batch.Index(docID, channelMsgMap)
 				if err != nil {
 					log.WithFields(log.Fields{
 						"msgnum": 7011,
@@ -259,14 +259,14 @@ func (t *SearchService) Search(form *BleveForm, userEmail string, requestID stri
 	return searchResults, nil
 }
 
-// getMessagesByTopicID - Get messages by topic id
-func getMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, error) {
+// getMessagesByChannelID - Get messages by channel id
+func getMessagesByChannelID(ID uint, db *sql.DB) ([]*msgservices.MessageText, error) {
 	msgs := []*msgservices.MessageText{}
 	rows, err := db.Query(`select 
     id,
 		mtext,
-		category_id,
-		topic_id,
+		workspace_id,
+		channel_id,
 		message_id,
 		ugroup_id,
 		user_id,
@@ -280,7 +280,7 @@ func getMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, erro
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from message_texts where topic_id = ?`, ID)
+		updated_year from message_texts where channel_id = ?`, ID)
 
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -292,8 +292,8 @@ func getMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, erro
 		err = rows.Scan(
 			&msgtxt.ID,
 			&msgtxt.Mtext,
-			&msgtxt.CategoryID,
-			&msgtxt.TopicID,
+			&msgtxt.WorkspaceID,
+			&msgtxt.ChannelID,
 			&msgtxt.MessageID,
 			&msgtxt.UgroupID,
 			&msgtxt.UserID,
@@ -329,15 +329,15 @@ func getMessagesByTopicID(ID uint, db *sql.DB) ([]*msgservices.MessageText, erro
 	return msgs, nil
 }
 
-// getTopics - Get topics
-func getTopics(db *sql.DB) ([]*msgservices.Topic, error) {
+// getChannels - Get channels
+func getChannels(db *sql.DB) ([]*msgservices.Channel, error) {
 
-	pohs := []*msgservices.Topic{}
+	pohs := []*msgservices.Channel{}
 	rows, err := db.Query(`select 
     id,
 		uuid4,
-		topic_name,
-		topic_desc,
+		channel_name,
+		channel_desc,
 		num_tags,
 		tag1,
 		tag2,
@@ -351,7 +351,7 @@ func getTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 		tag10,
 		num_views,
 		num_messages,
-		category_id,
+		workspace_id,
 		user_id,
 		ugroup_id,
 		statusc,
@@ -364,7 +364,7 @@ func getTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics`)
+		updated_year from channels`)
 
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -372,12 +372,12 @@ func getTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 		}).Error(err)
 	}
 	for rows.Next() {
-		poh := msgservices.Topic{}
+		poh := msgservices.Channel{}
 		err = rows.Scan(
 			&poh.ID,
 			&poh.UUID4,
-			&poh.TopicName,
-			&poh.TopicDesc,
+			&poh.ChannelName,
+			&poh.ChannelDesc,
 			&poh.NumTags,
 			&poh.Tag1,
 			&poh.Tag2,
@@ -391,7 +391,7 @@ func getTopics(db *sql.DB) ([]*msgservices.Topic, error) {
 			&poh.Tag10,
 			&poh.NumViews,
 			&poh.NumMessages,
-			&poh.CategoryID,
+			&poh.WorkspaceID,
 			&poh.UserID,
 			&poh.UgroupID,
 			&poh.Statusc,

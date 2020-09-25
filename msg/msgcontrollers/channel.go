@@ -13,22 +13,22 @@ import (
 
 /* error message range: 5000-5299 */
 
-// TopicController - Create Topic Controller
-type TopicController struct {
-	Service  msgservices.TopicServiceIntf
+// ChannelController - Create Channel Controller
+type ChannelController struct {
+	Service  msgservices.ChannelServiceIntf
 	Serviceu userservices.UserServiceIntf
 }
 
-// NewTopicController - Create Topic Handler
-func NewTopicController(s msgservices.TopicServiceIntf, su userservices.UserServiceIntf) *TopicController {
-	return &TopicController{
+// NewChannelController - Create Channel Handler
+func NewChannelController(s msgservices.ChannelServiceIntf, su userservices.UserServiceIntf) *ChannelController {
+	return &ChannelController{
 		Service:  s,
 		Serviceu: su,
 	}
 }
 
 // ServeHTTP - parse url and call controller action
-func (tc *TopicController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (tc *ChannelController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := tc.Serviceu.GetAuthUserDetails(r)
 	if err != nil {
 		common.RenderErrorJSON(w, "1001", err.Error(), 401, requestID)
@@ -57,12 +57,12 @@ func (tc *TopicController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // processGet - Parse URL for all the GET paths and call the controller action
 /*
- GET  "/v1/topics/{id}"
+ GET  "/v1/channels/{id}"
 */
-func (tc *TopicController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+func (tc *ChannelController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
-	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
-		tc.ShowTopic(w, r, pathParts[2], user, requestID)
+	if (len(pathParts) == 3) && (pathParts[1] == "channels") {
+		tc.ShowChannel(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -72,16 +72,16 @@ func (tc *TopicController) processGet(w http.ResponseWriter, r *http.Request, us
 
 // processPost - Parse URL for all the POST paths and call the controller action
 /*
- POST  "/v1/topics/create/"
- POST  "/v1/topics/topicbyname/"
+ POST  "/v1/channels/create/"
+ POST  "/v1/channels/channelbyname/"
 */
-func (tc *TopicController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+func (tc *ChannelController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
-	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
+	if (len(pathParts) == 3) && (pathParts[1] == "channels") {
 		if pathParts[2] == "create" {
-			tc.CreateTopic(w, r, user, requestID)
-		} else if pathParts[2] == "topicbyname" {
-			tc.GetTopicByName(w, r, user, requestID)
+			tc.CreateChannel(w, r, user, requestID)
+		} else if pathParts[2] == "channelbyname" {
+			tc.GetChannelByName(w, r, user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
@@ -94,13 +94,13 @@ func (tc *TopicController) processPost(w http.ResponseWriter, r *http.Request, u
 
 // processPut - Parse URL for all the put paths and call the controller action
 /*
- PUT  "/v1/topics/{id}"
+ PUT  "/v1/channels/{id}"
 */
 
-func (tc *TopicController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+func (tc *ChannelController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
-	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
-		tc.UpdateTopic(w, r, pathParts[2], user, requestID)
+	if (len(pathParts) == 3) && (pathParts[1] == "channels") {
+		tc.UpdateChannel(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -110,13 +110,13 @@ func (tc *TopicController) processPut(w http.ResponseWriter, r *http.Request, us
 
 // processDelete - Parse URL for all the delete paths and call the controller action
 /*
- DELETE  "/v1/topics/{id}"
+ DELETE  "/v1/channels/{id}"
 */
 
-func (tc *TopicController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+func (tc *ChannelController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
-	if (len(pathParts) == 3) && (pathParts[1] == "topics") {
-		tc.DeleteTopic(w, r, pathParts[2], user, requestID)
+	if (len(pathParts) == 3) && (pathParts[1] == "channels") {
+		tc.DeleteChannel(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -124,8 +124,8 @@ func (tc *TopicController) processDelete(w http.ResponseWriter, r *http.Request,
 
 }
 
-// ShowTopic - used to view Topic
-func (tc *TopicController) ShowTopic(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// ShowChannel - used to view Channel
+func (tc *ChannelController) ShowChannel(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -134,19 +134,19 @@ func (tc *TopicController) ShowTopic(w http.ResponseWriter, r *http.Request, id 
 		return
 	default:
 
-		topic, err := tc.Service.ShowTopic(ctx, id, user.UserID, user.Email, requestID)
+		channel, err := tc.Service.ShowChannel(ctx, id, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5000}).Error(err)
 			common.RenderErrorJSON(w, "5000", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, topic)
+		common.RenderJSON(w, channel)
 	}
 }
 
-// CreateTopic - used to Create Topic
-func (tc *TopicController) CreateTopic(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateChannel - used to Create Channel
+func (tc *ChannelController) CreateChannel(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -154,7 +154,7 @@ func (tc *TopicController) CreateTopic(w http.ResponseWriter, r *http.Request, u
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		form := msgservices.Topic{}
+		form := msgservices.Channel{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
@@ -163,25 +163,25 @@ func (tc *TopicController) CreateTopic(w http.ResponseWriter, r *http.Request, u
 			return
 		}
 		v := common.NewValidator()
-		v.IsStrLenBetMinMax("Topic Name", form.TopicName, msgservices.TopicNameLenMin, msgservices.TopicNameLenMax)
-		v.IsStrLenBetMinMax("Topic Description", form.TopicDesc, msgservices.TopicDescLenMin, msgservices.TopicDescLenMax)
+		v.IsStrLenBetMinMax("Channel Name", form.ChannelName, msgservices.ChannelNameLenMin, msgservices.ChannelNameLenMax)
+		v.IsStrLenBetMinMax("Channel Description", form.ChannelDesc, msgservices.ChannelDescLenMin, msgservices.ChannelDescLenMax)
 		if v.IsValid() {
 			common.RenderErrorJSON(w, "5008", v.Error(), 402, requestID)
 			return
 		}
-		topic, err := tc.Service.CreateTopic(ctx, &form, user.UserID, user.Email, requestID)
+		channel, err := tc.Service.CreateChannel(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5002}).Error(err)
 			common.RenderErrorJSON(w, "5002", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, topic)
+		common.RenderJSON(w, channel)
 	}
 }
 
-// GetTopicByName - used to get Topic by name
-func (tc *TopicController) GetTopicByName(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// GetChannelByName - used to get Channel by name
+func (tc *ChannelController) GetChannelByName(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -189,7 +189,7 @@ func (tc *TopicController) GetTopicByName(w http.ResponseWriter, r *http.Request
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		form := msgservices.Topic{}
+		form := msgservices.Channel{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
@@ -197,7 +197,7 @@ func (tc *TopicController) GetTopicByName(w http.ResponseWriter, r *http.Request
 			common.RenderErrorJSON(w, "5003", err.Error(), 402, requestID)
 			return
 		}
-		topc, err := tc.Service.GetTopicByName(ctx, form.TopicName, user.Email, requestID)
+		topc, err := tc.Service.GetChannelByName(ctx, form.ChannelName, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5004}).Error(err)
 			common.RenderErrorJSON(w, "5004", err.Error(), 402, requestID)
@@ -208,8 +208,8 @@ func (tc *TopicController) GetTopicByName(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// UpdateTopic - Update topic
-func (tc *TopicController) UpdateTopic(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateChannel - Update channel
+func (tc *ChannelController) UpdateChannel(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -217,7 +217,7 @@ func (tc *TopicController) UpdateTopic(w http.ResponseWriter, r *http.Request, i
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		form := msgservices.Topic{}
+		form := msgservices.Channel{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
@@ -225,7 +225,7 @@ func (tc *TopicController) UpdateTopic(w http.ResponseWriter, r *http.Request, i
 			common.RenderErrorJSON(w, "5005", err.Error(), 402, requestID)
 			return
 		}
-		err = tc.Service.UpdateTopic(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = tc.Service.UpdateChannel(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5006}).Error(err)
 			common.RenderErrorJSON(w, "5006", err.Error(), 402, requestID)
@@ -236,8 +236,8 @@ func (tc *TopicController) UpdateTopic(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
-// DeleteTopic - delete topic
-func (tc *TopicController) DeleteTopic(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteChannel - delete channel
+func (tc *ChannelController) DeleteChannel(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -245,7 +245,7 @@ func (tc *TopicController) DeleteTopic(w http.ResponseWriter, r *http.Request, i
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := tc.Service.DeleteTopic(ctx, id, user.Email, requestID)
+		err := tc.Service.DeleteChannel(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 5007}).Error(err)
 			common.RenderErrorJSON(w, "5007", err.Error(), 402, requestID)

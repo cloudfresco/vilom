@@ -51,17 +51,17 @@ func (mr *MockMessageServiceIntfMockRecorder) CreateMessage(ctx, form, UserID, r
 }
 
 // CreateUserReply mocks base method
-func (m *MockMessageServiceIntf) CreateUserReply(ctx context.Context, tx *sql.Tx, topicID, messageID, userID, ugroupID uint, userEmail, requestID string) error {
+func (m *MockMessageServiceIntf) CreateUserReply(ctx context.Context, tx *sql.Tx, channelID, messageID, userID, ugroupID uint, userEmail, requestID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUserReply", ctx, tx, topicID, messageID, userID, ugroupID, userEmail, requestID)
+	ret := m.ctrl.Call(m, "CreateUserReply", ctx, tx, channelID, messageID, userID, ugroupID, userEmail, requestID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateUserReply indicates an expected call of CreateUserReply
-func (mr *MockMessageServiceIntfMockRecorder) CreateUserReply(ctx, tx, topicID, messageID, userID, ugroupID, userEmail, requestID interface{}) *gomock.Call {
+func (mr *MockMessageServiceIntfMockRecorder) CreateUserReply(ctx, tx, channelID, messageID, userID, ugroupID, userEmail, requestID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserReply", reflect.TypeOf((*MockMessageServiceIntf)(nil).CreateUserReply), ctx, tx, topicID, messageID, userID, ugroupID, userEmail, requestID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserReply", reflect.TypeOf((*MockMessageServiceIntf)(nil).CreateUserReply), ctx, tx, channelID, messageID, userID, ugroupID, userEmail, requestID)
 }
 
 // CreateUserLike mocks base method

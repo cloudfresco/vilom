@@ -18,81 +18,81 @@ func TestParseURL(t *testing.T) {
 	}{
 		{
 			args: args{
-				urlString: `/v0.1/categories/?cursor=&limit=20`,
+				urlString: `/v0.1/workspaces/?cursor=&limit=20`,
 			},
-			want:    []string{"v0.1", "categories"},
+			want:    []string{"v0.1", "workspaces"},
 			want1:   url.Values{"cursor": {""}, "limit": {"20"}},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/categories/create/`,
+				urlString: `/v0.1/workspaces/create/`,
 			},
-			want:    []string{"v0.1", "categories", "create"},
+			want:    []string{"v0.1", "workspaces", "create"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0`,
+				urlString: `/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0`,
 			},
-			want:    []string{"v0.1", "categories", "2d656454-8191-4193-94e1-4f27ed37d6b0"},
+			want:    []string{"v0.1", "workspaces", "2d656454-8191-4193-94e1-4f27ed37d6b0"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/categories/chdcreate/`,
+				urlString: `/v0.1/workspaces/chdcreate/`,
 			},
-			want:    []string{"v0.1", "categories", "chdcreate"},
+			want:    []string{"v0.1", "workspaces", "chdcreate"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/categories/topcats`,
+				urlString: `/v0.1/workspaces/topworkspaces`,
 			},
-			want:    []string{"v0.1", "categories", "topcats"},
+			want:    []string{"v0.1", "workspaces", "topworkspaces"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn`,
+				urlString: `/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn`,
 			},
-			want:    []string{"v0.1", "categories", "2d656454-8191-4193-94e1-4f27ed37d6b0", "chdn"},
+			want:    []string{"v0.1", "workspaces", "2d656454-8191-4193-94e1-4f27ed37d6b0", "chdn"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/categories/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent`,
+				urlString: `/v0.1/workspaces/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent`,
 			},
-			want:    []string{"v0.1", "categories", "b8399c93-3ebd-48ed-8e20-067ab81067eb", "getparent"},
+			want:    []string{"v0.1", "workspaces", "b8399c93-3ebd-48ed-8e20-067ab81067eb", "getparent"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/topics/create/`,
+				urlString: `/v0.1/channels/create/`,
 			},
-			want:    []string{"v0.1", "topics", "create"},
+			want:    []string{"v0.1", "channels", "create"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/topics/69280d16-02d5-4908-b59a-923b4e86f7bd`,
+				urlString: `/v0.1/channels/69280d16-02d5-4908-b59a-923b4e86f7bd`,
 			},
-			want:    []string{"v0.1", "topics", "69280d16-02d5-4908-b59a-923b4e86f7bd"},
+			want:    []string{"v0.1", "channels", "69280d16-02d5-4908-b59a-923b4e86f7bd"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				urlString: `/v0.1/topics/topicbyname`,
+				urlString: `/v0.1/channels/channelbyname`,
 			},
-			want:    []string{"v0.1", "topics", "topicbyname"},
+			want:    []string{"v0.1", "channels", "channelbyname"},
 			want1:   url.Values{},
 			wantErr: false,
 		},
@@ -140,81 +140,81 @@ func TestGetPathQueryString(t *testing.T) {
 	}{
 		{
 			args: args{
-				s: `/v0.1/categories/?cursor=&limit=20`,
+				s: `/v0.1/workspaces/?cursor=&limit=20`,
 			},
-			want:    "/v0.1/categories/",
+			want:    "/v0.1/workspaces/",
 			want1:   url.Values{"cursor": {""}, "limit": {"20"}},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/categories/create/`,
+				s: `/v0.1/workspaces/create/`,
 			},
-			want:    "/v0.1/categories/create/",
+			want:    "/v0.1/workspaces/create/",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0`,
+				s: `/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0`,
 			},
-			want:    "/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0",
+			want:    "/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/categories/chdcreate/`,
+				s: `/v0.1/workspaces/chdcreate/`,
 			},
-			want:    "/v0.1/categories/chdcreate/",
+			want:    "/v0.1/workspaces/chdcreate/",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/categories/topcats`,
+				s: `/v0.1/workspaces/topworkspaces`,
 			},
-			want:    "/v0.1/categories/topcats",
+			want:    "/v0.1/workspaces/topworkspaces",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn`,
+				s: `/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn`,
 			},
-			want:    "/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn",
+			want:    "/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/categories/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent`,
+				s: `/v0.1/workspaces/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent`,
 			},
-			want:    "/v0.1/categories/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent",
+			want:    "/v0.1/workspaces/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/topics/create/`,
+				s: `/v0.1/channels/create/`,
 			},
-			want:    "/v0.1/topics/create/",
+			want:    "/v0.1/channels/create/",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/topics/69280d16-02d5-4908-b59a-923b4e86f7bd`,
+				s: `/v0.1/channels/69280d16-02d5-4908-b59a-923b4e86f7bd`,
 			},
-			want:    "/v0.1/topics/69280d16-02d5-4908-b59a-923b4e86f7bd",
+			want:    "/v0.1/channels/69280d16-02d5-4908-b59a-923b4e86f7bd",
 			want1:   url.Values{},
 			wantErr: false,
 		},
 		{
 			args: args{
-				s: `/v0.1/topics/topicbyname`,
+				s: `/v0.1/channels/channelbyname`,
 			},
-			want:    "/v0.1/topics/topicbyname",
+			want:    "/v0.1/channels/channelbyname",
 			want1:   url.Values{},
 			wantErr: false,
 		},
@@ -260,63 +260,63 @@ func TestGetPathParts(t *testing.T) {
 	}{
 		{
 			args: args{
-				url: "/v0.1/categories/",
+				url: "/v0.1/workspaces/",
 			},
-			want: []string{"v0.1", "categories"},
+			want: []string{"v0.1", "workspaces"},
 		},
 		{
 			args: args{
-				url: "/v0.1/categories/create/",
+				url: "/v0.1/workspaces/create/",
 			},
-			want: []string{"v0.1", "categories", "create"},
+			want: []string{"v0.1", "workspaces", "create"},
 		},
 		{
 			args: args{
-				url: "/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0",
+				url: "/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0",
 			},
-			want: []string{"v0.1", "categories", "2d656454-8191-4193-94e1-4f27ed37d6b0"},
+			want: []string{"v0.1", "workspaces", "2d656454-8191-4193-94e1-4f27ed37d6b0"},
 		},
 		{
 			args: args{
-				url: "/v0.1/categories/chdcreate/",
+				url: "/v0.1/workspaces/chdcreate/",
 			},
-			want: []string{"v0.1", "categories", "chdcreate"},
+			want: []string{"v0.1", "workspaces", "chdcreate"},
 		},
 		{
 			args: args{
-				url: "/v0.1/categories/topcats",
+				url: "/v0.1/workspaces/topworkspaces",
 			},
-			want: []string{"v0.1", "categories", "topcats"},
+			want: []string{"v0.1", "workspaces", "topworkspaces"},
 		},
 		{
 			args: args{
-				url: "/v0.1/categories/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn",
+				url: "/v0.1/workspaces/2d656454-8191-4193-94e1-4f27ed37d6b0/chdn",
 			},
-			want: []string{"v0.1", "categories", "2d656454-8191-4193-94e1-4f27ed37d6b0", "chdn"},
+			want: []string{"v0.1", "workspaces", "2d656454-8191-4193-94e1-4f27ed37d6b0", "chdn"},
 		},
 		{
 			args: args{
-				url: "/v0.1/categories/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent",
+				url: "/v0.1/workspaces/b8399c93-3ebd-48ed-8e20-067ab81067eb/getparent",
 			},
-			want: []string{"v0.1", "categories", "b8399c93-3ebd-48ed-8e20-067ab81067eb", "getparent"},
+			want: []string{"v0.1", "workspaces", "b8399c93-3ebd-48ed-8e20-067ab81067eb", "getparent"},
 		},
 		{
 			args: args{
-				url: "/v0.1/topics/create/",
+				url: "/v0.1/channels/create/",
 			},
-			want: []string{"v0.1", "topics", "create"},
+			want: []string{"v0.1", "channels", "create"},
 		},
 		{
 			args: args{
-				url: "/v0.1/topics/69280d16-02d5-4908-b59a-923b4e86f7bd",
+				url: "/v0.1/channels/69280d16-02d5-4908-b59a-923b4e86f7bd",
 			},
-			want: []string{"v0.1", "topics", "69280d16-02d5-4908-b59a-923b4e86f7bd"},
+			want: []string{"v0.1", "channels", "69280d16-02d5-4908-b59a-923b4e86f7bd"},
 		},
 		{
 			args: args{
-				url: "/v0.1/topics/topicbyname/",
+				url: "/v0.1/channels/channelbyname/",
 			},
-			want: []string{"v0.1", "topics", "topicbyname"},
+			want: []string{"v0.1", "channels", "channelbyname"},
 		},
 		{
 			args: args{

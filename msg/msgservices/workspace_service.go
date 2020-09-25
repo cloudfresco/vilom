@@ -13,81 +13,81 @@ import (
 
 /* error message range: 4300-4999 */
 
-// For validation of category fields
+// For validation of workspace fields
 const (
-	CategoryNameLenMin = 1
-	CategoryNameLenMax = 50
-	CategoryDescLenMin = 1
-	CategoryDescLenMax = 1000
+	WorkspaceNameLenMin = 1
+	WorkspaceNameLenMax = 50
+	WorkspaceDescLenMin = 1
+	WorkspaceDescLenMax = 1000
 )
 
-// Category - Category view representation
-type Category struct {
-	ID           uint   `json:"id,omitempty"`
-	UUID4        []byte `json:"-"`
-	IDS          string `json:"id_s,omitempty"`
-	CategoryName string `json:"category_name,omitempty"`
-	CategoryDesc string `json:"category_desc,omitempty"`
-	NumViews     uint   `json:"num_views,omitempty"`
-	NumTopics    uint   `json:"num_topics,omitempty"`
-	Levelc       uint   `json:"levelc,omitempty"`
-	ParentID     uint   `json:"parent_id,omitempty"`
-	NumChd       uint   `json:"num_chd,omitempty"`
+// Workspace - Workspace view representation
+type Workspace struct {
+	ID            uint   `json:"id,omitempty"`
+	UUID4         []byte `json:"-"`
+	IDS           string `json:"id_s,omitempty"`
+	WorkspaceName string `json:"workspace_name,omitempty"`
+	WorkspaceDesc string `json:"workspace_desc,omitempty"`
+	NumViews      uint   `json:"num_views,omitempty"`
+	NumChannels   uint   `json:"num_channels,omitempty"`
+	Levelc        uint   `json:"levelc,omitempty"`
+	ParentID      uint   `json:"parent_id,omitempty"`
+	NumChd        uint   `json:"num_chd,omitempty"`
 
 	UgroupID uint `json:"ugroup_id,omitempty"`
 	UserID   uint `json:"user_id,omitempty"`
 
 	common.StatusDates
-	Topics []*Topic
+	Channels []*Channel
 }
 
-// CategoryChd - CategoryChd view representation
-type CategoryChd struct {
-	ID            uint   `json:"id,omitempty"`
-	UUID4         []byte `json:"-"`
-	CategoryID    uint   `json:"category_id,omitempty"`
-	CategoryChdID uint   `json:"category_chd_id,omitempty"`
+// WorkspaceChd - WorkspaceChd view representation
+type WorkspaceChd struct {
+	ID             uint   `json:"id,omitempty"`
+	UUID4          []byte `json:"-"`
+	WorkspaceID    uint   `json:"workspace_id,omitempty"`
+	WorkspaceChdID uint   `json:"workspace_chd_id,omitempty"`
 
 	common.StatusDates
 }
 
-// CategoryServiceIntf - interface for Category Service
-type CategoryServiceIntf interface {
-	CreateCategory(ctx context.Context, form *Category, UserID string, userEmail string, requestID string) (*Category, error)
-	CreateChild(ctx context.Context, form *Category, UserID string, userEmail string, requestID string) (*Category, error)
-	GetCategories(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*CategoryCursor, error)
-	GetCategoryWithTopics(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error)
-	GetCategory(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error)
-	GetCategoryByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Category, error)
-	GetTopLevelCategories(ctx context.Context, userEmail string, requestID string) ([]*Category, error)
-	GetChildCategories(ctx context.Context, ID string, userEmail string, requestID string) ([]*Category, error)
-	GetParentCategory(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error)
-	UpdateCategory(ctx context.Context, ID string, form *Category, UserID string, userEmail string, requestID string) error
-	DeleteCategory(ctx context.Context, ID string, userEmail string, requestID string) error
+// WorkspaceServiceIntf - interface for Workspace Service
+type WorkspaceServiceIntf interface {
+	CreateWorkspace(ctx context.Context, form *Workspace, UserID string, userEmail string, requestID string) (*Workspace, error)
+	CreateChild(ctx context.Context, form *Workspace, UserID string, userEmail string, requestID string) (*Workspace, error)
+	GetWorkspaces(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*WorkspaceCursor, error)
+	GetWorkspaceWithChannels(ctx context.Context, ID string, userEmail string, requestID string) (*Workspace, error)
+	GetWorkspace(ctx context.Context, ID string, userEmail string, requestID string) (*Workspace, error)
+	GetWorkspaceByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Workspace, error)
+	GetTopLevelWorkspaces(ctx context.Context, userEmail string, requestID string) ([]*Workspace, error)
+	GetChildWorkspaces(ctx context.Context, ID string, userEmail string, requestID string) ([]*Workspace, error)
+	GetParentWorkspace(ctx context.Context, ID string, userEmail string, requestID string) (*Workspace, error)
+	UpdateWorkspace(ctx context.Context, ID string, form *Workspace, UserID string, userEmail string, requestID string) error
+	DeleteWorkspace(ctx context.Context, ID string, userEmail string, requestID string) error
 }
 
-// CategoryService - For accessing category services
-type CategoryService struct {
+// WorkspaceService - For accessing workspace services
+type WorkspaceService struct {
 	DBService    *common.DBService
 	RedisService *common.RedisService
 }
 
-// NewCategoryService - Create category service
-func NewCategoryService(dbOpt *common.DBService, redisOpt *common.RedisService) *CategoryService {
-	return &CategoryService{
+// NewWorkspaceService - Create workspace service
+func NewWorkspaceService(dbOpt *common.DBService, redisOpt *common.RedisService) *WorkspaceService {
+	return &WorkspaceService{
 		DBService:    dbOpt,
 		RedisService: redisOpt,
 	}
 }
 
-// CategoryCursor - used to get categories
-type CategoryCursor struct {
-	Categories []*Category
+// WorkspaceCursor - used to get workspaces
+type WorkspaceCursor struct {
+	Workspaces []*Workspace
 	NextCursor string `json:"next_cursor,omitempty"`
 }
 
-// CreateCategory - Create Category
-func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, UserID string, userEmail string, requestID string) (*Category, error) {
+// CreateWorkspace - Create Workspace
+func (c *WorkspaceService) CreateWorkspace(ctx context.Context, form *Workspace, UserID string, userEmail string, requestID string) (*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -101,7 +101,7 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 			return nil, err
 		}
 		db := c.DBService.DB
-		insertCategoryStmt, err := c.insertCategoryPrepare(ctx, userEmail, requestID)
+		insertWorkspaceStmt, err := c.insertWorkspacePrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
 			return nil, err
@@ -112,35 +112,35 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 			return nil, err
 		}
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		cat := Category{}
-		cat.UUID4, err = common.GetUUIDBytes()
+		workspace := Workspace{}
+		workspace.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4320}).Error(err)
 			return nil, err
 		}
-		cat.CategoryName = form.CategoryName
-		cat.CategoryDesc = form.CategoryDesc
-		cat.NumViews = 0
-		cat.NumTopics = 0
-		cat.Levelc = 0
-		cat.ParentID = uint(0)
-		cat.NumChd = 0
-		cat.UgroupID = uint(0)
-		cat.UserID = user.ID
+		workspace.WorkspaceName = form.WorkspaceName
+		workspace.WorkspaceDesc = form.WorkspaceDesc
+		workspace.NumViews = 0
+		workspace.NumChannels = 0
+		workspace.Levelc = 0
+		workspace.ParentID = uint(0)
+		workspace.NumChd = 0
+		workspace.UgroupID = uint(0)
+		workspace.UserID = user.ID
 		/*  StatusDates  */
-		cat.Statusc = common.Active
-		cat.CreatedAt = tn
-		cat.UpdatedAt = tn
-		cat.CreatedDay = tnday
-		cat.CreatedWeek = tnweek
-		cat.CreatedMonth = tnmonth
-		cat.CreatedYear = tnyear
-		cat.UpdatedDay = tnday
-		cat.UpdatedWeek = tnweek
-		cat.UpdatedMonth = tnmonth
-		cat.UpdatedYear = tnyear
+		workspace.Statusc = common.Active
+		workspace.CreatedAt = tn
+		workspace.UpdatedAt = tn
+		workspace.CreatedDay = tnday
+		workspace.CreatedWeek = tnweek
+		workspace.CreatedMonth = tnmonth
+		workspace.CreatedYear = tnyear
+		workspace.UpdatedDay = tnday
+		workspace.UpdatedWeek = tnweek
+		workspace.UpdatedMonth = tnmonth
+		workspace.UpdatedYear = tnyear
 
-		err = c.insertCategory(ctx, insertCategoryStmt, tx, &cat, userEmail, requestID)
+		err = c.insertWorkspace(ctx, insertWorkspaceStmt, tx, &workspace, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4321}).Error(err)
@@ -149,7 +149,7 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
 				return nil, err
 			}
-			err = insertCategoryStmt.Close()
+			err = insertWorkspaceStmt.Close()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
 				return nil, err
@@ -164,18 +164,18 @@ func (c *CategoryService) CreateCategory(ctx context.Context, form *Category, Us
 			return nil, err
 		}
 
-		err = insertCategoryStmt.Close()
+		err = insertWorkspaceStmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
 			return nil, err
 		}
 
-		return &cat, nil
+		return &workspace, nil
 	}
 }
 
-// insertCategoryPrepare - Insert Category prepare statement
-func (c *CategoryService) insertCategoryPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+// insertWorkspacePrepare - Insert Workspace prepare statement
+func (c *WorkspaceService) insertWorkspacePrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -183,13 +183,13 @@ func (c *CategoryService) insertCategoryPrepare(ctx context.Context, userEmail s
 		return nil, err
 	default:
 		db := c.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `insert into categories
+		stmt, err := db.PrepareContext(ctx, `insert into workspaces
 	  ( 
 			uuid4,
-			category_name,
-			category_desc,
+			workspace_name,
+			workspace_desc,
 			num_views,
-			num_topics,
+			num_channels,
 			levelc,
 			parent_id,
 			num_chd,
@@ -217,8 +217,8 @@ func (c *CategoryService) insertCategoryPrepare(ctx context.Context, userEmail s
 	}
 }
 
-// insertCategory - Insert category details into database
-func (c *CategoryService) insertCategory(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, cat *Category, userEmail string, requestID string) error {
+// insertWorkspace - Insert workspace details into database
+func (c *WorkspaceService) insertWorkspace(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, workspace *Workspace, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -226,28 +226,28 @@ func (c *CategoryService) insertCategory(ctx context.Context, stmt *sql.Stmt, tx
 		return err
 	default:
 		res, err := tx.StmtContext(ctx, stmt).Exec(
-			cat.UUID4,
-			cat.CategoryName,
-			cat.CategoryDesc,
-			cat.NumViews,
-			cat.NumTopics,
-			cat.Levelc,
-			cat.ParentID,
-			cat.NumChd,
-			cat.UgroupID,
-			cat.UserID,
+			workspace.UUID4,
+			workspace.WorkspaceName,
+			workspace.WorkspaceDesc,
+			workspace.NumViews,
+			workspace.NumChannels,
+			workspace.Levelc,
+			workspace.ParentID,
+			workspace.NumChd,
+			workspace.UgroupID,
+			workspace.UserID,
 			/*  StatusDates  */
-			cat.Statusc,
-			cat.CreatedAt,
-			cat.UpdatedAt,
-			cat.CreatedDay,
-			cat.CreatedWeek,
-			cat.CreatedMonth,
-			cat.CreatedYear,
-			cat.UpdatedDay,
-			cat.UpdatedWeek,
-			cat.UpdatedMonth,
-			cat.UpdatedYear)
+			workspace.Statusc,
+			workspace.CreatedAt,
+			workspace.UpdatedAt,
+			workspace.CreatedDay,
+			workspace.CreatedWeek,
+			workspace.CreatedMonth,
+			workspace.CreatedYear,
+			workspace.UpdatedDay,
+			workspace.UpdatedWeek,
+			workspace.UpdatedMonth,
+			workspace.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4325}).Error(err)
@@ -259,19 +259,19 @@ func (c *CategoryService) insertCategory(ctx context.Context, stmt *sql.Stmt, tx
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4326}).Error(err)
 			return err
 		}
-		cat.ID = uint(uID)
-		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		workspace.ID = uint(uID)
+		uuid4Str, err := common.UUIDBytesToStr(workspace.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4327}).Error(err)
 			return err
 		}
-		cat.IDS = uuid4Str
+		workspace.IDS = uuid4Str
 		return nil
 	}
 }
 
-// CreateChild - Create Child Category
-func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserID string, userEmail string, requestID string) (*Category, error) {
+// CreateChild - Create Child Workspace
+func (c *WorkspaceService) CreateChild(ctx context.Context, form *Workspace, UserID string, userEmail string, requestID string) (*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -279,7 +279,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		return nil, err
 	default:
 		db := c.DBService.DB
-		insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, err := c.createChildPrepareStmts(ctx, userEmail, requestID)
+		insertWorkspaceStmt, insertChildStmt, updateNumChildrenStmt, err := c.createChildPrepareStmts(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
 			return nil, err
@@ -288,7 +288,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 		tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
-			err = c.createChildPrepareStmtsClose(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
+			err = c.createChildPrepareStmtsClose(ctx, insertWorkspaceStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
 				return nil, err
@@ -296,7 +296,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			return nil, err
 		}
 
-		cat, err := c.createChild(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, tx, form, UserID, userEmail, requestID)
+		workspace, err := c.createChild(ctx, insertWorkspaceStmt, insertChildStmt, updateNumChildrenStmt, tx, form, UserID, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4342}).Error(err)
@@ -305,7 +305,7 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
 				return nil, err
 			}
-			err = c.createChildPrepareStmtsClose(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
+			err = c.createChildPrepareStmtsClose(ctx, insertWorkspaceStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
 				return nil, err
@@ -319,24 +319,24 @@ func (c *CategoryService) CreateChild(ctx context.Context, form *Category, UserI
 			return nil, err
 		}
 
-		err = c.createChildPrepareStmtsClose(ctx, insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
+		err = c.createChildPrepareStmtsClose(ctx, insertWorkspaceStmt, insertChildStmt, updateNumChildrenStmt, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
 			return nil, err
 		}
-		return cat, nil
+		return workspace, nil
 	}
 }
 
 //createChildPrepareStmts - Prepare Statements
-func (c *CategoryService) createChildPrepareStmts(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, *sql.Stmt, *sql.Stmt, error) {
+func (c *WorkspaceService) createChildPrepareStmts(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, *sql.Stmt, *sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
 		return nil, nil, nil, err
 	default:
-		insertCategoryStmt, err := c.insertCategoryPrepare(ctx, userEmail, requestID)
+		insertWorkspaceStmt, err := c.insertWorkspacePrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
 			return nil, nil, nil, err
@@ -351,19 +351,19 @@ func (c *CategoryService) createChildPrepareStmts(ctx context.Context, userEmail
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4369}).Error(err)
 			return nil, nil, nil, err
 		}
-		return insertCategoryStmt, insertChildStmt, updateNumChildrenStmt, nil
+		return insertWorkspaceStmt, insertChildStmt, updateNumChildrenStmt, nil
 	}
 }
 
 //createChildPrepareStmtsClose - Close Prepare Statements
-func (c *CategoryService) createChildPrepareStmtsClose(ctx context.Context, insertCategoryStmt *sql.Stmt, insertChildStmt *sql.Stmt, updateNumChildrenStmt *sql.Stmt, userEmail string, requestID string) error {
+func (c *WorkspaceService) createChildPrepareStmtsClose(ctx context.Context, insertWorkspaceStmt *sql.Stmt, insertChildStmt *sql.Stmt, updateNumChildrenStmt *sql.Stmt, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
 		return err
 	default:
-		err := insertCategoryStmt.Close()
+		err := insertWorkspaceStmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4328}).Error(err)
 			return err
@@ -383,8 +383,8 @@ func (c *CategoryService) createChildPrepareStmtsClose(ctx context.Context, inse
 	}
 }
 
-// createChild - Create Child Category
-func (c *CategoryService) createChild(ctx context.Context, insertCategoryStmt *sql.Stmt, insertChildStmt *sql.Stmt, updateNumChildrenStmt *sql.Stmt, tx *sql.Tx, form *Category, UserID string, userEmail string, requestID string) (*Category, error) {
+// createChild - Create Child Workspace
+func (c *WorkspaceService) createChild(ctx context.Context, insertWorkspaceStmt *sql.Stmt, insertChildStmt *sql.Stmt, updateNumChildrenStmt *sql.Stmt, tx *sql.Tx, form *Workspace, UserID string, userEmail string, requestID string) (*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -398,56 +398,56 @@ func (c *CategoryService) createChild(ctx context.Context, insertCategoryStmt *s
 			return nil, err
 		}
 
-		parent, err := c.GetCategoryByID(ctx, form.ParentID, userEmail, requestID)
+		parent, err := c.GetWorkspaceByID(ctx, form.ParentID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4340}).Error(err)
 			return nil, err
 		}
 
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		cat := Category{}
-		cat.UUID4, err = common.GetUUIDBytes()
+		workspace := Workspace{}
+		workspace.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4341}).Error(err)
 			return nil, err
 		}
-		cat.CategoryName = form.CategoryName
-		cat.CategoryDesc = form.CategoryDesc
-		cat.NumViews = 0
-		cat.NumTopics = 0
-		cat.Levelc = parent.Levelc + 1
-		cat.ParentID = parent.ID
-		cat.NumChd = 0
-		cat.UgroupID = uint(0)
-		cat.UserID = user.ID
+		workspace.WorkspaceName = form.WorkspaceName
+		workspace.WorkspaceDesc = form.WorkspaceDesc
+		workspace.NumViews = 0
+		workspace.NumChannels = 0
+		workspace.Levelc = parent.Levelc + 1
+		workspace.ParentID = parent.ID
+		workspace.NumChd = 0
+		workspace.UgroupID = uint(0)
+		workspace.UserID = user.ID
 		/*  StatusDates  */
-		cat.Statusc = common.Active
-		cat.CreatedAt = tn
-		cat.UpdatedAt = tn
-		cat.CreatedDay = tnday
-		cat.CreatedWeek = tnweek
-		cat.CreatedMonth = tnmonth
-		cat.CreatedYear = tnyear
-		cat.UpdatedDay = tnday
-		cat.UpdatedWeek = tnweek
-		cat.UpdatedMonth = tnmonth
-		cat.UpdatedYear = tnyear
+		workspace.Statusc = common.Active
+		workspace.CreatedAt = tn
+		workspace.UpdatedAt = tn
+		workspace.CreatedDay = tnday
+		workspace.CreatedWeek = tnweek
+		workspace.CreatedMonth = tnmonth
+		workspace.CreatedYear = tnyear
+		workspace.UpdatedDay = tnday
+		workspace.UpdatedWeek = tnweek
+		workspace.UpdatedMonth = tnmonth
+		workspace.UpdatedYear = tnyear
 
-		err = c.insertCategory(ctx, insertCategoryStmt, tx, &cat, userEmail, requestID)
+		err = c.insertWorkspace(ctx, insertWorkspaceStmt, tx, &workspace, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4342}).Error(err)
 			return nil, err
 		}
 
-		catChd := CategoryChd{}
+		catChd := WorkspaceChd{}
 		catChd.UUID4, err = common.GetUUIDBytes()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4343}).Error(err)
 			return nil, err
 		}
-		catChd.CategoryID = parent.ID
-		catChd.CategoryChdID = cat.ID
+		catChd.WorkspaceID = parent.ID
+		catChd.WorkspaceChdID = workspace.ID
 		/*  StatusDates  */
 		catChd.Statusc = common.Active
 		catChd.CreatedAt = tn
@@ -475,12 +475,12 @@ func (c *CategoryService) createChild(ctx context.Context, insertCategoryStmt *s
 			return nil, err
 		}
 
-		return &cat, nil
+		return &workspace, nil
 	}
 }
 
 // insertChildPrepare - Insert child prepare statement
-func (c *CategoryService) insertChildPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+func (c *WorkspaceService) insertChildPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -488,11 +488,11 @@ func (c *CategoryService) insertChildPrepare(ctx context.Context, userEmail stri
 		return nil, err
 	default:
 		db := c.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `insert into category_chds
+		stmt, err := db.PrepareContext(ctx, `insert into workspace_chds
 	  ( 
     uuid4,
-		category_id,
-		category_chd_id,
+		workspace_id,
+		workspace_chd_id,
 		statusc,
 		created_at,
 		updated_at,
@@ -514,8 +514,8 @@ func (c *CategoryService) insertChildPrepare(ctx context.Context, userEmail stri
 	}
 }
 
-// insertChild - Insert child category details into database
-func (c *CategoryService) insertChild(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, catChd *CategoryChd, userEmail string, requestID string) error {
+// insertChild - Insert child workspace details into database
+func (c *WorkspaceService) insertChild(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, catChd *WorkspaceChd, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -524,8 +524,8 @@ func (c *CategoryService) insertChild(ctx context.Context, stmt *sql.Stmt, tx *s
 	default:
 		res, err := tx.StmtContext(ctx, stmt).Exec(
 			catChd.UUID4,
-			catChd.CategoryID,
-			catChd.CategoryChdID,
+			catChd.WorkspaceID,
+			catChd.WorkspaceChdID,
 			/*  StatusDates  */
 			catChd.Statusc,
 			catChd.CreatedAt,
@@ -555,7 +555,7 @@ func (c *CategoryService) insertChild(ctx context.Context, stmt *sql.Stmt, tx *s
 }
 
 // updateNumChildrenPrepare - updateNumChildren Prepare Statement
-func (c *CategoryService) updateNumChildrenPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+func (c *WorkspaceService) updateNumChildrenPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -563,7 +563,7 @@ func (c *CategoryService) updateNumChildrenPrepare(ctx context.Context, userEmai
 		return nil, err
 	default:
 		db := c.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `update categories set 
+		stmt, err := db.PrepareContext(ctx, `update workspaces set 
 				  num_chd = ?,
 				  updated_at = ?, 
 					updated_day = ?, 
@@ -578,8 +578,8 @@ func (c *CategoryService) updateNumChildrenPrepare(ctx context.Context, userEmai
 	}
 }
 
-// updateNumChildren - Update number of child in category
-func (c *CategoryService) updateNumChildren(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numchd uint, parentID uint, userEmail string, requestID string) error {
+// updateNumChildren - Update number of child in workspace
+func (c *WorkspaceService) updateNumChildren(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numchd uint, parentID uint, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -604,8 +604,8 @@ func (c *CategoryService) updateNumChildren(ctx context.Context, stmt *sql.Stmt,
 	}
 }
 
-// GetCategories - Get Categories
-func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*CategoryCursor, error) {
+// GetWorkspaces - Get Workspaces
+func (c *WorkspaceService) GetWorkspaces(ctx context.Context, limit string, nextCursor string, userEmail string, requestID string) (*WorkspaceCursor, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -623,14 +623,14 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 			query = query + " " + "and" + " " + "id <= " + nextCursor + " order by id desc " + " limit " + limit + ";"
 		}
 		db := c.DBService.DB
-		cats := []*Category{}
+		workspaces := []*Workspace{}
 		rows, err := db.QueryContext(ctx, `select 
       id, 
 			uuid4,
-			category_name,
-			category_desc,
+			workspace_name,
+			workspace_desc,
 			num_views,
-			num_topics,
+			num_channels,
 			levelc,
 			parent_id,
 			num_chd,
@@ -646,49 +646,49 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where `+query, 0, common.Active)
+			updated_year from workspaces where `+query, 0, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4301}).Error(err)
 			return nil, err
 		}
 
 		for rows.Next() {
-			cat := Category{}
+			workspace := Workspace{}
 			err = rows.Scan(
-				&cat.ID,
-				&cat.UUID4,
-				&cat.CategoryName,
-				&cat.CategoryDesc,
-				&cat.NumViews,
-				&cat.NumTopics,
-				&cat.Levelc,
-				&cat.ParentID,
-				&cat.NumChd,
-				&cat.UgroupID,
-				&cat.UserID,
+				&workspace.ID,
+				&workspace.UUID4,
+				&workspace.WorkspaceName,
+				&workspace.WorkspaceDesc,
+				&workspace.NumViews,
+				&workspace.NumChannels,
+				&workspace.Levelc,
+				&workspace.ParentID,
+				&workspace.NumChd,
+				&workspace.UgroupID,
+				&workspace.UserID,
 				/*  StatusDates  */
-				&cat.Statusc,
-				&cat.CreatedAt,
-				&cat.UpdatedAt,
-				&cat.CreatedDay,
-				&cat.CreatedWeek,
-				&cat.CreatedMonth,
-				&cat.CreatedYear,
-				&cat.UpdatedDay,
-				&cat.UpdatedWeek,
-				&cat.UpdatedMonth,
-				&cat.UpdatedYear)
+				&workspace.Statusc,
+				&workspace.CreatedAt,
+				&workspace.UpdatedAt,
+				&workspace.CreatedDay,
+				&workspace.CreatedWeek,
+				&workspace.CreatedMonth,
+				&workspace.CreatedYear,
+				&workspace.UpdatedDay,
+				&workspace.UpdatedWeek,
+				&workspace.UpdatedMonth,
+				&workspace.UpdatedYear)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4302}).Error(err)
 				return nil, err
 			}
-			uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(workspace.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4303}).Error(err)
 				return nil, err
 			}
-			cat.IDS = uuid4Str
-			cats = append(cats, &cat)
+			workspace.IDS = uuid4Str
+			workspaces = append(workspaces, &workspace)
 		}
 		err = rows.Close()
 		if err != nil {
@@ -701,21 +701,21 @@ func (c *CategoryService) GetCategories(ctx context.Context, limit string, nextC
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4305}).Error(err)
 			return nil, err
 		}
-		x := CategoryCursor{}
-		if len(cats) != 0 {
-			next := cats[len(cats)-1].ID
+		x := WorkspaceCursor{}
+		if len(workspaces) != 0 {
+			next := workspaces[len(workspaces)-1].ID
 			next = next - 1
 			nextc := common.EncodeCursor(next)
-			x = CategoryCursor{cats, nextc}
+			x = WorkspaceCursor{workspaces, nextc}
 		} else {
-			x = CategoryCursor{cats, "0"}
+			x = WorkspaceCursor{workspaces, "0"}
 		}
 		return &x, nil
 	}
 }
 
-// GetCategoryWithTopics - Get category with topics
-func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error) {
+// GetWorkspaceWithChannels - Get workspace with channels
+func (c *WorkspaceService) GetWorkspaceWithChannels(ctx context.Context, ID string, userEmail string, requestID string) (*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -728,14 +728,14 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			return nil, err
 		}
 		db := c.DBService.DB
-		cat := Category{}
-		ctegry, err := c.GetCategory(ctx, ID, userEmail, requestID)
+		workspace := Workspace{}
+		ctegry, err := c.GetWorkspace(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4331}).Error(err)
 			return nil, err
 		}
 		var isPresent bool
-		row := db.QueryRowContext(ctx, `select exists (select 1 from topics where category_id = ?);`, ctegry.ID)
+		row := db.QueryRowContext(ctx, `select exists (select 1 from channels where workspace_id = ?);`, ctegry.ID)
 		err = row.Scan(&isPresent)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4332}).Error(err)
@@ -746,10 +746,10 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			rows, err := db.QueryContext(ctx, `select 
 		  c.id,
 			c.uuid4,
-			c.category_name,
-			c.category_desc,
+			c.workspace_name,
+			c.workspace_desc,
 			c.num_views,
-			c.num_topics,
+			c.num_channels,
 			c.levelc,
 			c.parent_id,
 			c.num_chd,
@@ -768,8 +768,8 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			c.updated_year,
 		  v.id,
 			v.uuid4,
-			v.topic_name,
-			v.topic_desc,
+			v.channel_name,
+			v.channel_desc,
 			v.num_tags,
 			v.tag1,
 			v.tag2,
@@ -783,7 +783,7 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			v.tag10,
 			v.num_views,
 			v.num_messages,
-			v.category_id,
+			v.workspace_id,
 			v.user_id,
 			v.ugroup_id,
 			v.statusc,
@@ -796,42 +796,42 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 			v.updated_day,
 			v.updated_week,
 			v.updated_month,
-			v.updated_year from categories c inner join topics v on (c.id = v.category_id) where c.uuid4 = ?`, uuid4byte)
+			v.updated_year from workspaces c inner join channels v on (c.id = v.workspace_id) where c.uuid4 = ?`, uuid4byte)
 
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4333}).Error(err)
 				return nil, err
 			}
 			for rows.Next() {
-				topc := Topic{}
+				topc := Channel{}
 				err = rows.Scan(
-					&cat.ID,
-					&cat.UUID4,
-					&cat.CategoryName,
-					&cat.CategoryDesc,
-					&cat.NumViews,
-					&cat.NumTopics,
-					&cat.Levelc,
-					&cat.ParentID,
-					&cat.NumChd,
-					&cat.UgroupID,
-					&cat.UserID,
+					&workspace.ID,
+					&workspace.UUID4,
+					&workspace.WorkspaceName,
+					&workspace.WorkspaceDesc,
+					&workspace.NumViews,
+					&workspace.NumChannels,
+					&workspace.Levelc,
+					&workspace.ParentID,
+					&workspace.NumChd,
+					&workspace.UgroupID,
+					&workspace.UserID,
 					/*  StatusDates  */
-					&cat.Statusc,
-					&cat.CreatedAt,
-					&cat.UpdatedAt,
-					&cat.CreatedDay,
-					&cat.CreatedWeek,
-					&cat.CreatedMonth,
-					&cat.CreatedYear,
-					&cat.UpdatedDay,
-					&cat.UpdatedWeek,
-					&cat.UpdatedMonth,
-					&cat.UpdatedYear,
+					&workspace.Statusc,
+					&workspace.CreatedAt,
+					&workspace.UpdatedAt,
+					&workspace.CreatedDay,
+					&workspace.CreatedWeek,
+					&workspace.CreatedMonth,
+					&workspace.CreatedYear,
+					&workspace.UpdatedDay,
+					&workspace.UpdatedWeek,
+					&workspace.UpdatedMonth,
+					&workspace.UpdatedYear,
 					&topc.ID,
 					&topc.UUID4,
-					&topc.TopicName,
-					&topc.TopicDesc,
+					&topc.ChannelName,
+					&topc.ChannelDesc,
 					&topc.NumTags,
 					&topc.Tag1,
 					&topc.Tag2,
@@ -845,7 +845,7 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 					&topc.Tag10,
 					&topc.NumViews,
 					&topc.NumMessages,
-					&topc.CategoryID,
+					&topc.WorkspaceID,
 					&topc.UserID,
 					&topc.UgroupID,
 					/*  StatusDates  */
@@ -865,12 +865,12 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4334}).Error(err)
 					return nil, err
 				}
-				uuid4Str1, err := common.UUIDBytesToStr(cat.UUID4)
+				uuid4Str1, err := common.UUIDBytesToStr(workspace.UUID4)
 				if err != nil {
 					log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4335}).Error(err)
 					return nil, err
 				}
-				cat.IDS = uuid4Str1
+				workspace.IDS = uuid4Str1
 
 				uuid4Str, err := common.UUIDBytesToStr(topc.UUID4)
 				if err != nil {
@@ -878,7 +878,7 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 					return nil, err
 				}
 				topc.IDS = uuid4Str
-				cat.Topics = append(cat.Topics, &topc)
+				workspace.Channels = append(workspace.Channels, &topc)
 			}
 
 			err = rows.Close()
@@ -889,12 +889,12 @@ func (c *CategoryService) GetCategoryWithTopics(ctx context.Context, ID string, 
 		} else {
 			return ctegry, nil
 		}
-		return &cat, nil
+		return &workspace, nil
 	}
 }
 
-// GetCategory - Get Category
-func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error) {
+// GetWorkspace - Get Workspace
+func (c *WorkspaceService) GetWorkspace(ctx context.Context, ID string, userEmail string, requestID string) (*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -906,15 +906,15 @@ func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4307}).Error(err)
 			return nil, err
 		}
-		cat := Category{}
+		workspace := Workspace{}
 		db := c.DBService.DB
 		row := db.QueryRowContext(ctx, `select
       id,
 			uuid4,
-			category_name,
-			category_desc,
+			workspace_name,
+			workspace_desc,
 			num_views,
-			num_topics,
+			num_channels,
 			levelc,
 			parent_id,
 			num_chd,
@@ -930,64 +930,64 @@ func (c *CategoryService) GetCategory(ctx context.Context, ID string, userEmail 
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
+			updated_year from workspaces where uuid4 = ? and statusc = ?;`, uuid4byte, common.Active)
 
 		err = row.Scan(
-			&cat.ID,
-			&cat.UUID4,
-			&cat.CategoryName,
-			&cat.CategoryDesc,
-			&cat.NumViews,
-			&cat.NumTopics,
-			&cat.Levelc,
-			&cat.ParentID,
-			&cat.NumChd,
-			&cat.UgroupID,
-			&cat.UserID,
-			&cat.Statusc,
-			&cat.CreatedAt,
-			&cat.UpdatedAt,
-			&cat.CreatedDay,
-			&cat.CreatedWeek,
-			&cat.CreatedMonth,
-			&cat.CreatedYear,
-			&cat.UpdatedDay,
-			&cat.UpdatedWeek,
-			&cat.UpdatedMonth,
-			&cat.UpdatedYear)
+			&workspace.ID,
+			&workspace.UUID4,
+			&workspace.WorkspaceName,
+			&workspace.WorkspaceDesc,
+			&workspace.NumViews,
+			&workspace.NumChannels,
+			&workspace.Levelc,
+			&workspace.ParentID,
+			&workspace.NumChd,
+			&workspace.UgroupID,
+			&workspace.UserID,
+			&workspace.Statusc,
+			&workspace.CreatedAt,
+			&workspace.UpdatedAt,
+			&workspace.CreatedDay,
+			&workspace.CreatedWeek,
+			&workspace.CreatedMonth,
+			&workspace.CreatedYear,
+			&workspace.UpdatedDay,
+			&workspace.UpdatedWeek,
+			&workspace.UpdatedMonth,
+			&workspace.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4308}).Error(err)
 			return nil, err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(workspace.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4309}).Error(err)
 			return nil, err
 		}
-		cat.IDS = uuid4Str
+		workspace.IDS = uuid4Str
 
-		return &cat, nil
+		return &workspace, nil
 	}
 }
 
-// GetCategoryByID - Get Category By ID
-func (c *CategoryService) GetCategoryByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Category, error) {
+// GetWorkspaceByID - Get Workspace By ID
+func (c *WorkspaceService) GetWorkspaceByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4310}).Error(err)
 		return nil, err
 	default:
-		cat := Category{}
+		workspace := Workspace{}
 		db := c.DBService.DB
 		row := db.QueryRowContext(ctx, `select
       id,
 			uuid4,
-			category_name,
-			category_desc,
+			workspace_name,
+			workspace_desc,
 			num_views,
-			num_topics,
+			num_channels,
 			levelc,
 			parent_id,
 			num_chd,
@@ -1003,64 +1003,64 @@ func (c *CategoryService) GetCategoryByID(ctx context.Context, ID uint, userEmai
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where id = ? and statusc = ?;`, ID, common.Active)
+			updated_year from workspaces where id = ? and statusc = ?;`, ID, common.Active)
 
 		err := row.Scan(
-			&cat.ID,
-			&cat.UUID4,
-			&cat.CategoryName,
-			&cat.CategoryDesc,
-			&cat.NumViews,
-			&cat.NumTopics,
-			&cat.Levelc,
-			&cat.ParentID,
-			&cat.NumChd,
-			&cat.UgroupID,
-			&cat.UserID,
+			&workspace.ID,
+			&workspace.UUID4,
+			&workspace.WorkspaceName,
+			&workspace.WorkspaceDesc,
+			&workspace.NumViews,
+			&workspace.NumChannels,
+			&workspace.Levelc,
+			&workspace.ParentID,
+			&workspace.NumChd,
+			&workspace.UgroupID,
+			&workspace.UserID,
 			/*  StatusDates  */
-			&cat.Statusc,
-			&cat.CreatedAt,
-			&cat.UpdatedAt,
-			&cat.CreatedDay,
-			&cat.CreatedWeek,
-			&cat.CreatedMonth,
-			&cat.CreatedYear,
-			&cat.UpdatedDay,
-			&cat.UpdatedWeek,
-			&cat.UpdatedMonth,
-			&cat.UpdatedYear)
+			&workspace.Statusc,
+			&workspace.CreatedAt,
+			&workspace.UpdatedAt,
+			&workspace.CreatedDay,
+			&workspace.CreatedWeek,
+			&workspace.CreatedMonth,
+			&workspace.CreatedYear,
+			&workspace.UpdatedDay,
+			&workspace.UpdatedWeek,
+			&workspace.UpdatedMonth,
+			&workspace.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4311}).Error(err)
 			return nil, err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(workspace.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4312}).Error(err)
 			return nil, err
 		}
-		cat.IDS = uuid4Str
-		return &cat, nil
+		workspace.IDS = uuid4Str
+		return &workspace, nil
 	}
 }
 
-// GetTopLevelCategories - Get top level categories
-func (c *CategoryService) GetTopLevelCategories(ctx context.Context, userEmail string, requestID string) ([]*Category, error) {
+// GetTopLevelWorkspaces - Get top level workspaces
+func (c *WorkspaceService) GetTopLevelWorkspaces(ctx context.Context, userEmail string, requestID string) ([]*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4353}).Error(err)
 		return nil, err
 	default:
-		cats := []*Category{}
+		workspaces := []*Workspace{}
 		db := c.DBService.DB
 		rows, err := db.QueryContext(ctx, `select 
       id, 
 			uuid4,
-			category_name,
-			category_desc,
+			workspace_name,
+			workspace_desc,
 			num_views,
-			num_topics,
+			num_channels,
 			levelc,
 			parent_id,
 			num_chd,
@@ -1076,81 +1076,81 @@ func (c *CategoryService) GetTopLevelCategories(ctx context.Context, userEmail s
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where levelc = ? and statusc = ?;`, 0, common.Active)
+			updated_year from workspaces where levelc = ? and statusc = ?;`, 0, common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4354}).Error(err)
 			return nil, err
 		}
 
 		for rows.Next() {
-			cat := Category{}
+			workspace := Workspace{}
 			err = rows.Scan(
-				&cat.ID,
-				&cat.UUID4,
-				&cat.CategoryName,
-				&cat.CategoryDesc,
-				&cat.NumViews,
-				&cat.NumTopics,
-				&cat.Levelc,
-				&cat.ParentID,
-				&cat.NumChd,
-				&cat.UgroupID,
-				&cat.UserID,
+				&workspace.ID,
+				&workspace.UUID4,
+				&workspace.WorkspaceName,
+				&workspace.WorkspaceDesc,
+				&workspace.NumViews,
+				&workspace.NumChannels,
+				&workspace.Levelc,
+				&workspace.ParentID,
+				&workspace.NumChd,
+				&workspace.UgroupID,
+				&workspace.UserID,
 				/*  StatusDates  */
-				&cat.Statusc,
-				&cat.CreatedAt,
-				&cat.UpdatedAt,
-				&cat.CreatedDay,
-				&cat.CreatedWeek,
-				&cat.CreatedMonth,
-				&cat.CreatedYear,
-				&cat.UpdatedDay,
-				&cat.UpdatedWeek,
-				&cat.UpdatedMonth,
-				&cat.UpdatedYear)
+				&workspace.Statusc,
+				&workspace.CreatedAt,
+				&workspace.UpdatedAt,
+				&workspace.CreatedDay,
+				&workspace.CreatedWeek,
+				&workspace.CreatedMonth,
+				&workspace.CreatedYear,
+				&workspace.UpdatedDay,
+				&workspace.UpdatedWeek,
+				&workspace.UpdatedMonth,
+				&workspace.UpdatedYear)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4355}).Error(err)
 				return nil, err
 			}
-			uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(workspace.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4356}).Error(err)
 				return nil, err
 			}
-			cat.IDS = uuid4Str
-			cats = append(cats, &cat)
+			workspace.IDS = uuid4Str
+			workspaces = append(workspaces, &workspace)
 		}
 		err = rows.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4357}).Error(err)
 			return nil, err
 		}
-		return cats, nil
+		return workspaces, nil
 	}
 }
 
-// GetChildCategories - Get child categories
-func (c *CategoryService) GetChildCategories(ctx context.Context, ID string, userEmail string, requestID string) ([]*Category, error) {
+// GetChildWorkspaces - Get child workspaces
+func (c *WorkspaceService) GetChildWorkspaces(ctx context.Context, ID string, userEmail string, requestID string) ([]*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4358}).Error(err)
 		return nil, err
 	default:
-		category, err := c.GetCategory(ctx, ID, userEmail, requestID)
+		workspace, err := c.GetWorkspace(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4359}).Error(err)
 			return nil, err
 		}
-		pohs := []*Category{}
+		pohs := []*Workspace{}
 		db := c.DBService.DB
 		rows, err := db.QueryContext(ctx, `select 
 		    c.id,
 				c.uuid4,
-				c.category_name,
-				c.category_desc,
+				c.workspace_name,
+				c.workspace_desc,
 				c.num_views,
-				c.num_topics,
+				c.num_channels,
 				c.levelc,
 				c.parent_id,
 				c.num_chd,
@@ -1166,49 +1166,49 @@ func (c *CategoryService) GetChildCategories(ctx context.Context, ID string, use
 				c.updated_day,
 				c.updated_week,
 				c.updated_month,
-				c.updated_year from categories c inner join category_chds ch on (c.id = ch.category_chd_id) where ch.category_id = ?`, category.ID)
+				c.updated_year from workspaces c inner join workspace_chds ch on (c.id = ch.workspace_chd_id) where ch.workspace_id = ?`, workspace.ID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4360}).Error(err)
 			return nil, err
 		}
 
 		for rows.Next() {
-			cat := Category{}
+			workspace := Workspace{}
 			err = rows.Scan(
-				&cat.ID,
-				&cat.UUID4,
-				&cat.CategoryName,
-				&cat.CategoryDesc,
-				&cat.NumViews,
-				&cat.NumTopics,
-				&cat.Levelc,
-				&cat.ParentID,
-				&cat.NumChd,
-				&cat.UgroupID,
-				&cat.UserID,
-				&cat.Statusc,
-				&cat.CreatedAt,
-				&cat.UpdatedAt,
-				&cat.CreatedDay,
-				&cat.CreatedWeek,
-				&cat.CreatedMonth,
-				&cat.CreatedYear,
-				&cat.UpdatedDay,
-				&cat.UpdatedWeek,
-				&cat.UpdatedMonth,
-				&cat.UpdatedYear)
+				&workspace.ID,
+				&workspace.UUID4,
+				&workspace.WorkspaceName,
+				&workspace.WorkspaceDesc,
+				&workspace.NumViews,
+				&workspace.NumChannels,
+				&workspace.Levelc,
+				&workspace.ParentID,
+				&workspace.NumChd,
+				&workspace.UgroupID,
+				&workspace.UserID,
+				&workspace.Statusc,
+				&workspace.CreatedAt,
+				&workspace.UpdatedAt,
+				&workspace.CreatedDay,
+				&workspace.CreatedWeek,
+				&workspace.CreatedMonth,
+				&workspace.CreatedYear,
+				&workspace.UpdatedDay,
+				&workspace.UpdatedWeek,
+				&workspace.UpdatedMonth,
+				&workspace.UpdatedYear)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4361}).Error(err)
 				return nil, err
 			}
-			uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
+			uuid4Str, err := common.UUIDBytesToStr(workspace.UUID4)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4362}).Error(err)
 				return nil, err
 			}
-			cat.IDS = uuid4Str
+			workspace.IDS = uuid4Str
 
-			pohs = append(pohs, &cat)
+			pohs = append(pohs, &workspace)
 		}
 		err = rows.Close()
 		if err != nil {
@@ -1219,28 +1219,28 @@ func (c *CategoryService) GetChildCategories(ctx context.Context, ID string, use
 	}
 }
 
-// GetParentCategory - Get Parent Category
-func (c *CategoryService) GetParentCategory(ctx context.Context, ID string, userEmail string, requestID string) (*Category, error) {
+// GetParentWorkspace - Get Parent Workspace
+func (c *WorkspaceService) GetParentWorkspace(ctx context.Context, ID string, userEmail string, requestID string) (*Workspace, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4364}).Error(err)
 		return nil, err
 	default:
-		category, err := c.GetCategory(ctx, ID, userEmail, requestID)
+		pworkspace, err := c.GetWorkspace(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4365}).Error(err)
 			return nil, err
 		}
-		cat := Category{}
+		workspace := Workspace{}
 		db := c.DBService.DB
 		row := db.QueryRowContext(ctx, `select
       id,
 			uuid4,
-			category_name,
-			category_desc,
+			workspace_name,
+			workspace_desc,
 			num_views,
-			num_topics,
+			num_channels,
 			levelc,
 			parent_id,
 			num_chd,
@@ -1256,57 +1256,57 @@ func (c *CategoryService) GetParentCategory(ctx context.Context, ID string, user
 			updated_day,
 			updated_week,
 			updated_month,
-			updated_year from categories where id = ? and statusc = ?;`, category.ParentID, common.Active)
+			updated_year from workspaces where id = ? and statusc = ?;`, pworkspace.ParentID, common.Active)
 
 		err = row.Scan(
-			&cat.ID,
-			&cat.UUID4,
-			&cat.CategoryName,
-			&cat.CategoryDesc,
-			&cat.NumViews,
-			&cat.NumTopics,
-			&cat.Levelc,
-			&cat.ParentID,
-			&cat.NumChd,
-			&cat.UgroupID,
-			&cat.UserID,
+			&workspace.ID,
+			&workspace.UUID4,
+			&workspace.WorkspaceName,
+			&workspace.WorkspaceDesc,
+			&workspace.NumViews,
+			&workspace.NumChannels,
+			&workspace.Levelc,
+			&workspace.ParentID,
+			&workspace.NumChd,
+			&workspace.UgroupID,
+			&workspace.UserID,
 			/*  StatusDates  */
-			&cat.Statusc,
-			&cat.CreatedAt,
-			&cat.UpdatedAt,
-			&cat.CreatedDay,
-			&cat.CreatedWeek,
-			&cat.CreatedMonth,
-			&cat.CreatedYear,
-			&cat.UpdatedDay,
-			&cat.UpdatedWeek,
-			&cat.UpdatedMonth,
-			&cat.UpdatedYear)
+			&workspace.Statusc,
+			&workspace.CreatedAt,
+			&workspace.UpdatedAt,
+			&workspace.CreatedDay,
+			&workspace.CreatedWeek,
+			&workspace.CreatedMonth,
+			&workspace.CreatedYear,
+			&workspace.UpdatedDay,
+			&workspace.UpdatedWeek,
+			&workspace.UpdatedMonth,
+			&workspace.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4366}).Error(err)
 			return nil, err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(cat.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(workspace.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4367}).Error(err)
 			return nil, err
 		}
-		cat.IDS = uuid4Str
+		workspace.IDS = uuid4Str
 
-		return &cat, nil
+		return &workspace, nil
 	}
 }
 
-//UpdateCategory - Update category
-func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *Category, UserID string, userEmail string, requestID string) error {
+//UpdateWorkspace - Update workspace
+func (c *WorkspaceService) UpdateWorkspace(ctx context.Context, ID string, form *Workspace, UserID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4376}).Error(err)
 		return err
 	default:
-		category, err := c.GetCategory(ctx, ID, userEmail, requestID)
+		workspace, err := c.GetWorkspace(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4377}).Error(err)
 			return err
@@ -1314,9 +1314,9 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 
 		db := c.DBService.DB
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := db.PrepareContext(ctx, `update categories set 
-		  category_name = ?,
-      category_desc = ?,
+		stmt, err := db.PrepareContext(ctx, `update workspaces set 
+		  workspace_name = ?,
+      workspace_desc = ?,
 			updated_at = ?, 
 			updated_day = ?, 
 			updated_week = ?, 
@@ -1333,14 +1333,14 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 		}
 
 		_, err = tx.StmtContext(ctx, stmt).Exec(
-			form.CategoryName,
-			form.CategoryDesc,
+			form.WorkspaceName,
+			form.WorkspaceDesc,
 			tn,
 			tnday,
 			tnweek,
 			tnmonth,
 			tnyear,
-			category.ID,
+			workspace.ID,
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 4381}).Error(err)
@@ -1372,8 +1372,8 @@ func (c *CategoryService) UpdateCategory(ctx context.Context, ID string, form *C
 	}
 }
 
-// DeleteCategory - Delete category
-func (c *CategoryService) DeleteCategory(ctx context.Context, ID string, userEmail string, requestID string) error {
+// DeleteWorkspace - Delete workspace
+func (c *WorkspaceService) DeleteWorkspace(ctx context.Context, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -1387,7 +1387,7 @@ func (c *CategoryService) DeleteCategory(ctx context.Context, ID string, userEma
 		}
 		db := c.DBService.DB
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := db.PrepareContext(ctx, `update categories set 
+		stmt, err := db.PrepareContext(ctx, `update workspaces set 
 		  statusc = ?,
 			updated_at = ?, 
 			updated_day = ?, 

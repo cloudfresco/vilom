@@ -98,7 +98,7 @@ func TestValidator_IsStrNotEmpty(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: "",
 			},
 			want: false,
@@ -106,7 +106,7 @@ func TestValidator_IsStrNotEmpty(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: "Output Direct Component",
 			},
 			want: true,
@@ -584,7 +584,7 @@ func TestValidator_IsStrLenGtMin(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: `Output`,
 				min:        int(8),
 			},
@@ -593,7 +593,7 @@ func TestValidator_IsStrLenGtMin(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: "Output Direct Component",
 				min:        int(8),
 			},
@@ -623,7 +623,7 @@ func TestValidator_IsStrLenLtMax(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: `Output Direct Component`,
 				max:        int(8),
 			},
@@ -632,7 +632,7 @@ func TestValidator_IsStrLenLtMax(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: "Output",
 				max:        int(8),
 			},
@@ -663,7 +663,7 @@ func TestValidator_IsStrLenBetMinMax(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: "",
 				min:        int(1),
 				max:        int(50),
@@ -673,7 +673,7 @@ func TestValidator_IsStrLenBetMinMax(t *testing.T) {
 		{
 			v: validator,
 			args: args{
-				fieldName:  `Category Name`,
+				fieldName:  `Workspace Name`,
 				fieldValue: "Output Direct Component",
 				min:        int(1),
 				max:        int(50),

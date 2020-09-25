@@ -41,8 +41,8 @@ func TestMain(m *testing.M) {
 	}
 	Layout = "2006-01-02T15:04:05Z"
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-	topicService := msgservices.NewTopicService(dbService, redisService)
+	workspaceservice := msgservices.NewWorkspaceService(dbService, redisService)
+	channelService := msgservices.NewChannelService(dbService, redisService)
 	msgService := msgservices.NewMessageService(dbService, redisService)
 	userService := userservices.NewUserService(dbService, redisService, mailerService, jwtOpt, userOpt, authEnforcer)
 	ugroupService := userservices.NewUgroupService(dbService, redisService)
@@ -54,7 +54,7 @@ func TestMain(m *testing.M) {
 	}
 
 	mux = http.NewServeMux()
-	Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
+	Init(workspaceservice, channelService, msgService, userService, rateOpt, jwtOpt, mux, store)
 	usercontrollers.Init(userService, ugroupService, ubadgeService, rateOpt, jwtOpt, mux, store)
 	os.Exit(m.Run())
 }

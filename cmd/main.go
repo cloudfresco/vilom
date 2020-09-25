@@ -101,7 +101,7 @@ func getConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.MailerOpti
 		os.Exit(1)
 	}
 
-	logOpt, err := common.GetLogConfig(v)
+	roleOpt, err := common.GetRoleConfig(v)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 103,
@@ -109,7 +109,7 @@ func getConfigOpt() (*common.DBOptions, *common.RedisOptions, *common.MailerOpti
 		os.Exit(1)
 	}
 
-	roleOpt, err := common.GetRoleConfig(v)
+	logOpt, err := common.GetLogConfig(v)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"msgnum": 103,
@@ -205,8 +205,8 @@ func main() {
 	ugroupService := userservices.NewUgroupService(dbService, redisService)
 	ubadgeService := userservices.NewUbadgeService(dbService, redisService)
 
-	catService := msgservices.NewCategoryService(dbService, redisService)
-	topicService := msgservices.NewTopicService(dbService, redisService)
+	workspaceService := msgservices.NewWorkspaceService(dbService, redisService)
+	channelService := msgservices.NewChannelService(dbService, redisService)
 	msgService := msgservices.NewMessageService(dbService, redisService)
 
 	searchService := searchservices.NewSearchService(dbService, redisService, searchIndex)
@@ -214,7 +214,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	usercontrollers.Init(userService, ugroupService, ubadgeService, rateOpt, jwtOpt, mux, store)
-	msgcontrollers.Init(catService, topicService, msgService, userService, rateOpt, jwtOpt, mux, store)
+	msgcontrollers.Init(workspaceService, channelService, msgService, userService, rateOpt, jwtOpt, mux, store)
 	searchcontrollers.Init(searchService, userService, rateOpt, jwtOpt, mux, store)
 
 	if serverOpt.ServerTLS == "true" {

@@ -56,7 +56,7 @@ func (sc *SearchController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// Search - Search Topics
+// Search - Search Channels
 func (sc *SearchController) Search(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 

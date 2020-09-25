@@ -13,55 +13,55 @@ import (
 
 /* error message range: 5300-5999 */
 
-// For validation of Topic fields
+// For validation of Channel fields
 const (
-	TopicNameLenMin = 1
-	TopicNameLenMax = 50
-	TopicDescLenMin = 1
-	TopicDescLenMax = 1000
+	ChannelNameLenMin = 1
+	ChannelNameLenMax = 50
+	ChannelDescLenMin = 1
+	ChannelDescLenMax = 1000
 )
 
-// Topic - Topic view representation
-type Topic struct {
+// Channel - Channel view representation
+type Channel struct {
 	ID    uint   `json:"id,omitempty"`
 	UUID4 []byte `json:"-"`
 	IDS   string `json:"id_s,omitempty"`
 
-	TopicName string `json:"topic_name,omitempty"`
-	TopicDesc string `json:"topic_desc,omitempty"`
-	NumTags   uint   `json:"num_tags,omitempty"`
-	Tag1      string `json:"tag1,omitempty"`
-	Tag2      string `json:"tag2,omitempty"`
-	Tag3      string `json:"tag3,omitempty"`
-	Tag4      string `json:"tag4,omitempty"`
-	Tag5      string `json:"tag5,omitempty"`
-	Tag6      string `json:"tag6,omitempty"`
-	Tag7      string `json:"tag7,omitempty"`
-	Tag8      string `json:"tag8,omitempty"`
-	Tag9      string `json:"tag9,omitempty"`
-	Tag10     string `json:"tag10,omitempty"`
+	ChannelName string `json:"channel_name,omitempty"`
+	ChannelDesc string `json:"channel_desc,omitempty"`
+	NumTags     uint   `json:"num_tags,omitempty"`
+	Tag1        string `json:"tag1,omitempty"`
+	Tag2        string `json:"tag2,omitempty"`
+	Tag3        string `json:"tag3,omitempty"`
+	Tag4        string `json:"tag4,omitempty"`
+	Tag5        string `json:"tag5,omitempty"`
+	Tag6        string `json:"tag6,omitempty"`
+	Tag7        string `json:"tag7,omitempty"`
+	Tag8        string `json:"tag8,omitempty"`
+	Tag9        string `json:"tag9,omitempty"`
+	Tag10       string `json:"tag10,omitempty"`
 
 	NumViews    uint `json:"num_views,omitempty"`
 	NumMessages uint `json:"num_messages,omitempty"`
 
-	CategoryID uint `json:"category_id,omitempty"`
-	UserID     uint `json:"user_id,omitempty"`
-	UgroupID   uint `json:"ugroup_id,omitempty"`
+	WorkspaceID uint `json:"workspace_id,omitempty"`
+	UserID      uint `json:"user_id,omitempty"`
+	UgroupID    uint `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 	Messages []*Message
 
-	//only for logic purpose to create message with topic
+	//only for logic purpose to create message with channel
 	Mtext   string `json:"-"`
 	Mattach string `json:"-"`
 }
 
-// TopicsUser - TopicsUser view representation
-type TopicsUser struct {
+// ChannelsUser - ChannelsUser view representation
+type ChannelsUser struct {
 	ID          uint   `json:"id,omitempty"`
 	UUID4       []byte `json:"-"`
 	IDS         string `json:"id_s,omitempty"`
-	TopicID     uint   `json:"topic_id,omitempty"`
+	ChannelID   uint   `json:"channel_id,omitempty"`
 	NumMessages uint   `json:"num_messages,omitempty"`
 	NumViews    uint   `json:"num_views,omitempty"`
 	UserID      uint   `json:"user_id,omitempty"`
@@ -70,47 +70,47 @@ type TopicsUser struct {
 	common.StatusDates
 }
 
-// UserTopic - UserTopic view representation
-type UserTopic struct {
-	ID       uint   `json:"id,omitempty"`
-	UUID4    []byte `json:"-"`
-	TopicID  uint   `json:"topic_id,omitempty"`
-	UserID   uint   `json:"user_id,omitempty"`
-	UgroupID uint   `json:"ugroup_id,omitempty"`
+// UserChannel - UserChannel view representation
+type UserChannel struct {
+	ID        uint   `json:"id,omitempty"`
+	UUID4     []byte `json:"-"`
+	ChannelID uint   `json:"channel_id,omitempty"`
+	UserID    uint   `json:"user_id,omitempty"`
+	UgroupID  uint   `json:"ugroup_id,omitempty"`
 
 	common.StatusDates
 }
 
-// TopicServiceIntf - interface for Topic Service
-type TopicServiceIntf interface {
-	CreateTopic(ctx context.Context, form *Topic, UserID string, userEmail string, requestID string) (*Topic, error)
-	ShowTopic(ctx context.Context, ID string, UserID string, userEmail string, requestID string) (*Topic, error)
-	GetTopicByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Topic, error)
-	GetTopic(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error)
-	GetTopicByName(ctx context.Context, topicname string, userEmail string, requestID string) (*Topic, error)
-	GetTopicWithMessages(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error)
-	GetTopicMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Topic, error)
-	GetTopicsUser(ctx context.Context, ID uint, UserID uint, userEmail string, requestID string) (*TopicsUser, error)
-	UpdateTopic(ctx context.Context, ID string, form *Topic, UserID string, userEmail string, requestID string) error
-	DeleteTopic(ctx context.Context, ID string, userEmail string, requestID string) error
+// ChannelServiceIntf - interface for Channel Service
+type ChannelServiceIntf interface {
+	CreateChannel(ctx context.Context, form *Channel, UserID string, userEmail string, requestID string) (*Channel, error)
+	ShowChannel(ctx context.Context, ID string, UserID string, userEmail string, requestID string) (*Channel, error)
+	GetChannelByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Channel, error)
+	GetChannel(ctx context.Context, ID string, userEmail string, requestID string) (*Channel, error)
+	GetChannelByName(ctx context.Context, channelname string, userEmail string, requestID string) (*Channel, error)
+	GetChannelWithMessages(ctx context.Context, ID string, userEmail string, requestID string) (*Channel, error)
+	GetChannelMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Channel, error)
+	GetChannelsUser(ctx context.Context, ID uint, UserID uint, userEmail string, requestID string) (*ChannelsUser, error)
+	UpdateChannel(ctx context.Context, ID string, form *Channel, UserID string, userEmail string, requestID string) error
+	DeleteChannel(ctx context.Context, ID string, userEmail string, requestID string) error
 }
 
-// TopicService - For accessing topic services
-type TopicService struct {
+// ChannelService - For accessing channel services
+type ChannelService struct {
 	DBService    *common.DBService
 	RedisService *common.RedisService
 }
 
-// NewTopicService - Create topic service
-func NewTopicService(dbOpt *common.DBService, redisOpt *common.RedisService) *TopicService {
-	return &TopicService{
+// NewChannelService - Create channel service
+func NewChannelService(dbOpt *common.DBService, redisOpt *common.RedisService) *ChannelService {
+	return &ChannelService{
 		DBService:    dbOpt,
 		RedisService: redisOpt,
 	}
 }
 
-// CreateTopic - Create topic
-func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID string, userEmail string, requestID string) (*Topic, error) {
+// CreateChannel - Create channel
+func (t *ChannelService) CreateChannel(ctx context.Context, form *Channel, UserID string, userEmail string, requestID string) (*Channel, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -124,24 +124,24 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 			return nil, err
 		}
 		db := t.DBService.DB
-		catserv := &CategoryService{DBService: t.DBService, RedisService: t.RedisService}
-		category, err := catserv.GetCategoryByID(ctx, form.CategoryID, userEmail, requestID)
+		workspaceserv := &WorkspaceService{DBService: t.DBService, RedisService: t.RedisService}
+		workspace, err := workspaceserv.GetWorkspaceByID(ctx, form.WorkspaceID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5326}).Error(err)
 			return nil, err
 		}
 
-		insertTopicStmt, err := t.insertTopicPrepare(ctx, userEmail, requestID)
+		insertChannelStmt, err := t.insertChannelPrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5323}).Error(err)
 			return nil, err
 		}
-		updateNumTopicsStmt, err := t.updateNumTopicsPrepare(ctx, userEmail, requestID)
+		updateNumChannelsStmt, err := t.updateNumChannelsPrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5323}).Error(err)
 			return nil, err
 		}
-		insertUserTopicStmt, err := t.insertUserTopicPrepare(ctx, userEmail, requestID)
+		insertUserChannelStmt, err := t.insertUserChannelPrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5323}).Error(err)
 			return nil, err
@@ -152,7 +152,7 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 			return nil, err
 		}
 
-		topic, err := t.createTopic(ctx, insertTopicStmt, tx, form, user.ID, userEmail, requestID)
+		channel, err := t.createChannel(ctx, insertChannelStmt, tx, form, user.ID, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5325}).Error(err)
@@ -160,8 +160,8 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 			return nil, err
 		}
 
-		numtopics := category.NumTopics + 1
-		err = t.updateNumTopics(ctx, updateNumTopicsStmt, tx, numtopics, category.ID, userEmail, requestID)
+		numchannels := workspace.NumChannels + 1
+		err = t.updateNumChannels(ctx, updateNumChannelsStmt, tx, numchannels, workspace.ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5381}).Error(err)
 			err = tx.Rollback()
@@ -170,8 +170,8 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 		if form.Mtext != "" {
 			msgserv := &MessageService{DBService: t.DBService, RedisService: t.RedisService}
 			msgform := Message{}
-			msgform.CategoryID = category.ID
-			msgform.TopicID = topic.ID
+			msgform.WorkspaceID = workspace.ID
+			msgform.ChannelID = channel.ID
 			msgform.UgroupID = form.UgroupID
 			msgform.Mtext = form.Mtext
 			msgform.Mattach = form.Mattach
@@ -183,7 +183,7 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 			}
 		}
 
-		err = t.createUserTopic(ctx, insertUserTopicStmt, tx, topic.ID, user.ID, userEmail, requestID)
+		err = t.createUserChannel(ctx, insertUserChannelStmt, tx, channel.ID, user.ID, userEmail, requestID)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5340}).Error(err)
@@ -197,63 +197,63 @@ func (t *TopicService) CreateTopic(ctx context.Context, form *Topic, UserID stri
 			err = tx.Rollback()
 			return nil, err
 		}
-		return topic, nil
+		return channel, nil
 	}
 }
 
-// create topic - create topic
-func (t *TopicService) createTopic(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, form *Topic, userID uint, userEmail string, requestID string) (*Topic, error) {
+// create channel - create channel
+func (t *ChannelService) createChannel(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, form *Channel, userID uint, userEmail string, requestID string) (*Channel, error) {
 	var err error
 	tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
-	topic := Topic{}
-	topic.UUID4, err = common.GetUUIDBytes()
+	channel := Channel{}
+	channel.UUID4, err = common.GetUUIDBytes()
 	if err != nil {
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5324}).Error(err)
 		return nil, err
 	}
-	topic.TopicName = form.TopicName
-	topic.TopicDesc = form.TopicDesc
-	topic.NumTags = form.NumTags
-	topic.Tag1 = form.Tag1
-	topic.Tag2 = form.Tag2
-	topic.Tag3 = form.Tag3
-	topic.Tag4 = form.Tag4
-	topic.Tag5 = form.Tag5
-	topic.Tag6 = form.Tag6
-	topic.Tag7 = form.Tag7
-	topic.Tag8 = form.Tag8
-	topic.Tag9 = form.Tag9
-	topic.Tag10 = form.Tag10
-	topic.NumViews = uint(0)
-	topic.NumMessages = uint(0)
-	topic.CategoryID = form.CategoryID
-	topic.UserID = userID
-	topic.UgroupID = form.UgroupID
+	channel.ChannelName = form.ChannelName
+	channel.ChannelDesc = form.ChannelDesc
+	channel.NumTags = form.NumTags
+	channel.Tag1 = form.Tag1
+	channel.Tag2 = form.Tag2
+	channel.Tag3 = form.Tag3
+	channel.Tag4 = form.Tag4
+	channel.Tag5 = form.Tag5
+	channel.Tag6 = form.Tag6
+	channel.Tag7 = form.Tag7
+	channel.Tag8 = form.Tag8
+	channel.Tag9 = form.Tag9
+	channel.Tag10 = form.Tag10
+	channel.NumViews = uint(0)
+	channel.NumMessages = uint(0)
+	channel.WorkspaceID = form.WorkspaceID
+	channel.UserID = userID
+	channel.UgroupID = form.UgroupID
 	/*  StatusDates  */
-	topic.Statusc = common.Active
-	topic.CreatedAt = tn
-	topic.UpdatedAt = tn
-	topic.CreatedDay = tnday
-	topic.CreatedWeek = tnweek
-	topic.CreatedMonth = tnmonth
-	topic.CreatedYear = tnyear
-	topic.UpdatedDay = tnday
-	topic.UpdatedWeek = tnweek
-	topic.UpdatedMonth = tnmonth
-	topic.UpdatedYear = tnyear
+	channel.Statusc = common.Active
+	channel.CreatedAt = tn
+	channel.UpdatedAt = tn
+	channel.CreatedDay = tnday
+	channel.CreatedWeek = tnweek
+	channel.CreatedMonth = tnmonth
+	channel.CreatedYear = tnyear
+	channel.UpdatedDay = tnday
+	channel.UpdatedWeek = tnweek
+	channel.UpdatedMonth = tnmonth
+	channel.UpdatedYear = tnyear
 
-	err = t.insertTopic(ctx, stmt, tx, &topic, userEmail, requestID)
+	err = t.insertChannel(ctx, stmt, tx, &channel, userEmail, requestID)
 
 	if err != nil {
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5325}).Error(err)
 		return nil, err
 	}
-	return &topic, nil
+	return &channel, nil
 }
 
-// insertTopicPrepare - Insert topic Prepare Statement
-func (t *TopicService) insertTopicPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+// insertChannelPrepare - Insert channel Prepare Statement
+func (t *ChannelService) insertChannelPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -261,10 +261,10 @@ func (t *TopicService) insertTopicPrepare(ctx context.Context, userEmail string,
 		return nil, err
 	default:
 		db := t.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `insert into topics
+		stmt, err := db.PrepareContext(ctx, `insert into channels
 	  ( uuid4,
-			topic_name,
-			topic_desc,
+			channel_name,
+			channel_desc,
 			num_tags,
 			tag1,
 			tag2,
@@ -278,7 +278,7 @@ func (t *TopicService) insertTopicPrepare(ctx context.Context, userEmail string,
 			tag10,
 			num_views,
 			num_messages,
-			category_id,
+			workspace_id,
 			user_id,
 			ugroup_id,
 			statusc,
@@ -303,8 +303,8 @@ func (t *TopicService) insertTopicPrepare(ctx context.Context, userEmail string,
 	}
 }
 
-// insertTopic - Insert topic details into database
-func (t *TopicService) insertTopic(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, topc *Topic, userEmail string, requestID string) error {
+// insertChannel - Insert channel details into database
+func (t *ChannelService) insertChannel(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, channel *Channel, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -312,37 +312,37 @@ func (t *TopicService) insertTopic(ctx context.Context, stmt *sql.Stmt, tx *sql.
 		return err
 	default:
 		res, err := tx.StmtContext(ctx, stmt).Exec(
-			topc.UUID4,
-			topc.TopicName,
-			topc.TopicDesc,
-			topc.NumTags,
-			topc.Tag1,
-			topc.Tag2,
-			topc.Tag3,
-			topc.Tag4,
-			topc.Tag5,
-			topc.Tag6,
-			topc.Tag7,
-			topc.Tag8,
-			topc.Tag9,
-			topc.Tag10,
-			topc.NumViews,
-			topc.NumMessages,
-			topc.CategoryID,
-			topc.UserID,
-			topc.UgroupID,
+			channel.UUID4,
+			channel.ChannelName,
+			channel.ChannelDesc,
+			channel.NumTags,
+			channel.Tag1,
+			channel.Tag2,
+			channel.Tag3,
+			channel.Tag4,
+			channel.Tag5,
+			channel.Tag6,
+			channel.Tag7,
+			channel.Tag8,
+			channel.Tag9,
+			channel.Tag10,
+			channel.NumViews,
+			channel.NumMessages,
+			channel.WorkspaceID,
+			channel.UserID,
+			channel.UgroupID,
 			/*  StatusDates  */
-			topc.Statusc,
-			topc.CreatedAt,
-			topc.UpdatedAt,
-			topc.CreatedDay,
-			topc.CreatedWeek,
-			topc.CreatedMonth,
-			topc.CreatedYear,
-			topc.UpdatedDay,
-			topc.UpdatedWeek,
-			topc.UpdatedMonth,
-			topc.UpdatedYear)
+			channel.Statusc,
+			channel.CreatedAt,
+			channel.UpdatedAt,
+			channel.CreatedDay,
+			channel.CreatedWeek,
+			channel.CreatedMonth,
+			channel.CreatedYear,
+			channel.UpdatedDay,
+			channel.UpdatedWeek,
+			channel.UpdatedMonth,
+			channel.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5344}).Error(err)
@@ -353,19 +353,19 @@ func (t *TopicService) insertTopic(ctx context.Context, stmt *sql.Stmt, tx *sql.
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5345}).Error(err)
 			return err
 		}
-		topc.ID = uint(uID)
-		uuid4Str, err := common.UUIDBytesToStr(topc.UUID4)
+		channel.ID = uint(uID)
+		uuid4Str, err := common.UUIDBytesToStr(channel.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5346}).Error(err)
 			return err
 		}
-		topc.IDS = uuid4Str
+		channel.IDS = uuid4Str
 		return nil
 	}
 }
 
-// updateNumTopicsPrepare - UpdateNumTopics Prepare Statement
-func (t *TopicService) updateNumTopicsPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+// updateNumChannelsPrepare - UpdateNumChannels Prepare Statement
+func (t *ChannelService) updateNumChannelsPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -373,8 +373,8 @@ func (t *TopicService) updateNumTopicsPrepare(ctx context.Context, userEmail str
 		return nil, err
 	default:
 		db := t.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `update categories set 
-    num_topics = ?,
+		stmt, err := db.PrepareContext(ctx, `update workspaces set 
+    num_channels = ?,
 	  updated_at = ?, 
 		updated_day = ?, 
 		updated_week = ?, 
@@ -388,8 +388,8 @@ func (t *TopicService) updateNumTopicsPrepare(ctx context.Context, userEmail str
 	}
 }
 
-// updateNumTopics - update number of topics in category
-func (t *TopicService) updateNumTopics(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numTopics uint, ID uint, userEmail string, requestID string) error {
+// updateNumChannels - update number of channels in workspace
+func (t *ChannelService) updateNumChannels(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numChannels uint, ID uint, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -399,7 +399,7 @@ func (t *TopicService) updateNumTopics(ctx context.Context, stmt *sql.Stmt, tx *
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 
 		_, err := tx.StmtContext(ctx, stmt).Exec(
-			numTopics,
+			numChannels,
 			tn,
 			tnday,
 			tnweek,
@@ -415,33 +415,33 @@ func (t *TopicService) updateNumTopics(ctx context.Context, stmt *sql.Stmt, tx *
 	}
 }
 
-// createUserTopic - create user topic
-func (t *TopicService) createUserTopic(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, topicID uint, userID uint, userEmail string, requestID string) error {
+// createUserChannel - create user channel
+func (t *ChannelService) createUserChannel(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, channelID uint, userID uint, userEmail string, requestID string) error {
 	var err error
 	tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-	ut := UserTopic{}
-	ut.UUID4, err = common.GetUUIDBytes()
+	uc := UserChannel{}
+	uc.UUID4, err = common.GetUUIDBytes()
 	if err != nil {
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5339}).Error(err)
 		return err
 	}
-	ut.TopicID = topicID
-	ut.UserID = userID
-	ut.UgroupID = uint(0)
+	uc.ChannelID = channelID
+	uc.UserID = userID
+	uc.UgroupID = uint(0)
 	/*  StatusDates  */
-	ut.Statusc = common.Active
-	ut.CreatedAt = tn
-	ut.UpdatedAt = tn
-	ut.CreatedDay = tnday
-	ut.CreatedWeek = tnweek
-	ut.CreatedMonth = tnmonth
-	ut.CreatedYear = tnyear
-	ut.UpdatedDay = tnday
-	ut.UpdatedWeek = tnweek
-	ut.UpdatedMonth = tnmonth
-	ut.UpdatedYear = tnyear
+	uc.Statusc = common.Active
+	uc.CreatedAt = tn
+	uc.UpdatedAt = tn
+	uc.CreatedDay = tnday
+	uc.CreatedWeek = tnweek
+	uc.CreatedMonth = tnmonth
+	uc.CreatedYear = tnyear
+	uc.UpdatedDay = tnday
+	uc.UpdatedWeek = tnweek
+	uc.UpdatedMonth = tnmonth
+	uc.UpdatedYear = tnyear
 
-	err = t.insertUserTopic(ctx, stmt, tx, &ut, userEmail, requestID)
+	err = t.insertUserChannel(ctx, stmt, tx, &uc, userEmail, requestID)
 
 	if err != nil {
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5340}).Error(err)
@@ -450,8 +450,8 @@ func (t *TopicService) createUserTopic(ctx context.Context, stmt *sql.Stmt, tx *
 	return nil
 }
 
-// insertUserTopicPrepare - Insert user topics Prepare Statement
-func (t *TopicService) insertUserTopicPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+// insertUserChannelPrepare - Insert user channels Prepare Statement
+func (t *ChannelService) insertUserChannelPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -459,10 +459,10 @@ func (t *TopicService) insertUserTopicPrepare(ctx context.Context, userEmail str
 		return nil, err
 	default:
 		db := t.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `insert into user_topics
+		stmt, err := db.PrepareContext(ctx, `insert into user_channels
 	  (
     uuid4,
-		topic_id,
+		channel_id,
 		user_id,
 		ugroup_id,
 		statusc,
@@ -486,8 +486,8 @@ func (t *TopicService) insertUserTopicPrepare(ctx context.Context, userEmail str
 	}
 }
 
-// insertUserTopic - Insert user topics details into database
-func (t *TopicService) insertUserTopic(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, poh *UserTopic, userEmail string, requestID string) error {
+// insertUserChannel - Insert user channels details into database
+func (t *ChannelService) insertUserChannel(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, channel *UserChannel, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -495,21 +495,21 @@ func (t *TopicService) insertUserTopic(ctx context.Context, stmt *sql.Stmt, tx *
 		return err
 	default:
 		res, err := tx.StmtContext(ctx, stmt).Exec(
-			poh.UUID4,
-			poh.TopicID,
-			poh.UserID,
-			poh.UgroupID,
-			poh.Statusc,
-			poh.CreatedAt,
-			poh.UpdatedAt,
-			poh.CreatedDay,
-			poh.CreatedWeek,
-			poh.CreatedMonth,
-			poh.CreatedYear,
-			poh.UpdatedDay,
-			poh.UpdatedWeek,
-			poh.UpdatedMonth,
-			poh.UpdatedYear)
+			channel.UUID4,
+			channel.ChannelID,
+			channel.UserID,
+			channel.UgroupID,
+			channel.Statusc,
+			channel.CreatedAt,
+			channel.UpdatedAt,
+			channel.CreatedDay,
+			channel.CreatedWeek,
+			channel.CreatedMonth,
+			channel.CreatedYear,
+			channel.UpdatedDay,
+			channel.UpdatedWeek,
+			channel.UpdatedMonth,
+			channel.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5369}).Error(err)
@@ -520,13 +520,13 @@ func (t *TopicService) insertUserTopic(ctx context.Context, stmt *sql.Stmt, tx *
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5370}).Error(err)
 			return err
 		}
-		poh.ID = uint(uID)
+		channel.ID = uint(uID)
 		return nil
 	}
 }
 
-// ShowTopic - Get topic details
-func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, userEmail string, requestID string) (*Topic, error) {
+// ShowChannel - Get channel details
+func (t *ChannelService) ShowChannel(ctx context.Context, ID string, UserID string, userEmail string, requestID string) (*Channel, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -534,12 +534,12 @@ func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, 
 		return nil, err
 	default:
 		db := t.DBService.DB
-		topic, err := t.GetTopicWithMessages(ctx, ID, userEmail, requestID)
+		channel, err := t.GetChannelWithMessages(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5301}).Error(err)
 			return nil, err
 		}
-		//update topic_users table
+		//update channel_users table
 		userserv := &userservices.UserService{DBService: t.DBService, RedisService: t.RedisService}
 		user, err := userserv.GetUser(ctx, UserID, userEmail, requestID)
 		if err != nil {
@@ -547,14 +547,14 @@ func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, 
 			return nil, err
 		}
 		var isPresent bool
-		row := db.QueryRowContext(ctx, `select exists (select 1 from topics_users where topic_id = ? and user_id = ?);`, topic.ID, user.ID)
+		row := db.QueryRowContext(ctx, `select exists (select 1 from channels_users where channel_id = ? and user_id = ?);`, channel.ID, user.ID)
 		err = row.Scan(&isPresent)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5303}).Error(err)
 			return nil, err
 		}
 
-		updateTopicUsersStmt, insertTopicsUserStmt, err := t.showTopicPrepareStmts(ctx, userEmail, requestID)
+		updateChannelUsersStmt, insertChannelsUserStmt, err := t.showChannelPrepareStmts(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 			return nil, err
@@ -568,14 +568,14 @@ func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, 
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 				return nil, err
 			}
-			err = t.showTopicPrepareStmtsClose(ctx, updateTopicUsersStmt, insertTopicsUserStmt, userEmail, requestID)
+			err = t.showChannelPrepareStmtsClose(ctx, updateChannelUsersStmt, insertChannelsUserStmt, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 				return nil, err
 			}
 			return nil, err
 		}
-		err = t.showTopicUpdateTopicUsers(ctx, updateTopicUsersStmt, insertTopicsUserStmt, topic, tx, user.ID, isPresent, userEmail, requestID)
+		err = t.showChannelUpdateChannelUsers(ctx, updateChannelUsersStmt, insertChannelsUserStmt, channel, tx, user.ID, isPresent, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5372}).Error(err)
 			err = tx.Rollback()
@@ -583,7 +583,7 @@ func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, 
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 				return nil, err
 			}
-			err = t.showTopicPrepareStmtsClose(ctx, updateTopicUsersStmt, insertTopicsUserStmt, userEmail, requestID)
+			err = t.showChannelPrepareStmtsClose(ctx, updateChannelUsersStmt, insertChannelsUserStmt, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 				return nil, err
@@ -596,54 +596,54 @@ func (t *TopicService) ShowTopic(ctx context.Context, ID string, UserID string, 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5309}).Error(err)
 			return nil, err
 		}
-		err = t.showTopicPrepareStmtsClose(ctx, updateTopicUsersStmt, insertTopicsUserStmt, userEmail, requestID)
+		err = t.showChannelPrepareStmtsClose(ctx, updateChannelUsersStmt, insertChannelsUserStmt, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 			return nil, err
 		}
-		return topic, nil
+		return channel, nil
 	}
 }
 
-//showTopicPrepareStmts - Prepare Statements
-func (t *TopicService) showTopicPrepareStmts(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, *sql.Stmt, error) {
+//showChannelPrepareStmts - Prepare Statements
+func (t *ChannelService) showChannelPrepareStmts(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, *sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 6311}).Error(err)
 		return nil, nil, err
 	default:
-		updateTopicUsersStmt, err := t.updateTopicUsersPrepare(ctx, userEmail, requestID)
+		updateChannelUsersStmt, err := t.updateChannelUsersPrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 			return nil, nil, err
 		}
 
-		insertTopicsUserStmt, err := t.insertTopicsUserPrepare(ctx, userEmail, requestID)
+		insertChannelsUserStmt, err := t.insertChannelsUserPrepare(ctx, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 			return nil, nil, err
 		}
 
-		return updateTopicUsersStmt, insertTopicsUserStmt, nil
+		return updateChannelUsersStmt, insertChannelsUserStmt, nil
 	}
 }
 
-//showTopicPrepareStmtsClose - Close Prepare Statements
-func (t *TopicService) showTopicPrepareStmtsClose(ctx context.Context, updateTopicUsersStmt *sql.Stmt, insertTopicsUserStmt *sql.Stmt, userEmail string, requestID string) error {
+//showChannelPrepareStmtsClose - Close Prepare Statements
+func (t *ChannelService) showChannelPrepareStmtsClose(ctx context.Context, updateChannelUsersStmt *sql.Stmt, insertChannelsUserStmt *sql.Stmt, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 		return err
 	default:
-		err := updateTopicUsersStmt.Close()
+		err := updateChannelUsersStmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 			return err
 		}
 
-		err = insertTopicsUserStmt.Close()
+		err = insertChannelsUserStmt.Close()
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 			return err
@@ -653,8 +653,8 @@ func (t *TopicService) showTopicPrepareStmtsClose(ctx context.Context, updateTop
 	}
 }
 
-// showTopicUpdateTopicUsers - update topic users details
-func (t *TopicService) showTopicUpdateTopicUsers(ctx context.Context, updateTopicUsersStmt *sql.Stmt, insertTopicsUserStmt *sql.Stmt, topic *Topic, tx *sql.Tx, userID uint, isPresent bool, userEmail string, requestID string) error {
+// showChannelUpdateChannelUsers - update channel users details
+func (t *ChannelService) showChannelUpdateChannelUsers(ctx context.Context, updateChannelUsersStmt *sql.Stmt, insertChannelsUserStmt *sql.Stmt, channel *Channel, tx *sql.Tx, userID uint, isPresent bool, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -665,44 +665,44 @@ func (t *TopicService) showTopicUpdateTopicUsers(ctx context.Context, updateTopi
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
 		if isPresent {
 			//update
-			topicsuser, err := t.GetTopicsUser(ctx, topic.ID, userID, userEmail, requestID)
+			channelsuser, err := t.GetChannelsUser(ctx, channel.ID, userID, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5373}).Error(err)
 				return err
 			}
 
-			numViews := topicsuser.NumViews + 1
-			err = t.updateTopicUsers(ctx, updateTopicUsersStmt, tx, topic.NumMessages, numViews, topicsuser.ID, userEmail, requestID)
+			numViews := channelsuser.NumViews + 1
+			err = t.updateChannelUsers(ctx, updateChannelUsersStmt, tx, channel.NumMessages, numViews, channelsuser.ID, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5379}).Error(err)
 				return err
 			}
 		} else {
 			//create
-			tu := TopicsUser{}
-			tu.UUID4, err = common.GetUUIDBytes()
+			cu := ChannelsUser{}
+			cu.UUID4, err = common.GetUUIDBytes()
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5307}).Error(err)
 				return err
 			}
-			tu.TopicID = topic.ID
-			tu.NumMessages = topic.NumMessages
-			tu.NumViews = 1
-			tu.UserID = userID
-			tu.UgroupID = uint(0)
-			tu.Statusc = common.Active
-			tu.CreatedAt = tn
-			tu.UpdatedAt = tn
-			tu.CreatedDay = tnday
-			tu.CreatedWeek = tnweek
-			tu.CreatedMonth = tnmonth
-			tu.CreatedYear = tnyear
-			tu.UpdatedDay = tnday
-			tu.UpdatedWeek = tnweek
-			tu.UpdatedMonth = tnmonth
-			tu.UpdatedYear = tnyear
+			cu.ChannelID = channel.ID
+			cu.NumMessages = channel.NumMessages
+			cu.NumViews = 1
+			cu.UserID = userID
+			cu.UgroupID = uint(0)
+			cu.Statusc = common.Active
+			cu.CreatedAt = tn
+			cu.UpdatedAt = tn
+			cu.CreatedDay = tnday
+			cu.CreatedWeek = tnweek
+			cu.CreatedMonth = tnmonth
+			cu.CreatedYear = tnyear
+			cu.UpdatedDay = tnday
+			cu.UpdatedWeek = tnweek
+			cu.UpdatedMonth = tnmonth
+			cu.UpdatedYear = tnyear
 
-			_, err := t.insertTopicsUser(ctx, insertTopicsUserStmt, tx, tu, userEmail, requestID)
+			_, err := t.insertChannelsUser(ctx, insertChannelsUserStmt, tx, cu, userEmail, requestID)
 
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5308}).Error(err)
@@ -714,8 +714,8 @@ func (t *TopicService) showTopicUpdateTopicUsers(ctx context.Context, updateTopi
 	}
 }
 
-// updateTopicUsersPrepare - update topic users prepare statement
-func (t *TopicService) updateTopicUsersPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+// updateChannelUsersPrepare - update channel users prepare statement
+func (t *ChannelService) updateChannelUsersPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -723,7 +723,7 @@ func (t *TopicService) updateTopicUsersPrepare(ctx context.Context, userEmail st
 		return nil, err
 	default:
 		db := t.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `update topics_users set 
+		stmt, err := db.PrepareContext(ctx, `update channels_users set 
 					num_messages = ?,
           num_views = ?,
 					updated_at = ?, 
@@ -739,8 +739,8 @@ func (t *TopicService) updateTopicUsersPrepare(ctx context.Context, userEmail st
 	}
 }
 
-// updateTopicUsers - update topic users
-func (t *TopicService) updateTopicUsers(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numMessages uint, numViews uint, topicsuserID uint, userEmail string, requestID string) error {
+// updateChannelUsers - update channel users
+func (t *ChannelService) updateChannelUsers(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, numMessages uint, numViews uint, channelsuserID uint, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -756,7 +756,7 @@ func (t *TopicService) updateTopicUsers(ctx context.Context, stmt *sql.Stmt, tx 
 			tnweek,
 			tnmonth,
 			tnyear,
-			topicsuserID,
+			channelsuserID,
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5305}).Error(err)
@@ -766,8 +766,8 @@ func (t *TopicService) updateTopicUsers(ctx context.Context, stmt *sql.Stmt, tx 
 	}
 }
 
-// insertTopicsUserPrepare - Insert topic user Prepare Statement
-func (t *TopicService) insertTopicsUserPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
+// insertChannelsUserPrepare - Insert channel user Prepare Statement
+func (t *ChannelService) insertChannelsUserPrepare(ctx context.Context, userEmail string, requestID string) (*sql.Stmt, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -775,9 +775,9 @@ func (t *TopicService) insertTopicsUserPrepare(ctx context.Context, userEmail st
 		return nil, err
 	default:
 		db := t.DBService.DB
-		stmt, err := db.PrepareContext(ctx, `insert into topics_users
+		stmt, err := db.PrepareContext(ctx, `insert into channels_users
 	  (uuid4,
-		topic_id,
+		channel_id,
 		num_messages,
     num_views,
 		user_id,
@@ -803,8 +803,8 @@ func (t *TopicService) insertTopicsUserPrepare(ctx context.Context, userEmail st
 	}
 }
 
-// insertTopicsUser - Insert topic user details into database
-func (t *TopicService) insertTopicsUser(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, poh TopicsUser, userEmail string, requestID string) (*TopicsUser, error) {
+// insertChannelsUser - Insert channel user details into database
+func (t *ChannelService) insertChannelsUser(ctx context.Context, stmt *sql.Stmt, tx *sql.Tx, channelUser ChannelsUser, userEmail string, requestID string) (*ChannelsUser, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -813,23 +813,23 @@ func (t *TopicService) insertTopicsUser(ctx context.Context, stmt *sql.Stmt, tx 
 	default:
 
 		res, err := tx.StmtContext(ctx, stmt).Exec(
-			poh.UUID4,
-			poh.TopicID,
-			poh.NumMessages,
-			poh.NumViews,
-			poh.UserID,
-			poh.UgroupID,
-			poh.Statusc,
-			poh.CreatedAt,
-			poh.UpdatedAt,
-			poh.CreatedDay,
-			poh.CreatedWeek,
-			poh.CreatedMonth,
-			poh.CreatedYear,
-			poh.UpdatedDay,
-			poh.UpdatedWeek,
-			poh.UpdatedMonth,
-			poh.UpdatedYear)
+			channelUser.UUID4,
+			channelUser.ChannelID,
+			channelUser.NumMessages,
+			channelUser.NumViews,
+			channelUser.UserID,
+			channelUser.UgroupID,
+			channelUser.Statusc,
+			channelUser.CreatedAt,
+			channelUser.UpdatedAt,
+			channelUser.CreatedDay,
+			channelUser.CreatedWeek,
+			channelUser.CreatedMonth,
+			channelUser.CreatedYear,
+			channelUser.UpdatedDay,
+			channelUser.UpdatedWeek,
+			channelUser.UpdatedMonth,
+			channelUser.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5363}).Error(err)
@@ -840,32 +840,32 @@ func (t *TopicService) insertTopicsUser(ctx context.Context, stmt *sql.Stmt, tx 
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5364}).Error(err)
 			return nil, err
 		}
-		poh.ID = uint(uID)
-		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		channelUser.ID = uint(uID)
+		uuid4Str, err := common.UUIDBytesToStr(channelUser.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5365}).Error(err)
 			return nil, err
 		}
-		poh.IDS = uuid4Str
-		return &poh, nil
+		channelUser.IDS = uuid4Str
+		return &channelUser, nil
 	}
 }
 
-// GetTopicByID - Get topic by ID
-func (t *TopicService) GetTopicByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Topic, error) {
+// GetChannelByID - Get channel by ID
+func (t *ChannelService) GetChannelByID(ctx context.Context, ID uint, userEmail string, requestID string) (*Channel, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5348}).Error(err)
 		return nil, err
 	default:
-		poh := Topic{}
+		channel := Channel{}
 		db := t.DBService.DB
 		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
-		topic_name,
-		topic_desc,
+		channel_name,
+		channel_desc,
 		num_tags,
 		tag1,
 		tag2,
@@ -879,7 +879,7 @@ func (t *TopicService) GetTopicByID(ctx context.Context, ID uint, userEmail stri
 		tag10,
 		num_views,
 		num_messages,
-		category_id,
+		workspace_id,
 		user_id,
 		ugroup_id,
 		statusc,
@@ -892,58 +892,58 @@ func (t *TopicService) GetTopicByID(ctx context.Context, ID uint, userEmail stri
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics where id = ? and statusc = ?`, ID, common.Active)
+		updated_year from channels where id = ? and statusc = ?`, ID, common.Active)
 
 		err := row.Scan(
-			&poh.ID,
-			&poh.UUID4,
-			&poh.TopicName,
-			&poh.TopicDesc,
-			&poh.NumTags,
-			&poh.Tag1,
-			&poh.Tag2,
-			&poh.Tag3,
-			&poh.Tag4,
-			&poh.Tag5,
-			&poh.Tag6,
-			&poh.Tag7,
-			&poh.Tag8,
-			&poh.Tag9,
-			&poh.Tag10,
-			&poh.NumViews,
-			&poh.NumMessages,
-			&poh.CategoryID,
-			&poh.UserID,
-			&poh.UgroupID,
+			&channel.ID,
+			&channel.UUID4,
+			&channel.ChannelName,
+			&channel.ChannelDesc,
+			&channel.NumTags,
+			&channel.Tag1,
+			&channel.Tag2,
+			&channel.Tag3,
+			&channel.Tag4,
+			&channel.Tag5,
+			&channel.Tag6,
+			&channel.Tag7,
+			&channel.Tag8,
+			&channel.Tag9,
+			&channel.Tag10,
+			&channel.NumViews,
+			&channel.NumMessages,
+			&channel.WorkspaceID,
+			&channel.UserID,
+			&channel.UgroupID,
 			/*  StatusDates  */
-			&poh.Statusc,
-			&poh.CreatedAt,
-			&poh.UpdatedAt,
-			&poh.CreatedDay,
-			&poh.CreatedWeek,
-			&poh.CreatedMonth,
-			&poh.CreatedYear,
-			&poh.UpdatedDay,
-			&poh.UpdatedWeek,
-			&poh.UpdatedMonth,
-			&poh.UpdatedYear)
+			&channel.Statusc,
+			&channel.CreatedAt,
+			&channel.UpdatedAt,
+			&channel.CreatedDay,
+			&channel.CreatedWeek,
+			&channel.CreatedMonth,
+			&channel.CreatedYear,
+			&channel.UpdatedDay,
+			&channel.UpdatedWeek,
+			&channel.UpdatedMonth,
+			&channel.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5349}).Error(err)
 			return nil, err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(channel.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5350}).Error(err)
 			return nil, err
 		}
-		poh.IDS = uuid4Str
-		return &poh, nil
+		channel.IDS = uuid4Str
+		return &channel, nil
 	}
 }
 
-// GetTopic - Get topic
-func (t *TopicService) GetTopic(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error) {
+// GetChannel - Get channel
+func (t *ChannelService) GetChannel(ctx context.Context, ID string, userEmail string, requestID string) (*Channel, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -955,13 +955,13 @@ func (t *TopicService) GetTopic(ctx context.Context, ID string, userEmail string
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5352}).Error(err)
 			return nil, err
 		}
-		poh := Topic{}
+		channel := Channel{}
 		db := t.DBService.DB
 		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
-		topic_name,
-		topic_desc,
+		channel_name,
+		channel_desc,
 		num_tags,
 		tag1,
 		tag2,
@@ -975,7 +975,7 @@ func (t *TopicService) GetTopic(ctx context.Context, ID string, userEmail string
 		tag10,
 		num_views,
 		num_messages,
-		category_id,
+		workspace_id,
 		user_id,
 		ugroup_id,
 		statusc,
@@ -988,71 +988,71 @@ func (t *TopicService) GetTopic(ctx context.Context, ID string, userEmail string
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics where uuid4 = ? and statusc = ?`, uuid4byte, common.Active)
+		updated_year from channels where uuid4 = ? and statusc = ?`, uuid4byte, common.Active)
 
 		err = row.Scan(
-			&poh.ID,
-			&poh.UUID4,
-			&poh.TopicName,
-			&poh.TopicDesc,
-			&poh.NumTags,
-			&poh.Tag1,
-			&poh.Tag2,
-			&poh.Tag3,
-			&poh.Tag4,
-			&poh.Tag5,
-			&poh.Tag6,
-			&poh.Tag7,
-			&poh.Tag8,
-			&poh.Tag9,
-			&poh.Tag10,
-			&poh.NumViews,
-			&poh.NumMessages,
-			&poh.CategoryID,
-			&poh.UserID,
-			&poh.UgroupID,
+			&channel.ID,
+			&channel.UUID4,
+			&channel.ChannelName,
+			&channel.ChannelDesc,
+			&channel.NumTags,
+			&channel.Tag1,
+			&channel.Tag2,
+			&channel.Tag3,
+			&channel.Tag4,
+			&channel.Tag5,
+			&channel.Tag6,
+			&channel.Tag7,
+			&channel.Tag8,
+			&channel.Tag9,
+			&channel.Tag10,
+			&channel.NumViews,
+			&channel.NumMessages,
+			&channel.WorkspaceID,
+			&channel.UserID,
+			&channel.UgroupID,
 			/*  StatusDates  */
-			&poh.Statusc,
-			&poh.CreatedAt,
-			&poh.UpdatedAt,
-			&poh.CreatedDay,
-			&poh.CreatedWeek,
-			&poh.CreatedMonth,
-			&poh.CreatedYear,
-			&poh.UpdatedDay,
-			&poh.UpdatedWeek,
-			&poh.UpdatedMonth,
-			&poh.UpdatedYear)
+			&channel.Statusc,
+			&channel.CreatedAt,
+			&channel.UpdatedAt,
+			&channel.CreatedDay,
+			&channel.CreatedWeek,
+			&channel.CreatedMonth,
+			&channel.CreatedYear,
+			&channel.UpdatedDay,
+			&channel.UpdatedWeek,
+			&channel.UpdatedMonth,
+			&channel.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5353}).Error(err)
 			return nil, err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(channel.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5354}).Error(err)
 			return nil, err
 		}
-		poh.IDS = uuid4Str
-		return &poh, nil
+		channel.IDS = uuid4Str
+		return &channel, nil
 	}
 }
 
-// GetTopicByName - Get topic by name
-func (t *TopicService) GetTopicByName(ctx context.Context, topicname string, userEmail string, requestID string) (*Topic, error) {
+// GetChannelByName - Get channel by name
+func (t *ChannelService) GetChannelByName(ctx context.Context, channelname string, userEmail string, requestID string) (*Channel, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5355}).Error(err)
 		return nil, err
 	default:
-		poh := Topic{}
+		channel := Channel{}
 		db := t.DBService.DB
 		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
-		topic_name,
-		topic_desc,
+		channel_name,
+		channel_desc,
 		num_tags,
 		tag1,
 		tag2,
@@ -1066,7 +1066,7 @@ func (t *TopicService) GetTopicByName(ctx context.Context, topicname string, use
 		tag10,
 		num_views,
 		num_messages,
-		category_id,
+		workspace_id,
 		user_id,
 		ugroup_id,
 		statusc,
@@ -1079,58 +1079,58 @@ func (t *TopicService) GetTopicByName(ctx context.Context, topicname string, use
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics where topic_name = ? and statusc = ?`, topicname, common.Active)
+		updated_year from channels where channel_name = ? and statusc = ?`, channelname, common.Active)
 
 		err := row.Scan(
-			&poh.ID,
-			&poh.UUID4,
-			&poh.TopicName,
-			&poh.TopicDesc,
-			&poh.NumTags,
-			&poh.Tag1,
-			&poh.Tag2,
-			&poh.Tag3,
-			&poh.Tag4,
-			&poh.Tag5,
-			&poh.Tag6,
-			&poh.Tag7,
-			&poh.Tag8,
-			&poh.Tag9,
-			&poh.Tag10,
-			&poh.NumViews,
-			&poh.NumMessages,
-			&poh.CategoryID,
-			&poh.UserID,
-			&poh.UgroupID,
+			&channel.ID,
+			&channel.UUID4,
+			&channel.ChannelName,
+			&channel.ChannelDesc,
+			&channel.NumTags,
+			&channel.Tag1,
+			&channel.Tag2,
+			&channel.Tag3,
+			&channel.Tag4,
+			&channel.Tag5,
+			&channel.Tag6,
+			&channel.Tag7,
+			&channel.Tag8,
+			&channel.Tag9,
+			&channel.Tag10,
+			&channel.NumViews,
+			&channel.NumMessages,
+			&channel.WorkspaceID,
+			&channel.UserID,
+			&channel.UgroupID,
 			/*  StatusDates  */
-			&poh.Statusc,
-			&poh.CreatedAt,
-			&poh.UpdatedAt,
-			&poh.CreatedDay,
-			&poh.CreatedWeek,
-			&poh.CreatedMonth,
-			&poh.CreatedYear,
-			&poh.UpdatedDay,
-			&poh.UpdatedWeek,
-			&poh.UpdatedMonth,
-			&poh.UpdatedYear)
+			&channel.Statusc,
+			&channel.CreatedAt,
+			&channel.UpdatedAt,
+			&channel.CreatedDay,
+			&channel.CreatedWeek,
+			&channel.CreatedMonth,
+			&channel.CreatedYear,
+			&channel.UpdatedDay,
+			&channel.UpdatedWeek,
+			&channel.UpdatedMonth,
+			&channel.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5356}).Error(err)
 			return nil, err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(channel.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5357}).Error(err)
 			return nil, err
 		}
-		poh.IDS = uuid4Str
-		return &poh, nil
+		channel.IDS = uuid4Str
+		return &channel, nil
 	}
 }
 
-// GetTopicWithMessages - Get topic with messages
-func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string, userEmail string, requestID string) (*Topic, error) {
+// GetChannelWithMessages - Get channel with messages
+func (t *ChannelService) GetChannelWithMessages(ctx context.Context, ID string, userEmail string, requestID string) (*Channel, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -1143,50 +1143,50 @@ func (t *TopicService) GetTopicWithMessages(ctx context.Context, ID string, user
 			return nil, err
 		}
 		db := t.DBService.DB
-		poh := &Topic{}
-		tpc, err := t.GetTopic(ctx, ID, userEmail, requestID)
+		channel := &Channel{}
+		chnl, err := t.GetChannel(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5312}).Error(err)
 			return nil, err
 		}
 		var isPresent bool
-		row := db.QueryRowContext(ctx, `select exists (select 1 from messages where topic_id = ?);`, tpc.ID)
+		row := db.QueryRowContext(ctx, `select exists (select 1 from messages where channel_id = ?);`, chnl.ID)
 		err = row.Scan(&isPresent)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5313}).Error(err)
 			return nil, err
 		}
 		if isPresent {
-			poh, err = t.GetTopicMessages(ctx, uuid4byte, userEmail, requestID)
+			channel, err = t.GetChannelMessages(ctx, uuid4byte, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5380}).Error(err)
 				return nil, err
 			}
 		} else {
-			poh = tpc
+			channel = chnl
 		}
 
-		if len(poh.Messages) > 0 {
+		if len(channel.Messages) > 0 {
 			msgserv := &MessageService{DBService: t.DBService, RedisService: t.RedisService}
-			Messages, err := msgserv.GetMessagesWithTextAttach(ctx, poh.Messages, userEmail, requestID)
+			Messages, err := msgserv.GetMessagesWithTextAttach(ctx, channel.Messages, userEmail, requestID)
 			if err != nil {
 				log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5320}).Error(err)
 			}
-			poh.Messages = Messages
+			channel.Messages = Messages
 		}
-		return poh, nil
+		return channel, nil
 	}
 }
 
-// GetTopicMessages - get topic with messages
-func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Topic, error) {
+// GetChannelMessages - get channel with messages
+func (t *ChannelService) GetChannelMessages(ctx context.Context, uuid4byte []byte, userEmail string, requestID string) (*Channel, error) {
 	db := t.DBService.DB
-	poh := Topic{}
+	channel := Channel{}
 	rows, err := db.QueryContext(ctx, `select 
       p.id,
 			p.uuid4,
-			p.topic_name,
-			p.topic_desc,
+			p.channel_name,
+			p.channel_desc,
 			p.num_tags,
 			p.tag1,
 			p.tag2,
@@ -1200,7 +1200,7 @@ func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, u
 			p.tag10,
 			p.num_views,
 			p.num_messages,
-			p.category_id,
+			p.workspace_id,
 			p.ugroup_id,
 			p.user_id,
 			p.statusc,
@@ -1219,8 +1219,8 @@ func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, u
 			m.num_likes,
 			m.num_upvotes,
 			m.num_downvotes,
-			m.category_id,
-			m.topic_id,
+			m.workspace_id,
+			m.channel_id,
 			m.ugroup_id,
 			m.user_id,
 			m.statusc,
@@ -1233,7 +1233,7 @@ func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, u
 			m.updated_day,
 			m.updated_week,
 			m.updated_month,
-			m.updated_year from topics p inner join messages m on (p.id = m.topic_id) where p.uuid4 = ?`, uuid4byte)
+			m.updated_year from channels p inner join messages m on (p.id = m.channel_id) where p.uuid4 = ?`, uuid4byte)
 
 	if err != nil {
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5314}).Error(err)
@@ -1242,45 +1242,45 @@ func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, u
 	for rows.Next() {
 		msg := Message{}
 		err = rows.Scan(
-			&poh.ID,
-			&poh.UUID4,
-			&poh.TopicName,
-			&poh.TopicDesc,
-			&poh.NumTags,
-			&poh.Tag1,
-			&poh.Tag2,
-			&poh.Tag3,
-			&poh.Tag4,
-			&poh.Tag5,
-			&poh.Tag6,
-			&poh.Tag7,
-			&poh.Tag8,
-			&poh.Tag9,
-			&poh.Tag10,
-			&poh.NumViews,
-			&poh.NumMessages,
-			&poh.CategoryID,
-			&poh.UgroupID,
-			&poh.UserID,
+			&channel.ID,
+			&channel.UUID4,
+			&channel.ChannelName,
+			&channel.ChannelDesc,
+			&channel.NumTags,
+			&channel.Tag1,
+			&channel.Tag2,
+			&channel.Tag3,
+			&channel.Tag4,
+			&channel.Tag5,
+			&channel.Tag6,
+			&channel.Tag7,
+			&channel.Tag8,
+			&channel.Tag9,
+			&channel.Tag10,
+			&channel.NumViews,
+			&channel.NumMessages,
+			&channel.WorkspaceID,
+			&channel.UgroupID,
+			&channel.UserID,
 			/*  StatusDates  */
-			&poh.Statusc,
-			&poh.CreatedAt,
-			&poh.UpdatedAt,
-			&poh.CreatedDay,
-			&poh.CreatedWeek,
-			&poh.CreatedMonth,
-			&poh.CreatedYear,
-			&poh.UpdatedDay,
-			&poh.UpdatedWeek,
-			&poh.UpdatedMonth,
-			&poh.UpdatedYear,
+			&channel.Statusc,
+			&channel.CreatedAt,
+			&channel.UpdatedAt,
+			&channel.CreatedDay,
+			&channel.CreatedWeek,
+			&channel.CreatedMonth,
+			&channel.CreatedYear,
+			&channel.UpdatedDay,
+			&channel.UpdatedWeek,
+			&channel.UpdatedMonth,
+			&channel.UpdatedYear,
 			&msg.ID,
 			&msg.UUID4,
 			&msg.NumLikes,
 			&msg.NumUpvotes,
 			&msg.NumDownvotes,
-			&msg.CategoryID,
-			&msg.TopicID,
+			&msg.WorkspaceID,
+			&msg.ChannelID,
 			&msg.UgroupID,
 			&msg.UserID,
 			/*  StatusDates  */
@@ -1300,12 +1300,12 @@ func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, u
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5315}).Error(err)
 			return nil, err
 		}
-		uuid4Str1, err := common.UUIDBytesToStr(poh.UUID4)
+		uuid4Str1, err := common.UUIDBytesToStr(channel.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5316}).Error(err)
 			return nil, err
 		}
-		poh.IDS = uuid4Str1
+		channel.IDS = uuid4Str1
 
 		uuid4Str, err := common.UUIDBytesToStr(msg.UUID4)
 		if err != nil {
@@ -1313,7 +1313,7 @@ func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, u
 			return nil, err
 		}
 		msg.IDS = uuid4Str
-		poh.Messages = append(poh.Messages, &msg)
+		channel.Messages = append(channel.Messages, &msg)
 	}
 
 	err = rows.Close()
@@ -1327,23 +1327,23 @@ func (t *TopicService) GetTopicMessages(ctx context.Context, uuid4byte []byte, u
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5319}).Error(err)
 		return nil, err
 	}
-	return &poh, nil
+	return &channel, nil
 }
 
-// GetTopicsUser - Get user topics
-func (t *TopicService) GetTopicsUser(ctx context.Context, ID uint, UserID uint, userEmail string, requestID string) (*TopicsUser, error) {
+// GetChannelsUser - Get user channels
+func (t *ChannelService) GetChannelsUser(ctx context.Context, ID uint, UserID uint, userEmail string, requestID string) (*ChannelsUser, error) {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5358}).Error(err)
 		return nil, err
 	default:
-		poh := TopicsUser{}
+		channel := ChannelsUser{}
 		db := t.DBService.DB
 		row := db.QueryRowContext(ctx, `select
     id,
 		uuid4,
-		topic_id,
+		channel_id,
 		num_messages,
     num_views,
 		user_id,
@@ -1358,52 +1358,52 @@ func (t *TopicService) GetTopicsUser(ctx context.Context, ID uint, UserID uint, 
 		updated_day,
 		updated_week,
 		updated_month,
-		updated_year from topics_users where topic_id = ? and user_id = ? and statusc = ?`, ID, UserID, common.Active)
+		updated_year from channels_users where channel_id = ? and user_id = ? and statusc = ?`, ID, UserID, common.Active)
 
 		err := row.Scan(
-			&poh.ID,
-			&poh.UUID4,
-			&poh.TopicID,
-			&poh.NumMessages,
-			&poh.NumViews,
-			&poh.UserID,
-			&poh.UgroupID,
+			&channel.ID,
+			&channel.UUID4,
+			&channel.ChannelID,
+			&channel.NumMessages,
+			&channel.NumViews,
+			&channel.UserID,
+			&channel.UgroupID,
 			/*  StatusDates  */
-			&poh.Statusc,
-			&poh.CreatedAt,
-			&poh.UpdatedAt,
-			&poh.CreatedDay,
-			&poh.CreatedWeek,
-			&poh.CreatedMonth,
-			&poh.CreatedYear,
-			&poh.UpdatedDay,
-			&poh.UpdatedWeek,
-			&poh.UpdatedMonth,
-			&poh.UpdatedYear)
+			&channel.Statusc,
+			&channel.CreatedAt,
+			&channel.UpdatedAt,
+			&channel.CreatedDay,
+			&channel.CreatedWeek,
+			&channel.CreatedMonth,
+			&channel.CreatedYear,
+			&channel.UpdatedDay,
+			&channel.UpdatedWeek,
+			&channel.UpdatedMonth,
+			&channel.UpdatedYear)
 
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5359}).Error(err)
 			return nil, err
 		}
-		uuid4Str, err := common.UUIDBytesToStr(poh.UUID4)
+		uuid4Str, err := common.UUIDBytesToStr(channel.UUID4)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5360}).Error(err)
 			return nil, err
 		}
-		poh.IDS = uuid4Str
-		return &poh, nil
+		channel.IDS = uuid4Str
+		return &channel, nil
 	}
 }
 
-//UpdateTopic - Update topic
-func (t *TopicService) UpdateTopic(ctx context.Context, ID string, form *Topic, UserID string, userEmail string, requestID string) error {
+//UpdateChannel - Update channel
+func (t *ChannelService) UpdateChannel(ctx context.Context, ID string, form *Channel, UserID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
 		log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5382}).Error(err)
 		return err
 	default:
-		topic, err := t.GetTopic(ctx, ID, userEmail, requestID)
+		channel, err := t.GetChannel(ctx, ID, userEmail, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5383}).Error(err)
 			return err
@@ -1412,9 +1412,9 @@ func (t *TopicService) UpdateTopic(ctx context.Context, ID string, form *Topic, 
 		db := t.DBService.DB
 
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := db.PrepareContext(ctx, `update topics set 
-		  topic_name = ?,
-      topic_desc = ?,
+		stmt, err := db.PrepareContext(ctx, `update channels set 
+		  channel_name = ?,
+      channel_desc = ?,
 			updated_at = ?, 
 			updated_day = ?, 
 			updated_week = ?, 
@@ -1431,14 +1431,14 @@ func (t *TopicService) UpdateTopic(ctx context.Context, ID string, form *Topic, 
 		}
 
 		_, err = tx.StmtContext(ctx, stmt).Exec(
-			form.TopicName,
-			form.TopicDesc,
+			form.ChannelName,
+			form.ChannelDesc,
 			tn,
 			tnday,
 			tnweek,
 			tnmonth,
 			tnyear,
-			topic.ID,
+			channel.ID,
 			common.Active)
 		if err != nil {
 			log.WithFields(log.Fields{"user": userEmail, "reqid": requestID, "msgnum": 5387}).Error(err)
@@ -1470,8 +1470,8 @@ func (t *TopicService) UpdateTopic(ctx context.Context, ID string, form *Topic, 
 	}
 }
 
-// DeleteTopic - Delete topic
-func (t *TopicService) DeleteTopic(ctx context.Context, ID string, userEmail string, requestID string) error {
+// DeleteChannel - Delete channel
+func (t *ChannelService) DeleteChannel(ctx context.Context, ID string, userEmail string, requestID string) error {
 	select {
 	case <-ctx.Done():
 		err := errors.New("Client closed connection")
@@ -1485,7 +1485,7 @@ func (t *TopicService) DeleteTopic(ctx context.Context, ID string, userEmail str
 		}
 		db := t.DBService.DB
 		tn, tnday, tnweek, tnmonth, tnyear := common.GetTimeDetails()
-		stmt, err := db.PrepareContext(ctx, `update topics set 
+		stmt, err := db.PrepareContext(ctx, `update channels set 
 		  statusc = ?,
 			updated_at = ?, 
 			updated_day = ?, 

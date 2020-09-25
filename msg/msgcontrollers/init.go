@@ -10,22 +10,22 @@ import (
 )
 
 // Init the msg controllers
-func Init(catService msgservices.CategoryServiceIntf, topicService msgservices.TopicServiceIntf, msgService msgservices.MessageServiceIntf, userService userservices.UserServiceIntf, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, mux *http.ServeMux, store *goredisstore.GoRedisStore) {
+func Init(workspaceservice msgservices.WorkspaceServiceIntf, channelService msgservices.ChannelServiceIntf, msgService msgservices.MessageServiceIntf, userService userservices.UserServiceIntf, rateOpt *common.RateOptions, jwtOpt *common.JWTOptions, mux *http.ServeMux, store *goredisstore.GoRedisStore) {
 
-	cc := NewCategoryController(catService, userService)
-	tc := NewTopicController(topicService, userService)
+	cc := NewWorkspaceController(workspaceservice, userService)
+	tc := NewChannelController(channelService, userService)
 	mc := NewMessageController(msgService, userService)
 
-	hrlCat := common.GetHTTPRateLimiter(store, rateOpt.CatMaxRate, rateOpt.CatMaxBurst)
-	hrlTopic := common.GetHTTPRateLimiter(store, rateOpt.TopicMaxRate, rateOpt.TopicMaxBurst)
+	hrlCat := common.GetHTTPRateLimiter(store, rateOpt.WorkspaceMaxRate, rateOpt.WorkspaceMaxBurst)
+	hrlChannel := common.GetHTTPRateLimiter(store, rateOpt.ChannelMaxRate, rateOpt.ChannelMaxBurst)
 	hrlMsg := common.GetHTTPRateLimiter(store, rateOpt.MsgMaxRate, rateOpt.MsgMaxBurst)
-	mux.Handle("/v0.1/categories", common.AddMiddleware(hrlCat.RateLimit(cc),
+	mux.Handle("/v0.1/workspaces", common.AddMiddleware(hrlCat.RateLimit(cc),
 		common.AuthenticateMiddleware,
 		common.CorsMiddleware))
-	mux.Handle("/v0.1/categories/", common.AddMiddleware(hrlCat.RateLimit(cc),
+	mux.Handle("/v0.1/workspaces/", common.AddMiddleware(hrlCat.RateLimit(cc),
 		common.AuthenticateMiddleware,
 		common.CorsMiddleware))
-	mux.Handle("/v0.1/topics/", common.AddMiddleware(hrlTopic.RateLimit(tc),
+	mux.Handle("/v0.1/channels/", common.AddMiddleware(hrlChannel.RateLimit(tc),
 		common.AuthenticateMiddleware,
 		common.CorsMiddleware))
 	mux.Handle("/v0.1/messages/", common.AddMiddleware(hrlMsg.RateLimit(mc),

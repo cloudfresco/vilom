@@ -57,22 +57,22 @@ type ServerOptions struct {
 
 // RateOptions - for rate limiting requests
 type RateOptions struct {
-	UserMaxRate    int `mapstructure:"user_max_rate"`
-	UserMaxBurst   int `mapstructure:"user_max_burst"`
-	UgroupMaxRate  int `mapstructure:"ugroup_max_rate"`
-	UgroupMaxBurst int `mapstructure:"ugroup_max_burst"`
-	CatMaxRate     int `mapstructure:"cat_max_rate"`
-	CatMaxBurst    int `mapstructure:"cat_max_burst"`
-	TopicMaxRate   int `mapstructure:"topic_max_rate"`
-	TopicMaxBurst  int `mapstructure:"topic_max_burst"`
-	MsgMaxRate     int `mapstructure:"msg_max_rate"`
-	MsgMaxBurst    int `mapstructure:"msg_max_burst"`
-	UbadgeMaxRate  int `mapstructure:"ubadge_max_rate"`
-	UbadgeMaxBurst int `mapstructure:"ubadge_max_burst"`
-	SearchMaxRate  int `mapstructure:"search_max_rate"`
-	SearchMaxBurst int `mapstructure:"search_max_burst"`
-	UMaxRate       int `mapstructure:"u_max_rate"`
-	UMaxBurst      int `mapstructure:"u_max_burst"`
+	UserMaxRate       int `mapstructure:"user_max_rate"`
+	UserMaxBurst      int `mapstructure:"user_max_burst"`
+	UgroupMaxRate     int `mapstructure:"ugroup_max_rate"`
+	UgroupMaxBurst    int `mapstructure:"ugroup_max_burst"`
+	WorkspaceMaxRate  int `mapstructure:"workspace_max_rate"`
+	WorkspaceMaxBurst int `mapstructure:"workspace_max_burst"`
+	ChannelMaxRate    int `mapstructure:"channel_max_rate"`
+	ChannelMaxBurst   int `mapstructure:"channel_max_burst"`
+	MsgMaxRate        int `mapstructure:"msg_max_rate"`
+	MsgMaxBurst       int `mapstructure:"msg_max_burst"`
+	UbadgeMaxRate     int `mapstructure:"ubadge_max_rate"`
+	UbadgeMaxBurst    int `mapstructure:"ubadge_max_burst"`
+	SearchMaxRate     int `mapstructure:"search_max_rate"`
+	SearchMaxBurst    int `mapstructure:"search_max_burst"`
+	UMaxRate          int `mapstructure:"u_max_rate"`
+	UMaxBurst         int `mapstructure:"u_max_burst"`
 }
 
 // JWTOptions - for JWT config

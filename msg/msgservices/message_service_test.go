@@ -31,8 +31,8 @@ func TestMessageService_GetMessage(t *testing.T) {
 	msg.NumLikes = uint(0)
 	msg.NumUpvotes = uint(0)
 	msg.NumDownvotes = uint(0)
-	msg.CategoryID = uint(2)
-	msg.TopicID = uint(1)
+	msg.WorkspaceID = uint(2)
+	msg.ChannelID = uint(1)
 	msg.UserID = uint(1)
 	msg.UgroupID = uint(0)
 	msg.Statusc = uint(1)
@@ -51,8 +51,8 @@ func TestMessageService_GetMessage(t *testing.T) {
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
 	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
-	msgtxt.CategoryID = uint(2)
-	msgtxt.TopicID = uint(1)
+	msgtxt.WorkspaceID = uint(2)
+	msgtxt.ChannelID = uint(1)
 	msgtxt.MessageID = uint(1)
 	msgtxt.UserID = uint(1)
 	msgtxt.UgroupID = uint(0)
@@ -74,8 +74,8 @@ func TestMessageService_GetMessage(t *testing.T) {
 	msgath.ID = uint(1)
 	msgath.UUID4 = []byte{168, 198, 217, 152, 220, 39, 77, 46, 183, 38, 82, 96, 55, 91, 140, 135}
 	msgath.Mattach = "mattach"
-	msgath.CategoryID = uint(2)
-	msgath.TopicID = uint(1)
+	msgath.WorkspaceID = uint(2)
+	msgath.ChannelID = uint(1)
 	msgath.MessageID = uint(1)
 	msgath.UserID = uint(1)
 	msgath.UgroupID = uint(0)
@@ -153,8 +153,8 @@ func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
 	msg.NumLikes = uint(0)
 	msg.NumUpvotes = uint(0)
 	msg.NumDownvotes = uint(0)
-	msg.CategoryID = uint(2)
-	msg.TopicID = uint(1)
+	msg.WorkspaceID = uint(2)
+	msg.ChannelID = uint(1)
 	msg.UserID = uint(1)
 	msg.UgroupID = uint(0)
 	msg.Statusc = uint(1)
@@ -175,8 +175,8 @@ func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
 	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
-	msgtxt.CategoryID = uint(2)
-	msgtxt.TopicID = uint(1)
+	msgtxt.WorkspaceID = uint(2)
+	msgtxt.ChannelID = uint(1)
 	msgtxt.MessageID = uint(1)
 	msgtxt.UserID = uint(1)
 	msgtxt.UgroupID = uint(0)
@@ -198,8 +198,8 @@ func TestMessageService_GetMessagesWithTextAttach(t *testing.T) {
 	msgath.ID = uint(1)
 	msgath.UUID4 = []byte{168, 198, 217, 152, 220, 39, 77, 46, 183, 38, 82, 96, 55, 91, 140, 135}
 	msgath.Mattach = "mattach"
-	msgath.CategoryID = uint(2)
-	msgath.TopicID = uint(1)
+	msgath.WorkspaceID = uint(2)
+	msgath.ChannelID = uint(1)
 	msgath.MessageID = uint(1)
 	msgath.UserID = uint(1)
 	msgath.UgroupID = uint(0)
@@ -277,8 +277,8 @@ func TestMessageService_GetMessagesTexts(t *testing.T) {
 	msgtxt.ID = uint(1)
 	msgtxt.UUID4 = []byte{148, 157, 162, 242, 107, 10, 67, 245, 165, 223, 218, 71, 208, 232, 206, 72}
 	msgtxt.Mtext = "Hi. I am looking into buying a Floptical Drive, and was wondering what experience people have with the drives from Iomega, PLI, MASS MicroSystems, or Procom. These seem to be the main drives on the market. Any advice? Also, I heard about some article in MacWorld about Flopticals. Could someone post a summary, if they have it? Thanks in advance"
-	msgtxt.CategoryID = uint(2)
-	msgtxt.TopicID = uint(1)
+	msgtxt.WorkspaceID = uint(2)
+	msgtxt.ChannelID = uint(1)
 	msgtxt.MessageID = uint(1)
 	msgtxt.UserID = uint(1)
 	msgtxt.UgroupID = uint(0)
@@ -355,8 +355,8 @@ func TestMessageService_GetMessageAttachments(t *testing.T) {
 	msgath.ID = uint(1)
 	msgath.UUID4 = []byte{168, 198, 217, 152, 220, 39, 77, 46, 183, 38, 82, 96, 55, 91, 140, 135}
 	msgath.Mattach = "mattach"
-	msgath.CategoryID = uint(2)
-	msgath.TopicID = uint(1)
+	msgath.WorkspaceID = uint(2)
+	msgath.ChannelID = uint(1)
 	msgath.MessageID = uint(1)
 	msgath.UserID = uint(1)
 	msgath.UgroupID = uint(0)

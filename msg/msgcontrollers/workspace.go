@@ -14,22 +14,22 @@ import (
 
 /* error message range: 4000-4299 */
 
-// CategoryController - Create Category Controller
-type CategoryController struct {
-	Service  msgservices.CategoryServiceIntf
+// WorkspaceController - Create Workspace Controller
+type WorkspaceController struct {
+	Service  msgservices.WorkspaceServiceIntf
 	Serviceu userservices.UserServiceIntf
 }
 
-// NewCategoryController - Create Category Handler
-func NewCategoryController(s msgservices.CategoryServiceIntf, su userservices.UserServiceIntf) *CategoryController {
-	return &CategoryController{
+// NewWorkspaceController - Create Workspace Handler
+func NewWorkspaceController(s msgservices.WorkspaceServiceIntf, su userservices.UserServiceIntf) *WorkspaceController {
+	return &WorkspaceController{
 		Service:  s,
 		Serviceu: su,
 	}
 }
 
 // ServeHTTP - parse url and call controller action
-func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (cc *WorkspaceController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, requestID, err := cc.Serviceu.GetAuthUserDetails(r)
 	if err != nil {
 		common.RenderErrorJSON(w, "1001", err.Error(), 401, requestID)
@@ -59,33 +59,33 @@ func (cc *CategoryController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // processGet - Parse URL for all the GET paths and call the controller action
 /*
- GET  "/v1/categories/"
- GET  "/v1/categories/{id}"
- GET  "/v1/categories/topcats"
- GET  "/v1/categories/{id}/chdn"
- GET  "/v1/categories/{id}/getparent"
+ GET  "/v1/workspaces/"
+ GET  "/v1/workspaces/{id}"
+ GET  "/v1/workspaces/topworkspaces"
+ GET  "/v1/workspaces/{id}/chdn"
+ GET  "/v1/workspaces/{id}/getparent"
 */
 
-func (cc *CategoryController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string, queryString url.Values) {
+func (cc *WorkspaceController) processGet(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string, queryString url.Values) {
 
-	if (len(pathParts) == 2) && (pathParts[1] == "categories") {
+	if (len(pathParts) == 2) && (pathParts[1] == "workspaces") {
 		limit := queryString.Get("limit")
 		cursor := queryString.Get("cursor")
-		cc.GetCategories(w, r, limit, cursor, user, requestID)
+		cc.GetWorkspaces(w, r, limit, cursor, user, requestID)
 	} else if len(pathParts) == 3 {
-		if pathParts[2] == "topcats" {
-			cc.GetTopLevelCategories(w, r, user, requestID)
-		} else if pathParts[1] == "categories" {
-			cc.GetCategoryWithTopics(w, r, pathParts[2], user, requestID)
+		if pathParts[2] == "topworkspaces" {
+			cc.GetTopLevelWorkspaces(w, r, user, requestID)
+		} else if pathParts[1] == "workspaces" {
+			cc.GetWorkspaceWithChannels(w, r, pathParts[2], user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
 		}
-	} else if (len(pathParts) == 4) && (pathParts[1] == "categories") {
+	} else if (len(pathParts) == 4) && (pathParts[1] == "workspaces") {
 		if pathParts[3] == "chdn" {
-			cc.GetChildCategories(w, r, pathParts[2], user, requestID)
+			cc.GetChildWorkspaces(w, r, pathParts[2], user, requestID)
 		} else if pathParts[3] == "getparent" {
-			cc.GetParentCategory(w, r, pathParts[2], user, requestID)
+			cc.GetParentWorkspace(w, r, pathParts[2], user, requestID)
 		} else {
 			common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 			return
@@ -98,13 +98,13 @@ func (cc *CategoryController) processGet(w http.ResponseWriter, r *http.Request,
 
 // processPost - Parse URL for all the POST paths and call the controller action
 /*
- POST  "/v1/categories/create/"
- POST  "/v1/categories/chdcreate/"
+ POST  "/v1/workspaces/create/"
+ POST  "/v1/workspaces/chdcreate/"
 */
-func (cc *CategoryController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
-	if (len(pathParts) == 3) && (pathParts[1] == "categories") {
+func (cc *WorkspaceController) processPost(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+	if (len(pathParts) == 3) && (pathParts[1] == "workspaces") {
 		if pathParts[2] == "create" {
-			cc.CreateCategory(w, r, user, requestID)
+			cc.CreateWorkspace(w, r, user, requestID)
 		} else if pathParts[2] == "chdcreate" {
 			cc.CreateChild(w, r, user, requestID)
 		} else {
@@ -119,13 +119,13 @@ func (cc *CategoryController) processPost(w http.ResponseWriter, r *http.Request
 
 // processPut - Parse URL for all the put paths and call the controller action
 /*
- PUT  "/v1/categories/{id}"
+ PUT  "/v1/workspaces/{id}"
 */
 
-func (cc *CategoryController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+func (cc *WorkspaceController) processPut(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
-	if (len(pathParts) == 3) && (pathParts[1] == "categories") {
-		cc.UpdateCategory(w, r, pathParts[2], user, requestID)
+	if (len(pathParts) == 3) && (pathParts[1] == "workspaces") {
+		cc.UpdateWorkspace(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -135,13 +135,13 @@ func (cc *CategoryController) processPut(w http.ResponseWriter, r *http.Request,
 
 // processDelete - Parse URL for all the delete paths and call the controller action
 /*
- DELETE  "/v1/categories/{id}"
+ DELETE  "/v1/workspaces/{id}"
 */
 
-func (cc *CategoryController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
+func (cc *WorkspaceController) processDelete(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string, pathParts []string) {
 
-	if (len(pathParts) == 3) && (pathParts[1] == "categories") {
-		cc.DeleteCategory(w, r, pathParts[2], user, requestID)
+	if (len(pathParts) == 3) && (pathParts[1] == "workspaces") {
+		cc.DeleteWorkspace(w, r, pathParts[2], user, requestID)
 	} else {
 		common.RenderErrorJSON(w, "1000", "Invalid Request", 400, requestID)
 		return
@@ -149,8 +149,8 @@ func (cc *CategoryController) processDelete(w http.ResponseWriter, r *http.Reque
 
 }
 
-// GetCategories - used to view all categories
-func (cc *CategoryController) GetCategories(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
+// GetWorkspaces - used to view all workspaces
+func (cc *WorkspaceController) GetWorkspaces(w http.ResponseWriter, r *http.Request, limit string, cursor string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -158,19 +158,19 @@ func (cc *CategoryController) GetCategories(w http.ResponseWriter, r *http.Reque
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetCategories(ctx, limit, cursor, user.Email, requestID)
+		workspaces, err := cc.Service.GetWorkspaces(ctx, limit, cursor, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4000}).Error(err)
 			common.RenderErrorJSON(w, "4000", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, categories)
+		common.RenderJSON(w, workspaces)
 	}
 }
 
-// GetCategoryWithTopics - used to view category
-func (cc *CategoryController) GetCategoryWithTopics(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetWorkspaceWithChannels - used to view workspace
+func (cc *WorkspaceController) GetWorkspaceWithChannels(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -178,19 +178,19 @@ func (cc *CategoryController) GetCategoryWithTopics(w http.ResponseWriter, r *ht
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		category, err := cc.Service.GetCategoryWithTopics(ctx, id, user.Email, requestID)
+		workspace, err := cc.Service.GetWorkspaceWithChannels(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4001}).Error(err)
 			common.RenderErrorJSON(w, "4001", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, category)
+		common.RenderJSON(w, workspace)
 	}
 }
 
-// CreateCategory - used to Create Category
-func (cc *CategoryController) CreateCategory(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateWorkspace - used to Create Workspace
+func (cc *WorkspaceController) CreateWorkspace(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -198,7 +198,7 @@ func (cc *CategoryController) CreateCategory(w http.ResponseWriter, r *http.Requ
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		form := msgservices.Category{}
+		form := msgservices.Workspace{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
@@ -207,25 +207,25 @@ func (cc *CategoryController) CreateCategory(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		v := common.NewValidator()
-		v.IsStrLenBetMinMax("Category Name", form.CategoryName, msgservices.CategoryNameLenMin, msgservices.CategoryNameLenMax)
-		v.IsStrLenBetMinMax("Category Description", form.CategoryDesc, msgservices.CategoryDescLenMin, msgservices.CategoryDescLenMax)
+		v.IsStrLenBetMinMax("Workspace Name", form.WorkspaceName, msgservices.WorkspaceNameLenMin, msgservices.WorkspaceNameLenMax)
+		v.IsStrLenBetMinMax("Workspace Description", form.WorkspaceDesc, msgservices.WorkspaceDescLenMin, msgservices.WorkspaceDescLenMax)
 		if v.IsValid() {
 			common.RenderErrorJSON(w, "4012", v.Error(), 402, requestID)
 			return
 		}
-		cat, err := cc.Service.CreateCategory(ctx, &form, user.UserID, user.Email, requestID)
+		workspace, err := cc.Service.CreateWorkspace(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4003}).Error(err)
 			common.RenderErrorJSON(w, "4003", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, cat)
+		common.RenderJSON(w, workspace)
 	}
 }
 
-// CreateChild - used to Create SubCategory
-func (cc *CategoryController) CreateChild(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// CreateChild - used to Create SubWorkspace
+func (cc *WorkspaceController) CreateChild(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -233,7 +233,7 @@ func (cc *CategoryController) CreateChild(w http.ResponseWriter, r *http.Request
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		form := msgservices.Category{}
+		form := msgservices.Workspace{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
@@ -241,19 +241,19 @@ func (cc *CategoryController) CreateChild(w http.ResponseWriter, r *http.Request
 			common.RenderErrorJSON(w, "4004", err.Error(), 402, requestID)
 			return
 		}
-		cat, err := cc.Service.CreateChild(ctx, &form, user.UserID, user.Email, requestID)
+		workspace, err := cc.Service.CreateChild(ctx, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4005}).Error(err)
 			common.RenderErrorJSON(w, "4005", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, cat)
+		common.RenderJSON(w, workspace)
 	}
 }
 
-// GetTopLevelCategories - Get all top level categories
-func (cc *CategoryController) GetTopLevelCategories(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
+// GetTopLevelWorkspaces - Get all top level workspaces
+func (cc *WorkspaceController) GetTopLevelWorkspaces(w http.ResponseWriter, r *http.Request, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -261,19 +261,19 @@ func (cc *CategoryController) GetTopLevelCategories(w http.ResponseWriter, r *ht
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetTopLevelCategories(ctx, user.Email, requestID)
+		workspaces, err := cc.Service.GetTopLevelWorkspaces(ctx, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4006}).Error(err)
 			common.RenderErrorJSON(w, "4006", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, categories)
+		common.RenderJSON(w, workspaces)
 	}
 }
 
-// GetChildCategories - Get children of category
-func (cc *CategoryController) GetChildCategories(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetChildWorkspaces - Get children of workspace
+func (cc *WorkspaceController) GetChildWorkspaces(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -281,19 +281,19 @@ func (cc *CategoryController) GetChildCategories(w http.ResponseWriter, r *http.
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		categories, err := cc.Service.GetChildCategories(ctx, id, user.Email, requestID)
+		workspaces, err := cc.Service.GetChildWorkspaces(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4007}).Error(err)
 			common.RenderErrorJSON(w, "4007", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, categories)
+		common.RenderJSON(w, workspaces)
 	}
 }
 
-// GetParentCategory - Get parent category
-func (cc *CategoryController) GetParentCategory(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// GetParentWorkspace - Get parent workspace
+func (cc *WorkspaceController) GetParentWorkspace(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -301,19 +301,19 @@ func (cc *CategoryController) GetParentCategory(w http.ResponseWriter, r *http.R
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		category, err := cc.Service.GetParentCategory(ctx, id, user.Email, requestID)
+		workspace, err := cc.Service.GetParentWorkspace(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4008}).Error(err)
 			common.RenderErrorJSON(w, "4008", err.Error(), 402, requestID)
 			return
 		}
 
-		common.RenderJSON(w, category)
+		common.RenderJSON(w, workspace)
 	}
 }
 
-// UpdateCategory - Update Category
-func (cc *CategoryController) UpdateCategory(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// UpdateWorkspace - Update Workspace
+func (cc *WorkspaceController) UpdateWorkspace(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -321,7 +321,7 @@ func (cc *CategoryController) UpdateCategory(w http.ResponseWriter, r *http.Requ
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		form := msgservices.Category{}
+		form := msgservices.Workspace{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&form)
 		if err != nil {
@@ -329,7 +329,7 @@ func (cc *CategoryController) UpdateCategory(w http.ResponseWriter, r *http.Requ
 			common.RenderErrorJSON(w, "4009", err.Error(), 402, requestID)
 			return
 		}
-		err = cc.Service.UpdateCategory(ctx, id, &form, user.UserID, user.Email, requestID)
+		err = cc.Service.UpdateWorkspace(ctx, id, &form, user.UserID, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4010}).Error(err)
 			common.RenderErrorJSON(w, "4010", err.Error(), 402, requestID)
@@ -340,8 +340,8 @@ func (cc *CategoryController) UpdateCategory(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// DeleteCategory - delete category
-func (cc *CategoryController) DeleteCategory(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
+// DeleteWorkspace - delete workspace
+func (cc *WorkspaceController) DeleteWorkspace(w http.ResponseWriter, r *http.Request, id string, user *common.ContextData, requestID string) {
 	ctx := r.Context()
 
 	select {
@@ -349,7 +349,7 @@ func (cc *CategoryController) DeleteCategory(w http.ResponseWriter, r *http.Requ
 		common.RenderErrorJSON(w, "1002", "Client closed connection", 402, requestID)
 		return
 	default:
-		err := cc.Service.DeleteCategory(ctx, id, user.Email, requestID)
+		err := cc.Service.DeleteWorkspace(ctx, id, user.Email, requestID)
 		if err != nil {
 			log.WithFields(log.Fields{"user": user.Email, "reqid": requestID, "msgnum": 4011}).Error(err)
 			common.RenderErrorJSON(w, "4011", err.Error(), 402, requestID)
